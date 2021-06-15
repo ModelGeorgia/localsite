@@ -14,11 +14,11 @@ Also lacks CHARM.  Far from comprehensive.
 
 |||  
 |---|---|  
-| <a href="../../../info/#show=recycling" target="_parent">Recycling Processors (B2B)</a> | <a href="https://map.georgia.org/explore/#processors" target="_parent" style="display:none">cartodb</a> |
-| <a href="../../../info/#show=transfer" target="_parent">Recycling Transfer Stations (B2B)</a> | <a href="https://map.georgia.org/explore/#transfer" target="_parent" style="display:none">cartodb</a> |
-| <a href="../../../info/#show=recyclers" target="_parent">Companies that Recycle during Manufacturing</a> &nbsp; &nbsp; | <a href="https://map.georgia.org/explore/#recyclers" target="_parent" style="display:none">cartodb</a> |
-| <a href="../../../info/#show=inert" target="_parent">Inert Waste Landfills</a> | <a href="https://map.georgia.org/explore/#inert_waste_landfills" target="_parent" style="display:none">cartodb</a> |
-| <a href="../../../info/#show=landfills" target="_parent">Landfills</a> | <a href="https://map.georgia.org/explore/#landfills" target="_parent" style="display:none">cartodb</a> |
+| <a href="../../../info/#show=recycling&state=GA" target="_parent">Recycling Processors (B2B)</a> | <a href="https://map.georgia.org/explore/#processors" target="_parent" style="display:none">cartodb</a> |
+| <a href="../../../info/#show=transfer&state=GA" target="_parent">Recycling Transfer Stations (B2B)</a> | <a href="https://map.georgia.org/explore/#transfer" target="_parent" style="display:none">cartodb</a> |
+| <a href="../../../info/#show=recyclers&state=GA" target="_parent">Companies that Recycle during Manufacturing</a> &nbsp; &nbsp; | <a href="https://map.georgia.org/explore/#recyclers" target="_parent" style="display:none">cartodb</a> |
+| <a href="../../../info/#show=inert&state=GA" target="_parent">Inert Waste Landfills</a> | <a href="https://map.georgia.org/explore/#inert_waste_landfills" target="_parent" style="display:none">cartodb</a> |
+| <a href="../../../info/#show=landfills&state=GA" target="_parent">Landfills</a> | <a href="https://map.georgia.org/explore/#landfills" target="_parent" style="display:none">cartodb</a> |
 
 <br>
 
@@ -33,7 +33,7 @@ Also lacks CHARM.  Far from comprehensive.
 Post comments in our Recycling Google Sheet to submit changes.  
 
 <a href="https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing" target="google-recycling">Google Sheet Tabs</a><br> 
-<a href="https://github.com/localsite/localsite/" target="_parent">GitHub Repo for Map Interface Updates</a><br>
+<a href="https://github.com/modelearth/localsite/" target="_parent">GitHub Repo for Map Interface Updates</a><br>
 <hr>
 <a href="../../neighborhood/" target="_parent">About Maps from Google Sheets</a>
 <!--

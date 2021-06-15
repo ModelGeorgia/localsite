@@ -59,7 +59,10 @@
       style="width: 60vw; margin: 0 auto; padding-top: 2rem;"
       >
       <h1>Autocomplete Sample</h1>
-      Inactive on localhost to prevent overuse of API key.<br><br>
+
+      <!--
+      Sometimes inactive on localhost to prevent overuse of API key.<br><br>
+      -->
       
     <input 
       class="filterClick"
@@ -95,7 +98,8 @@
         setTimeout(() => {
           this.autocomplete = new google.maps.places.Autocomplete(
             document.getElementById('searchloc'),
-            {types: ['establishment', 'geocode']}
+            {types: ['establishment', 'geocode'],
+            componentRestrictions: {country: "us"}}
           );
           this.autocomplete.addListener('place_changed', this.getPlaceData);
         },1000)

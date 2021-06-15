@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/x-icon" href="../img/logo/neighborhood-icon.png" />
+<link rel="icon" type="image/x-icon" href="../img/logo/partners/neighborhood-icon.png" />
 
 <!--
   To create a widget from this page, see steps in map-embed.js.
@@ -794,7 +794,7 @@ Displayed by hashChanged() in map-filters.js
     <div id="hublist" style="margin-top:20px">
       <div id="hublist-padding">
         
-        <h1 class="listTitle" style="display:none;margin-bottom:12px"></h1>
+        <h1 class="listTitle" style="margin-bottom:12px">Loading...</h1>
         <h2 class="listSubtitle" style="display:none"></h2>
 
         <div style="display:none" class="layerclass farmfresh">
@@ -1110,9 +1110,9 @@ function loadScript(url, callback)
 }
 
 
-dual_map.init(["somevalue", 1, "controlId"]); // Used by link to feedback form
-//dual_map.helloWorld();
-//dual_map.community_root();
+localsite_app.init(["somevalue", 1, "controlId"]); // Used by link to feedback form
+//localsite_app.helloWorld();
+//localsite_app.community_root();
 
 console.log("Call loadMap1() in map.js but we need dp. Also below.");
 if (!param.go) {

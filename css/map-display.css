@@ -53,14 +53,6 @@ body {
 	background-color: #fff;
 	z-index: -1;
 }
-.filterPanel_fixed_maptop {
-	margin-top:60px;
-}
-@media (max-width: 600px) {
-	.filterPanel_backgroundXXX {
-		height:140px;
-	}
-}
 .filterPanel_fixed {
 	position: fixed;
 	top:0px;
@@ -162,11 +154,11 @@ body {
 .catList > div {
 	padding: 7px 12px 7px 18px;
 	border: solid 1px #fff;
+	border-radius: 6px;
 }
 .catList > div:hover {
 	background: #f3f3f3;
 	cursor: pointer;
-	font-weightX: bold;
 }
 #catListClone .catList {
 	width:100%;

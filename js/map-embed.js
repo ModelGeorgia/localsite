@@ -1,4 +1,3 @@
-
 /*
 // EMBED MAP - Usage:
 
@@ -6,7 +5,6 @@
  /community/map/starter/embed.html
 
 */
-
 // Add \r to end of aside rows below manually. (You can ignore this, the aside rows are not currently in use.)
 
 var styleOverrides="";
@@ -19,12 +17,13 @@ styleOverrides += ".component--main_content, .component--single_column_content {
 //styleOverrides += "p {margin: 0 0 2.2rem;}"; // Overrides Drupal 3.4rem bottom
 styleOverrides += "svg {max-width:none;}"; // Fix for embedding material icon map points in Drupal
 styleOverrides += ".visually-hidden {display: none !important;}"; // Hide text in c19 Drupal top nav
-styleOverrides+= "<\/style>";
+styleOverrides += "<\/style>";
 
 /*
-// Generate the script below by pasting map/index.html from <!-- Start HTML --> to <!-- End HTML --> into:
-// http://www.accessify.com/tools-and-wizards/developer-tools/html-javascript-convertor/
-// Choose: Build Up String Variable
+// !!!!!! DISCONTINUED - We now pull the localsite/map/index.html page in directly within the js/localsite.js page.
+// IGNORE: Generate the script below by pasting map/index.html from <!-- Start HTML --> to <!-- End HTML --> into:
+// IGNORE: http://www.accessify.com/tools-and-wizards/developer-tools/html-javascript-convertor/
+// IGNORE: Choose: Build Up String Variable
 */
 
 var strVar="";
@@ -42,13 +41,19 @@ strVar += "  <div id=\"activeLayer\" style=\"display: none\"><\/div>";
 strVar += "";
 strVar += "  ";
 strVar += "  <div class=\"hideWhenPop\">";
+strVar += "";
+strVar += "  <!-- Matches filterFields and headerFixed height -->";
+strVar += "  <div class=\"filterbarOffset\" style=\"height:56px;\"><\/div>";
+strVar += "";
 strVar += "  <div id=\"filterFieldsHolder\" class=\"contentfull noprint\" style=\"margin:0 auto; padding-top:0px; float:left; width:100%\">";
 strVar += "";
 strVar += "    <!-- Displayed on scroll up -->";
 strVar += "    <div class=\"showMenuSmNav\" style=\"float:right; display:none\">";
+strVar += "      <!-- delete";
 strVar += "      <div class=\"showSearch local\" style=\"display:none;float:left\">";
 strVar += "        <img src=\"\/localsite\/img\/icon\/search.png\" style=\"width:27px; opacity:0.5; margin:10px 20px 0 0\">";
 strVar += "      <\/div>";
+strVar += "      -->";
 strVar += "      <div class=\"showMenu\" style=\"font-size:24px;color:#999;float:left\">";
 strVar += "        <img src=\"\/localsite\/img\/icon\/hamburger.png\" style=\"width:30px; opacity:0.5; margin-top:10px\">";
 strVar += "      <\/div>";
@@ -59,7 +64,7 @@ strVar += "";
 strVar += "      <div id=\"logoholderbar\" style=\"display:none;float:left;\">";
 strVar += "      <\/div>";
 strVar += "";
-strVar += "      <div class=\"hideMobile\" style=\"float:left;\">";
+strVar += "      <div class=\"hideMobile\" style=\"float:right;\">";
 strVar += "        <div class=\"filterLabel\">";
 strVar += "            <div class=\"filterLabelMain\">";
 strVar += "            <\/div>";
@@ -78,6 +83,8 @@ strVar += "        <\/div>";
 strVar += "";
 strVar += "        <!--";
 strVar += "          https:\/\/www.maxon.net\/en\/buy";
+strVar += "";
+strVar += "          overflow:auto; causes vertical scroll to appear here:";
 strVar += "        -->";
 strVar += "        <div style=\"position:relative;\">";
 strVar += "          <div class=\"filterClick\" id=\"filterClickLocation\">";
@@ -88,7 +95,7 @@ strVar += "                https:\/\/fabriceleven.com\/design\/clever-way-to-cha
 strVar += "              <i id=\"showLocations\" class=\"material-icons\" style=\"font-size:24px;display:none\">&#xE313;<\/i>";
 strVar += "              <i id=\"hideLocations\"  class=\"material-icons\" style=\"font-size:24px;cursor:pointer;\">&#xE409;<\/i>";
 strVar += "            <\/div>";
-strVar += "            <div class=\"filterClickText locationTabText\">State...<\/div><!-- Entire State -->";
+strVar += "            <div class=\"filterClickText locationTabText\">States and Counties...<\/div><!-- Entire State -->";
 strVar += "          <\/div>";
 strVar += "        <\/div>";
 strVar += "";
@@ -275,6 +282,9 @@ strVar += "              <div class=\"hideMobile\">";
 strVar += "              <div class=\"local menuItem refreshMap\" style=\"display:none; cursor: pointer\">";
 strVar += "                <i class=\"material-icons\" style=\"font-weight:900; margin-top:-5px\">&#xE5D5;<\/i> Refresh Map";
 strVar += "              <\/div>";
+strVar += "              <div class=\"local menuItem hashTest\" style=\"display:none; cursor: pointer\">";
+strVar += "                <i class=\"material-icons\" style=\"font-weight:900; margin-top:-5px\">&#xE5D5;<\/i> Hidden Hash";
+strVar += "              <\/div>";
 strVar += "            <\/div>";
 strVar += "";
 strVar += "            <!--";
@@ -411,9 +421,6 @@ strVar += "";
 strVar += "<\/div>";
 strVar += "<!-- END FILTERS -->";
 strVar += "";
-strVar += "";
-strVar += "<!-- Matches filterFields and headerFixed height -->";
-strVar += "<div class=\"headerOffset2\" style=\"height:56px\"><\/div>";
 strVar += "";
 strVar += "<!-- Settings Panel -->";
 strVar += "<div class=\"settingsPanel topMenuOffset floater\" style=\"display:none; position:fixed\">";
@@ -758,38 +765,50 @@ strVar += "              <\/div>";
 strVar += "            <\/div>";
 strVar += "";
 strVar += "        <!-- GOOGLE ADDRESS AUTOCOMPLETE -->";
+strVar += "        <!-- USES \"Google Autocomplete\" javascript in map-filters.js ";
+strVar += "        Currently flacky.  Works after returning to page, sometimes.";
+strVar += "";
+strVar += "        For testing (this works fine):";
+strVar += "          \/localsite\/map\/auto\/";
+strVar += "        -->";
+strVar += "        <style>";
+strVar += "";
+strVar += "        <\/style>";
 strVar += "        <div id=\"app\">";
 strVar += "";
-strVar += "          <div class=\"place_details input-output\" style=\"float:left;margin-bottom:15px\">";
-strVar += "          ";
-strVar += "            <b style=\"margin-top:0px\">Address Lookup<\/b><br>";
-strVar += "          ";
-strVar += "            <input ";
-strVar += "              class=\"filterClick\"";
-strVar += "              id=\"searchloc\"";
-strVar += "              style=\"max-width:400px; float:left; display: block; width: 60vw; font-size: 1rem; font-weight: 400; line-height: 2rem;\"";
-strVar += "              placeholder=\"Enter an address, city, state, county or zip\"";
-strVar += "              onfocus=\"value = ''\" ";
-strVar += "              type=\"text\" \/>";
-strVar += "            <br><br>";
-strVar += "          ";
-strVar += "            <div style=\"display:none\">";
-strVar += "            <h3 class>Latitude: &nbsp; {{ lat }}<\/h3>";
-strVar += "            <h3>Longitude: &nbsp; {{ lng }}<\/h3>";
-strVar += "            <h3>Address: &nbsp; {{ address }}<\/h3>";
-strVar += "            <h3>State: &nbsp; {{ state }}<\/h3>";
-strVar += "            <h3>Phone: &nbsp; {{ phone }}<\/h3>";
-strVar += "            <h3>Website: &nbsp; {{ website }}<\/h3>";
+strVar += "          <div class=\"local\" style=\"display:none\">";
+strVar += "            <div class=\"place_details input-output\" style=\"float:left;margin-bottom:15px\">";
+strVar += "            ";
+strVar += "              <b style=\"margin-top:0px\">Address Lookup<\/b> <a href=\"auto\">project<\/a><br>";
+strVar += "            ";
+strVar += "              <input ";
+strVar += "                class=\"filterClick\"";
+strVar += "                id=\"searchloc\"";
+strVar += "                style=\"max-width:400px; float:left; display: block; width: 60vw; font-size: 1rem; font-weight: 400; line-height: 2rem;\"";
+strVar += "                placeholder=\"Enter an address, city, state, county or zip\"";
+strVar += "                onfocus=\"value = ''\" ";
+strVar += "                type=\"text\" \/>";
+strVar += "              <br><br>";
+strVar += "            ";
+strVar += "              <div class=\"localX\" style=\"display:none\">";
+strVar += "              <h3 class>Latitude: &nbsp; {{ lat }}<\/h3>";
+strVar += "              <h3>Longitude: &nbsp; {{ lng }}<\/h3>";
+strVar += "              <h3>Address: &nbsp; {{ address }}<\/h3>";
+strVar += "              <h3>State: &nbsp; {{ state }}<\/h3>";
+strVar += "              <h3>Phone: &nbsp; {{ phone }}<\/h3>";
+strVar += "              <h3>Website: &nbsp; {{ website }}<\/h3>";
+strVar += "              <\/div>";
+strVar += "";
+strVar += "              <div id=\"readmeDiv\"><\/div>";
 strVar += "            <\/div>";
 strVar += "";
-strVar += "            <div id=\"readmeDiv\"><\/div>";
+strVar += "            <!--";
+strVar += "            <input id=\"searchX\" autocomplete=\"off\" style=\"width:100%;max-width:400px;padding-right:27px;margin-bottom:10px\" class=\"filterClick mobileWide textInput si-input\" type=\"text\" value=\"\" ";
+strVar += "            placeholder=\"Address Lookup\"";
+strVar += "            onkeyupX=\"return SearchEnter(event);\" \/>";
+strVar += "            -->";
 strVar += "          <\/div>";
 strVar += "";
-strVar += "          <!--";
-strVar += "          <input id=\"searchX\" autocomplete=\"off\" style=\"width:100%;max-width:400px;padding-right:27px;margin-bottom:10px\" class=\"filterClick mobileWide textInput si-input\" type=\"text\" value=\"\" ";
-strVar += "          placeholder=\"Address Lookup\"";
-strVar += "          onkeyupX=\"return SearchEnter(event);\" \/>";
-strVar += "          -->";
 strVar += "        <\/div>";
 strVar += "";
 strVar += "        ";
@@ -896,7 +915,7 @@ strVar += "        <!-- \/Secondary Location Filters -->";
 strVar += "";
 strVar += "        <div style=\"clear:both\"><\/div>";
 strVar += "";
-strVar += "        <div id=\"geoPicker\">";
+strVar += "        <div id=\"geoPicker\" style=\"display:none\">";
 strVar += "          <div style=\"float:left\">";
 strVar += "            <!-- Must be displayed initiallly so tiles are visible -->";
 strVar += "              <div id=\"geomap\" style=\"width:440px; height:530px; margin:0 30px 30px 0; border:1px solid blue; position: relative\">";
@@ -957,9 +976,6 @@ strVar += "    ";
 strVar += "    <div style=\"float:right; padding: 12px 0px 10px 0\" class=\"noprint hideMobile\">";
 strVar += "      <a href=\"https:\/\/model.earth\/io\/charts\/\">About Widgets<\/a>";
 strVar += "    <\/div>";
-strVar += "    <!--";
-strVar += "      class=\"mainColumn mainColumn1\" ";
-strVar += "    -->";
 strVar += "     <div id=\"pageLinksInsert\" style=\"displayX:none; float:left; font-size: 15px; padding: 12px 30px 10px 0\">";
 strVar += "          <a onClick=\"go({}); return false;\"  href=\".\/\">Overview<\/a> | ";
 strVar += "          <a onClick=\"goHash({'go':'bioeconomy','show':''}); return false;\" href=\".\/#go=bioeconomy\">Bioeconomy<\/a> | ";
@@ -979,7 +995,7 @@ strVar += "";
 strVar += "<div style=\"clear:both\"><\/div>";
 strVar += "";
 strVar += "<div class=\"displayOnload\" style=\"display:none;position:relative\">";
-strVar += "  <div id=\"map1\" style=\"display:none;\"><\/div>";
+strVar += "  <div id=\"map1\"><\/div>";
 strVar += "  <div class=\"localonly\" id=\"legendHolder\" style=\"display:none\">";
 strVar += "    <div id=\"allLegends\"><\/div>";
 strVar += "  <\/div>";
@@ -991,7 +1007,147 @@ strVar += "<div style=\"margin:0px 40px 0 40px\"><iframe id=\"mapframe\" style=\
 strVar += "";
 strVar += "<div id=\"tableSide\" class=\"hideMobile\">";
 strVar += "";
-strVar += "  <div id='sidecolumn' class='hideprint' style=\"display: none\">";
+strVar += "  <div id='sidecolumn' class='hideprint, local, earth' style=\"display: none\">";
+strVar += "";
+strVar += "";
+strVar += "";
+strVar += "<style>";
+strVar += "  #selected_states {";
+strVar += "    border-right: 1px solid #ccc;";
+strVar += "    min-width: 150px;";
+strVar += "    display: none;";
+strVar += "    margin-left: 20px;";
+strVar += "  }";
+strVar += "  #selected_states input {";
+strVar += "    display: none;";
+strVar += "    float:left;";
+strVar += "  }";
+strVar += "  #selected_states label {";
+strVar += "    display: block;";
+strVar += "    padding: 6px 10px 4px 10px;";
+strVar += "  }";
+strVar += "  #selected_states label:hover {";
+strVar += "    background-color: #ccc;";
+strVar += "    color: #333;";
+strVar += "  }";
+strVar += "<\/style>";
+strVar += "<div style=\"display:none\" class=\"local\">";
+strVar += "<div id=\"selected_states\">";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"AL\" stateid=\"01\" lat=\"32.7396\" lon=\"-86.8435\" km=\"131174\">";
+strVar += "<label for=\"AL\" class=\"\">Alabama<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"AK\" stateid=\"02\" lat=\"63.3474\" lon=\"-152.8397\" km=\"1478927\">";
+strVar += "<label for=\"AK\" class=\"\">Alaska<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"AS\" stateid=\"60\" lat=\"-14.2672\" lon=\"-170.6683\" km=\"198\" style=\"display:none\">";
+strVar += "<label for=\"AS\" class=\"\" style=\"display:none\">American Samoa<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"AZ\" stateid=\"04\" lat=\"34.2039\" lon=\"-111.6064\" km=\"294360\">";
+strVar += "<label for=\"AZ\" class=\"\">Arizona<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"AR\" stateid=\"05\" lat=\"34.8955\" lon=\"-92.4446\" km=\"134777\">";
+strVar += "<label for=\"AR\" class=\"\">Arkansas<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"CA\" stateid=\"06\" lat=\"37.1552\" lon=\"-119.5434\" km=\"403660\">";
+strVar += "<label for=\"CA\" class=\"\">California<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"CO\" stateid=\"08\" lat=\"38.9938\" lon=\"-105.5083\" km=\"268420\">";
+strVar += "<label for=\"CO\" class=\"\">Colorado<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MP\" stateid=\"69\" lat=\"14.9368\" lon=\"145.601\" km=\"472\" style=\"display:none\">";
+strVar += "<label for=\"MP\" class=\"\" style=\"display:none\">Commonwealth of the Northern Mariana Islands<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"CT\" stateid=\"09\" lat=\"41.5799\" lon=\"-72.7467\" km=\"12542\">";
+strVar += "<label for=\"CT\" class=\"\">Connecticut<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"DE\" stateid=\"10\" lat=\"38.9986\" lon=\"-75.4416\" km=\"5047\">";
+strVar += "<label for=\"DE\" class=\"\">Delaware<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"DC\" stateid=\"11\" lat=\"38.9042\" lon=\"-77.0165\" km=\"158\" style=\"display:none\">";
+strVar += "<label for=\"DC\" class=\"\" style=\"display:none\">District of Columbia<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"FL\" stateid=\"12\" lat=\"28.4574\" lon=\"-82.4091\" km=\"138947\">";
+strVar += "<label for=\"FL\" class=\"\">Florida<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"GA\" stateid=\"13\" lat=\"32.6296\" lon=\"-83.4235\" km=\"149485\">";
+strVar += "<label for=\"GA\" class=\"\">Georgia<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"GU\" stateid=\"66\" lat=\"13.4417\" lon=\"144.7719\" km=\"544\" style=\"display:none\">";
+strVar += "<label for=\"GU\" class=\"\" style=\"display:none\">Guam<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"HI\" stateid=\"15\" lat=\"19.5978\" lon=\"-155.5024\" km=\"16634\">";
+strVar += "<label for=\"HI\" class=\"\">Hawaii<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"ID\" stateid=\"16\" lat=\"44.3484\" lon=\"-114.5589\" km=\"214050\">";
+strVar += "<label for=\"ID\" class=\"\">Idaho<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"IL\" stateid=\"17\" lat=\"40.1029\" lon=\"-89.1526\" km=\"143780\">";
+strVar += "<label for=\"IL\" class=\"\">Illinois<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"IN\" stateid=\"18\" lat=\"39.9013\" lon=\"-86.2919\" km=\"92790\">";
+strVar += "<label for=\"IN\" class=\"\">Indiana<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"IA\" stateid=\"19\" lat=\"42.07\" lon=\"-93.4933\" km=\"144660\">";
+strVar += "<label for=\"IA\" class=\"\">Iowa<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"KS\" stateid=\"20\" lat=\"38.4985\" lon=\"-98.3834\" km=\"211753\">";
+strVar += "<label for=\"KS\" class=\"\">Kansas<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"KY\" stateid=\"21\" lat=\"37.5337\" lon=\"-85.293\" km=\"102282\">";
+strVar += "<label for=\"KY\" class=\"\">Kentucky<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"LA\" stateid=\"22\" lat=\"30.8634\" lon=\"-91.7987\" km=\"111899\">";
+strVar += "<label for=\"LA\" class=\"\">Louisiana<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"ME\" stateid=\"23\" lat=\"45.4093\" lon=\"-68.6666\" km=\"79888\">";
+strVar += "<label for=\"ME\" class=\"\">Maine<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MD\" stateid=\"24\" lat=\"38.9467\" lon=\"-76.6745\" km=\"25152\">";
+strVar += "<label for=\"MD\" class=\"\">Maryland<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MA\" stateid=\"25\" lat=\"42.1565\" lon=\"-71.4896\" km=\"20204\">";
+strVar += "<label for=\"MA\" class=\"\">Massachusetts<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MI\" stateid=\"26\" lat=\"44.8442\" lon=\"-85.6605\" km=\"146609\">";
+strVar += "<label for=\"MI\" class=\"\">Michigan<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MN\" stateid=\"27\" lat=\"46.316\" lon=\"-94.1996\" km=\"206230\">";
+strVar += "<label for=\"MN\" class=\"\">Minnesota<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MS\" stateid=\"28\" lat=\"32.6865\" lon=\"-89.6561\" km=\"121537\">";
+strVar += "<label for=\"MS\" class=\"\">Mississippi<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MO\" stateid=\"29\" lat=\"38.3507\" lon=\"-92.4568\" km=\"178050\">";
+strVar += "<label for=\"MO\" class=\"\">Missouri<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"MT\" stateid=\"30\" lat=\"47.0512\" lon=\"-109.6348\" km=\"376967\">";
+strVar += "<label for=\"MT\" class=\"\">Montana<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NE\" stateid=\"31\" lat=\"41.5433\" lon=\"-99.8119\" km=\"198954\">";
+strVar += "<label for=\"NE\" class=\"\">Nebraska<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NV\" stateid=\"32\" lat=\"39.3311\" lon=\"-116.6151\" km=\"284537\">";
+strVar += "<label for=\"NV\" class=\"\">Nevada<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NH\" stateid=\"33\" lat=\"43.6727\" lon=\"-71.5843\" km=\"23189\">";
+strVar += "<label for=\"NH\" class=\"\">New Hampshire<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NJ\" stateid=\"34\" lat=\"40.1073\" lon=\"-74.6652\" km=\"19049\">";
+strVar += "<label for=\"NJ\" class=\"\">New Jersey<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NM\" stateid=\"35\" lat=\"34.4347\" lon=\"-106.1316\" km=\"314197\">";
+strVar += "<label for=\"NM\" class=\"\">New Mexico<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NY\" stateid=\"36\" lat=\"42.9134\" lon=\"-75.5963\" km=\"122050\">";
+strVar += "<label for=\"NY\" class=\"\">New York<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"NC\" stateid=\"37\" lat=\"35.5397\" lon=\"-79.1309\" km=\"125926\">";
+strVar += "<label for=\"NC\" class=\"\">North Carolina<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"ND\" stateid=\"38\" lat=\"47.4422\" lon=\"-100.4608\" km=\"178696\">";
+strVar += "<label for=\"ND\" class=\"\">North Dakota<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"OH\" stateid=\"39\" lat=\"40.4149\" lon=\"-82.712\" km=\"105824\">";
+strVar += "<label for=\"OH\" class=\"\">Ohio<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"OK\" stateid=\"40\" lat=\"35.5901\" lon=\"-97.4868\" km=\"177663\">";
+strVar += "<label for=\"OK\" class=\"\">Oklahoma<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"OR\" stateid=\"41\" lat=\"43.9717\" lon=\"-120.623\" km=\"248608\">";
+strVar += "<label for=\"OR\" class=\"\">Oregon<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"PA\" stateid=\"42\" lat=\"40.9046\" lon=\"-77.8275\" km=\"115880\">";
+strVar += "<label for=\"PA\" class=\"\">Pennsylvania<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"PR\" stateid=\"72\" lat=\"18.2176\" lon=\"-66.4108\" km=\"8869\" style=\"display:none\">";
+strVar += "<label for=\"PR\" class=\"\" style=\"display:none\">Puerto Rico<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"RI\" stateid=\"44\" lat=\"41.5974\" lon=\"-71.5273\" km=\"2678\">";
+strVar += "<label for=\"RI\" class=\"\">Rhode Island<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"SC\" stateid=\"45\" lat=\"33.8742\" lon=\"-80.8543\" km=\"77865\">";
+strVar += "<label for=\"SC\" class=\"\">South Carolina<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"SD\" stateid=\"46\" lat=\"44.4468\" lon=\"-100.2382\" km=\"196346\">";
+strVar += "<label for=\"SD\" class=\"\">South Dakota<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"TN\" stateid=\"47\" lat=\"35.8608\" lon=\"-86.35\" km=\"106806\">";
+strVar += "<label for=\"TN\" class=\"\">Tennessee<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"TX\" stateid=\"48\" lat=\"31.4347\" lon=\"-99.2818\" km=\"676668\">";
+strVar += "<label for=\"TX\" class=\"\">Texas<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"VI\" stateid=\"78\" lat=\"18.3267\" lon=\"-64.9713\" km=\"348\" style=\"display:none\">";
+strVar += "<label for=\"VI\" class=\"\" style=\"display:none\">United States Virgin Islands<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"UT\" stateid=\"49\" lat=\"39.335\" lon=\"-111.6563\" km=\"213355\">";
+strVar += "<label for=\"UT\" class=\"\">Utah<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"VT\" stateid=\"50\" lat=\"44.0686\" lon=\"-72.6692\" km=\"23874\">";
+strVar += "<label for=\"VT\" class=\"\">Vermont<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"VA\" stateid=\"51\" lat=\"37.5223\" lon=\"-78.6682\" km=\"102258\">";
+strVar += "<label for=\"VA\" class=\"\">Virginia<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"WA\" stateid=\"53\" lat=\"47.4073\" lon=\"-120.5758\" km=\"172118\">";
+strVar += "<label for=\"WA\" class=\"\">Washington<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"WV\" stateid=\"54\" lat=\"38.6473\" lon=\"-80.6183\" km=\"62266\">";
+strVar += "<label for=\"WV\" class=\"\">West Virginia<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"WI\" stateid=\"55\" lat=\"44.6309\" lon=\"-89.7094\" km=\"140293\">";
+strVar += "<label for=\"WI\" class=\"\">Wisconsin<\/label>";
+strVar += "<input type=\"checkbox\" class=\"selected_state\" name=\"local-states\" id=\"WY\" stateid=\"56\" lat=\"42.9897\" lon=\"-107.5444\" km=\"251459\">";
+strVar += "<label for=\"WY\" class=\"\">Wyoming<\/label>";
+strVar += "<\/div>";
+strVar += "<\/div>";
+strVar += "";
 strVar += "  <\/div>";
 strVar += "";
 strVar += "  <!-- INDUSTRIES -->";
@@ -1141,7 +1297,7 @@ strVar += "  <div id=\"flexwrapper\">";
 strVar += "    <div id=\"hublist\" style=\"margin-top:20px\">";
 strVar += "      <div id=\"hublist-padding\">";
 strVar += "        ";
-strVar += "        <h1 class=\"listTitle\" style=\"display:none;margin-bottom:12px\"><\/h1>";
+strVar += "        <h1 class=\"listTitle\" style=\"margin-bottom:12px\">Loading...<\/h1>";
 strVar += "        <h2 class=\"listSubtitle\" style=\"display:none\"><\/h2>";
 strVar += "";
 strVar += "        <div style=\"display:none\" class=\"layerclass farmfresh\">";
@@ -1285,96 +1441,7 @@ strVar += "        <div id=\"disclaimerText\" class=\"layerclass ppe suppliers\"
 strVar += "          <b>Disclaimer:<\/b>  The Georgia Department of Economic Development (GDEcD) is collecting information from Georgia companies that indicate they are producing essential medical supplies in response to the COVID-19 pandemic. GDEcD is sharing these companies’ information with Georgia’s units of local government and other potential in-state buyers of these essential medical supplies merely as a courtesy. The following product information and addresses were submitted by private companies to GDEcD, and this list does not constitute an endorsement of any particular company or product by the State or by GDEcD.  GDEcD does not make any representations or warranties as to the accuracy of this information, or as to the quality or quantity of the products offered by these companies. Buyers use this information at their own risk.  Buyers are encouraged to contact the companies directly, for product specifications, delivery options, and other information required for executing a purchase.  Buyers are cautioned to make their own determinations regarding supplier responsibility, including but not limited to assessing whether the supplier has appropriate financial, organization and operational capacity, appropriate legal authority to do business in Georgia, a satisfactory record of integrity, and an acceptable performance record on past contracts.";
 strVar += "        <\/div>";
 strVar += "";
-strVar += "        <!-- INDUSTRIES -->";
-strVar += "        <div class=\"mock-up\" style=\"display:none; padding-bottom:80px\">";
-strVar += "";
-strVar += "          <!-- TOP WIDGETS -->";
-strVar += "          <div>";
-strVar += "";
-strVar += "            <div style=\"margin-bottom:14px\">";
-strVar += "              <b style=\"font-size:16px\">About<\/b><br>";
-strVar += "              <a href=\"https:\/\/model.earth\/io\/charts\">Embeddable  charts<\/a> - ";
-strVar += "              <a href=\".\/?show=pickup&design=1\">Design Ideas<\/a> - ";
-strVar += "              <a href=\".\/?show=suppliers\">C19 Logistics<\/a>";
-strVar += "            <\/div>";
-strVar += "";
-strVar += "            <div style=\"display:none; float:left; margin-right:30px\">";
-strVar += "              Changing filters will update the URL hash value, which will trigger updates to independent widgets.";
-strVar += "";
-strVar += "              <b>Location & Weight:<\/b> Country, State, County, Zip<br>";
-strVar += "              <b>BEA Sector & Intensity:<\/b> Industry ID : Percent<br>";
-strVar += "              <b>Census & Level:<\/b> Population, Education, etc.<br>";
-strVar += "              <b>Product HS Codes<\/b>";
-strVar += "            <\/div>";
-strVar += "            ";
-strVar += "            <div style=\"clear:both\"><\/div>";
-strVar += "";
-strVar += "";
-strVar += "            ";
-strVar += "            <div style=\"overflow: auto;\" class=\"leftWidget eWidget\">";
-strVar += "             ";
-strVar += "                <!-- POSITIVE OUTCOMES -->";
-strVar += "                <div class=\"widgetbar\">";
-strVar += "                  <div style=\"float:left\">OUTCOME<\/div>";
-strVar += "                  <div style=\"float:right; padding-right:10px\"><span style='color:#555'>YOUR SCORE:<\/span> 500<\/div>";
-strVar += "                <\/div>";
-strVar += "                <div class=\"topboxes outcomesbox\" style=\"min-height: 120px\">";
-strVar += "";
-strVar += "                  <!-- was width:230px; -->";
-strVar += "                  <div style=\"float:left;width:250px; margin-right:30px\">";
-strVar += "                    <div>1. Value-Added <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>2. Quality Jobs <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>3. Clean Air <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>4. Clean Water <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>5. Clean Energy <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    ";
-strVar += "                  <\/div>";
-strVar += "                  <div style=\"float:left;width:250px\">";
-strVar += "                    <div>6. Local Suppliers <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>7. Green Materials <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>8. Inclusive Design <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>9. Improves Health <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                    <div>10. Creates Beauty <span><img src=\"\/localsite\/info\/img\/greenbar.gif\" style=\"width:80px;height:14px;margin-right:8px\">50<\/span><\/div>";
-strVar += "                  <\/div>";
-strVar += "                <\/div>";
-strVar += "              ";
-strVar += "            <\/div>";
-strVar += "            <div style=\"clear:both\"><\/div>";
-strVar += "";
-strVar += "";
-strVar += "            <div style=\"overflow: auto;\" class=\"leftWidget eWidget\">";
-strVar += "                <div class=\"widgetbar\">";
-strVar += "                  ADVERSE IMPACTS";
-strVar += "                  <div style=\"float:right; font-weight:400; padding-right:10px\">";
-strVar += "                  Supply Chain - Full System - Production";
-strVar += "                  <\/div>";
-strVar += "                <\/div>";
-strVar += "                <div style=\"clear:both\">";
-strVar += "                <\/div>";
-strVar += "                <div class=\"topboxes\">";
-strVar += "                  <div style=\"display:none; border-bottom: 1px solid #eee; padding-bottom:8px; margin-bottom:8px\">";
-strVar += "                    <b>Perspective:<\/b> Supply Chain, Point of Consumption<br>";
-strVar += "                    <b>System:<\/b> Full System, Food System<br>";
-strVar += "                    <b>Type:<\/b> Consumption, Production<br>";
-strVar += "                    <b>Indicator & Weight:<\/b> Impact, Resources, Waste, Chem, Econ<br>";
-strVar += "                  <\/div>";
-strVar += "";
-strVar += "                  <div class=\"column50\" style=\"float:left\"><img src=\"\/localsite\/info\/img\/impacts1.gif\" style=\"width:100%; padding-right:40px\" \/>";
-strVar += "                  <\/div>";
-strVar += "                  <div class=\"column50mid\" style=\"float:left\">&nbsp;";
-strVar += "                  <\/div>";
-strVar += "                  <div class=\"column50\" style=\"float:left\"><img src=\"\/localsite\/info\/img\/impacts2.gif\" style=\"width:100%; padding-right:40px\" \/>";
-strVar += "                  <\/div>";
-strVar += "              <\/div>";
-strVar += "";
-strVar += "            <\/div>";
-strVar += "";
-strVar += "          <\/div>";
-strVar += "          <!-- END TOP WIDGETS -->";
-strVar += "          &nbsp;";
-strVar += "          <br><br>";
-strVar += "        <\/div>";
-strVar += "        <!-- \/INDUSTRIES -->";
+strVar += "        ";
 strVar += "";
 strVar += "      <\/div>";
 strVar += "";
@@ -1409,25 +1476,33 @@ strVar += "<!-- End HTML -->";
 // Hidden until search-filters.css loads
 document.write("<div id=\"filterEmbedHolder\" style=\"display:none;position:relative\">" + styleOverrides + strVar + "<\/div> ");
 
-
-
 // COMMON
 function loadScript(url, callback)
 {
-	url = url.replace(/^.*\/\/[^\/]+/, ''); // Allows id's to always omit the domain.
-	if (!document.getElementById(url)) { // Prevents multiple loads.
+	let urlID = url.replace(/^.*\/\/[^\/]+/, ''); // Allows id's to always omit the domain.
+	if (!document.getElementById(urlID)) { // Prevents multiple loads.
+		console.log("loadScript seeking: " + url);
 		var script = document.createElement('script');
 	    script.type = 'text/javascript';
 	    script.src = url;
-		  script.id = url; // Prevents multiple loads.
+		script.id = urlID; // Prevents multiple loads.
 	    // Bind the event to the callback function. Two events for cross browser compatibility.
-	    script.onreadystatechange = callback;
-	    script.onload = callback;
+	    //script.onreadystatechange = callback; // This apparently is never called by Brave, but needed for some of the other browsers.
+	    script.onreadystatechange = function() { // Cound eliminate these 3 lines and switch back to the line above.
+	    	console.log("loadScript ready: " + url); // This apparently is never called by Brave.
+            callback();
+        }
+	    //script.onload = callback;
+	    script.onload = function() {
+          	console.log("loadScript loaded: " + url); // Once the entire file is processed.
+            callback();
+        } 
+
         //$(document).ready(function () { // Only needed if appending to body
            var head = document.getElementsByTagName('head')[0];
 	       head.appendChild(script);
         //});
-        console.log("loadScript loaded: " + url);
+        
 	} else {
 		console.log("loadScript script already available: " + url);
 		if(callback) callback();
@@ -1511,6 +1586,7 @@ function loadParam(paramStr,hashStr) { // Note that function name is singular to
    }
    return params;
 }
+/*
 function mix(incoming, target) { // Combine two objects, priority to incoming. Delete blanks indicated by incoming.
    target2 = jQuery.extend(true, {}, target); // Clone/copy object without entanglement
    for(var key in incoming) {
@@ -1524,11 +1600,12 @@ function mix(incoming, target) { // Combine two objects, priority to incoming. D
    }
    return target2;
 }
+*/
 // END COMMON
 
 // UNIQUE TO PAGE
 function jsLoaded(root) {
-	loadScript(root + '/localsite/js/localsite.js', function(results) {
+	loadScript(root + 'js/localsite.js', function(results) {
 
 	  	var strVarCss = "<style>";
 		if (param["show"] == "suppliers") {
@@ -1552,28 +1629,36 @@ function jsLoaded(root) {
 		document.head.insertAdjacentHTML("beforeend", strVarCss);
 
 		if (param.preloadmap != "false") {
-		  	loadScript(root + '/localsite/js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
-		    	loadScript(root + '/localsite/js/map.js', function(results) {
-		  			loadSearchFilters(root,1); // Uses dual_map library in localsite.js for community_data_root
-		  		});
+		  	loadScript(root + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
+		    	loadScript(root + 'js/localsite.js', function(results) {
+		    		loadScript(root + 'js/map.js', function(results) {
+			  			loadSearchFilters(root,1); // Uses localsite_app library in localsite.js for community_data_root
+			  		});
+			  		if (param.shownav) {
+			  			loadScript(root + 'js/navigation.js', function(results) {});
+			  		}
+			  	});
 		    });
 		  }
 	});
 
-	loadScript(root + '/localsite/js/table-sort.js', function(results) {});
+	loadScript(root + 'js/table-sort.js', function(results) {});
 }
 function leafletLoaded(root, count) {
 	console.log("From leafletLoaded typeof L: " + typeof L);
 	if (typeof L !== 'undefined') {
+		console.log("leafletLoaded:");
 		console.log(L);
-	  // The large d3-legend.js script is flawed because it throws errors due to dependencies on leaflet script, so we can not load early.
-		loadScript(root + '/localsite/js/leaflet.icon-material.js');
-		loadScript(root + '/localsite/js/jquery.min.js', function(results) {
+	  	// The large d3-legend.js script is flawed because it throws errors due to dependencies on leaflet script, so we can not load early.
+		loadScript(root + 'js/leaflet.icon-material.js', function(results) {});
+		loadScript(root + 'js/jquery.min.js', function(results) {
 			if (param.preloadmap != "false") {
-				loadScript(root + '/localsite/js/d3.v5.min.js', function(results) {
-					loadScript(root + '/localsite/js/map.js', function(results) { // BUG - change so dual-map does not require this on it's load
-						//loadScript(root + '/localsite/js/d3-legend.js', function(results) { // This checks that load above is completed.
-				  		dualmapLoaded(param, root, 1);
+				loadScript(root + 'js/d3.v5.min.js', function(results) {
+					loadScript(root + 'js/localsite.js', function(results) {
+						loadScript(root + 'js/map.js', function(results) { // BUG - change so dual-map does not require this on it's load
+							//loadScript(root + 'js/d3-legend.js', function(results) { // This checks that load above is completed.
+					  		dualmapLoaded(param, root, 1);
+					  	});
 				  	});
 				});
 			}
@@ -1597,7 +1682,7 @@ function loadSearchFilters(root, count) {
 	if (typeof customD3loaded !== 'undefined' && typeof localsite_map !== 'undefined') {
 		//alert("localsite_map " + localsite_map)
 		//loadScript(root + 'https://cdn.jsdelivr.net/npm/vue', function(results) { // Need to check if function loaded
-			loadScript(root + '/localsite/js/map-filters.js', function(results) {});
+			loadScript(root + 'js/map-filters.js', function(results) {});
 		//});
 	} else if (count<100) { // Wait a milisecond and try again
 		setTimeout( function() {
@@ -1610,41 +1695,101 @@ function loadSearchFilters(root, count) {
 
 } 
 
+let localsite_repo2; // TEMP HERE
+function extractHostnameAndPort2(url) { // TEMP HERE
+    let hostname;
+    //find & remove protocol (http, ftp, etc.) and get hostname
+
+    if (url.indexOf("//") > -1) {
+        hostname = url.split('/')[2];
+    }
+    else {
+        hostname = url.split('/')[0];
+    }
+
+    //find & remove port number
+    //hostname = hostname.split(':')[0];
+    //find & remove "?"
+    hostname = hostname.split('?')[0];
+
+    return hostname;
+}
+function get_localsite_root() { // TEMP HERE
+//alert("call localsite_repo");
+            if (localsite_repo2) { // Intensive, so allows to only run once
+              //alert(localsite_repo);
+              return(localsite_repo2);
+            }
+
+            let scripts = document.getElementsByTagName('script'); 
+            let myScript = scripts[ scripts.length - 1 ]; // Last script on page, typically the current script localsite.js
+            //let myScript = null;
+            // Now try to find one containging map-embed.js
+            for (var i = 0; i < scripts.length; ++i) {
+                if(scripts[i].src && scripts[i].src.indexOf('map-embed.js') !== -1){
+                  myScript = scripts[i];
+                }
+            }
+            let hostnameAndPort = extractHostnameAndPort2(myScript.src);
+            let root = location.protocol + '//' + location.host + '/localsite/';
+
+            if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map
+              //root = "https://map.georgia.org/localsite/";
+              root = hostnameAndPort + "/localsite/";
+            }
+            
+            if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
+              // Omit known hosts of "localsite" repo here.
+
+              //root = "https://model.earth/localsite/";
+              root = hostnameAndPort + "/localsite/";
+              console.log("myScript.src hostname and port: " + extractHostnameAndPort2(myScript.src) + "\rwindow.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
+            }
+            if (location.host.indexOf('localhost') >= 0) {
+              // Enable to test embedding without locathost repo in site root. Rename your localsite folder.
+              //root = "https://model.earth/localsite/";
+            }
+            localsite_repo2 = root; // Save to reduce DOM hits
+            return (root);
+}
 function lazyLoadFiles() {
-	let root = location.protocol + '//' + location.host;
+	//let root = location.protocol + '//' + location.host;
+	let root = get_localsite_root();
 	if (location.host.indexOf('localhost') < 0) {
-		root = "https://neighborhood.org";
+	//	root = "https://model.earth/";
 	}
-	loadScript(root + '/localsite/js/jquery.min.js', function(results) {
+	loadScript(root + 'js/jquery.min.js', function(results) {
 		jsLoaded(root);
 	});
 
 	// Load early so available later
 	if (param.preloadmap != "false") {
-		loadScript(root + '/localsite/js/d3.v5.min.js', function(results) { // BUG - change so dual-map does not require this on it's load
-			loadScript(root + '/localsite/js/map.js', function(results) {});
+		loadScript(root + 'js/d3.v5.min.js', function(results) { // BUG - change so dual-map does not require this on it's load
+			loadScript(root + 'js/localsite.js', function(results) {
+				loadScript(root + 'js/map.js', function(results) {});
+			});
 		});
 	}
 	if (param.preloadmap != "false") {
-		includeCSS(root + '/localsite/css/leaflet.css',root);
+		includeCSS(root + 'css/leaflet.css',root);
 		// Resides AFTER css/leaflet.css
-		loadScript(root + '/localsite/js/leaflet.js', function(results) {
+		loadScript(root + 'js/leaflet.js', function(results) {
 			leafletLoaded(root,1);
 		});
  	}
-	//includeCSS(root + '/localsite/css/localsite.css',root);
-	includeCSS(root + '/localsite/css/base.css',root);
-	includeCSS(root + '/localsite/css/search-filters.css',root);
+	//includeCSS(root + 'css/localsite.css',root);
+	includeCSS(root + 'css/base.css',root);
+	includeCSS(root + 'css/search-filters.css',root);
 	if (param.preloadmap != "false") {
-		includeCSS(root + '/localsite/css/map-display.css',root);
+		includeCSS(root + 'css/map-display.css',root);
 	}
-	//includeCSS(root + '/localsite/css/hexagons.css',root);
+	//includeCSS(root + 'css/hexagons.css',root);
 
 
 	
 	includeCSS('https://fonts.googleapis.com/icon?family=Material+Icons',root);
-	includeCSS(root + '/localsite/css/leaflet.icon-material.css',root);
-	includeCSS(root + '/localsite/css/map.css',root);
+	includeCSS(root + 'css/leaflet.icon-material.css',root);
+	includeCSS(root + 'css/map.css',root);
 }
 
 lazyLoadFiles();
@@ -1653,21 +1798,24 @@ function dualmapLoaded(param, root, count) {
 	if (typeof localsite_map !== 'undefined' && typeof L.IconMaterial !== 'undefined') {
 		//localsite_map.init(["somevalue", 1, "controlId"]); // Used by link to feedback form
 
+		// BUGBUG - Images are already in the DOM, so they will be loaded once as a broken image.
 		$("#filterEmbedHolder img[src]").each(function() {
 			  if($(this).attr("src").toLowerCase().indexOf("http") < 0){
-		  		$(this).attr("src", root + $(this).attr('src'));
+			  	// 
+		  		//$(this).attr("src", root + $(this).attr('src'));
 			  }
 		})
 		//loadScript(root + 'https://cdn.jsdelivr.net/npm/vue', function(results) { // Need to check if function loaded
-			loadScript(root + '/localsite/js/map-filters.js', function(results) {
+			loadScript(root + 'js/map-filters.js', function(results) {
 
-				loadMap1("map-embed.js");
+				//loadMap1("map-embed.js"); // Now in map-filters.js
+				/*
 				document.addEventListener('hashChangeEvent', function (elem) {
 					//param = loadParam(location.search,location.hash);
 					console.log("embed-map.js detects hashChangeEvent");
 					loadMap1("map-embed.js from hashChangeEvent");
 				}, false);
-				
+				*/
 			});
 		//});
 	} else if (count<100) { // Wait a 100th of a second and try again

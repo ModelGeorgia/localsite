@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/x-icon" href="../img/logo/neighborhood-icon.png" />
+<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 
 <!--
   To create a widget from this page, see steps in map-embed.js.
@@ -16,12 +16,17 @@
 
 <script type="text/javascript" src="../js/showdown.min.js"></script>
 <script type="text/javascript" src="../js/jquery.min.js"></script>
-<script type="text/javascript" src="../js/localsite.js"></script>
+<script type="text/javascript" src="../js/localsite.js?showheader=true"></script>
 
 <script>
   let hash = getHash();
   if (!hash.show) {
     hiddenhash.show = "brigades"; // Used by loadFromSheet which is called by loadMap1
+  }
+  if (!hash.state) {
+    if (hash.show == "recycling" || hash.show == "ppe" || hash.show == "suppliers" || hash.show == "360" || hash.show == "opendata") {
+      hiddenhash.state = "GA";
+    }
   }
 </script>
 
@@ -38,7 +43,7 @@
     if(typeof param == 'undefined') {
       var param = {};
     }
-    if (location.host.indexOf('georgia') < 0) {
+    if (location.host.indexOf('codeforamerica') >= 0) {
       param.titleArray = ["code","for","america"]
       param.startTitle = "Code for America"
     }
@@ -61,8 +66,11 @@
 <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 -->
 
+
+
 <!-- after d3 -->
-<script type="text/javascript" src="/localsite/js/map-filters.js" id="/localsite/js/map-filters.js"></script>
+<script type="text/javascript" src="../js/map-filters.js" id="/localsite/js/map-filters.js"></script>
+<script type="text/javascript" src="../js/map.js" id="/localsite/js/map.js"></script>
 <script type="text/javascript" src="../js/table-sort.js" id="/localsite/js/table-sort.js"></script>
 
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -71,7 +79,7 @@
 <!--
 <script src="../js/d3/d3-legend.js"></script>
 -->
-<script type="text/javascript" src="../js/map.js"></script>
+
 <link rel="stylesheet" href="../css/map.css" />
 
 
@@ -93,6 +101,7 @@
 </head>
 
 <body>
+
 
 <!-- INTRO -->
 
@@ -124,13 +133,34 @@
 </script>
 <!-- /INTRO -->
 
+<div id="insertedText">
 
 <!-- Start HTML -->
+
+<style type="text/css">
+  .show-on-load {display: none;}
+  /* STYLE OVERRIDES FOR DRUPAL */
+  #legendHolder {min-width: 270px;}
+  .component--custom_markup > .content {max-width:100%}
+  .component--main_content, .component--single_column_content {padding:0px}
+  svg {max-width:none;}
+  .visually-hidden {display: none !important;}
+</style>
+
+<div id="log_display" style="display:none" class="localonlyX"><span style='float:left; font-size:10px'>LOG</span><br><textarea id="logText">MyTest</textarea></div>
+
+<!-- Also update headerbar and headerOffset 
+class="headerbarheight"
+-->
+
+
+<div class="filterbarOffset" style="height:56px;"></div>
 
 <!-- FILTERS -->
 <div class="search-filters-css" style="display:none">
 <div id="headerFixed" class="filterPanel">
-  <div class="headerOffset headerOffsetOne" style="display: none">&nbsp;</div>
+
+  <div class="headerOffset headerOffsetOne">&nbsp;</div>
 
   <div class="filterPanel_background">
   </div>
@@ -139,9 +169,6 @@
 
   
   <div class="hideWhenPop">
-
-  <!-- Matches filterFields and headerFixed height -->
-  <div class="headerOffset2" style="height:56px;"></div>
 
   <div id="filterFieldsHolder" class="contentfull noprint" style="margin:0 auto; padding-top:0px; float:left; width:100%">
 
@@ -162,13 +189,13 @@
       <div id="logoholderbar" style="display:none;float:left;">
       </div>
 
-      <div class="hideMobile" style="float:left;">
+      <div class="hideMobile" style="float:right;">
         <div class="filterLabel">
             <div class="filterLabelMain">
             </div>
         </div>
-        <div class="showApps local" style="display:none; padding:0; border:0px solid #ccc; margin-right:4px">
-          <i class="material-icons georgiaorg-hide" style="font-size:34px">&#xE5C3;</i>
+        <div class="showApps" style="border:0px solid #ccc;">
+          <i class="material-icons show-on-load georgiaorg-hide" style="font-size:34px">&#xE5C3;</i>
         </div>
       </div>
 
@@ -191,9 +218,9 @@
               <!-- We could place over all select menus
                 https://fabriceleven.com/design/clever-way-to-change-the-drop-down-selector-arrow-icon/ -->
               <i id="showLocations" class="material-icons" style="font-size:24px;display:none">&#xE313;</i>
-              <i id="hideLocations"  class="material-icons" style="font-size:24px;cursor:pointer;">&#xE409;</i>
+              <i id="hideLocations"  class="material-icons show-on-load" style="font-size:24px;cursor:pointer;">&#xE409;</i>
             </div>
-            <div class="filterClickText locationTabText">State...</div><!-- Entire State -->
+            <div class="filterClickText locationTabText">States and Counties...</div><!-- Entire State -->
           </div>
         </div>
 
@@ -212,7 +239,7 @@
             <div class="filterClick showApps" style="position:relative; overflow:auto;">
 
               <div class="select-menu-arrow-holder">
-                  <i class="material-icons" style="font-size:24px;cursor:pointer;">&#xE409;</i>
+                  <i class="material-icons show-on-load" style="font-size:24px;cursor:pointer;">&#xE409;</i>
                   <i class="material-icons" style="font-size:24px;cursor:pointer;display:none;">&#xE313;</i>
               </div>
               <div style="width:100%">
@@ -237,7 +264,7 @@
 
                 <div class="select-menu-arrow-holder">
                   <i class="material-icons" style="font-size:24px;cursor:pointer;display:none;">&#xE409;</i>
-                  <i class="material-icons" style="font-size:24px;cursor:pointer;">&#xE313;</i>
+                  <i class="material-icons show-on-load" style="font-size:24px;cursor:pointer;">&#xE313;</i>
                 </div>
                 <!--
                 <select id="selectProduct" class="selectMenu" style="float:left">
@@ -269,7 +296,7 @@
           </div>
           <!--
           <div style="position:absolute; right:8px; top:10px; z-index:1">
-            <i id="showAdvancedXXX" class="material-icons" style="font-size:24px;cursor:pointer">&#xE409;</i>
+            <i id="showAdvancedXXX" class="material-icons show-on-load" style="font-size:24px;cursor:pointer">&#xE409;</i>
             
           </div>
           -->
@@ -355,21 +382,21 @@
             </div>
           </div>
 
-          <div class="toggleListOptions pagebutton" style="margin-right:15px"><i class="material-icons dots-vertical" style="font-weight:900; font-size: 32px; padding:0px; margin:0px">&#xE5C5;</i>
+          <div class="toggleListOptions pagebutton" style="margin-right:15px"><i class="material-icons show-on-load dots-vertical" style="font-weight:900; font-size: 32px; padding:0px; margin:0px">&#xE5C5;</i>
           </div>
 
           <div class="listOptions filterBubble">
 
             <div class="hideEmbed" style="display:none">
 
-              <div class="reduceHeader menuItem" style="display:none"><i class="material-icons" style="margin-top:-5px;">&#xE3C4;</i>Narrow Header</div>
+              <div class="reduceHeader menuItem" style="display:none"><i class="material-icons show-on-load" style="margin-top:-5px;">&#xE3C4;</i>Narrow Header</div>
 
               <!-- Google Icons - search for "crop" -->
               <div class="revealImage menuItem" style="display:none"><i class="material-icons" style="margin-top:-5px;">&#xE3C4;</i>Full Header Image</div>
 
-              <div class="hideInfo hideInfoLink menuItem"><i class="material-icons" style="margin-top:-5px">&#xE88E;</i>Hide Bar</div>
+              <div class="hideInfo hideInfoLink menuItem"><i class="material-icons show-on-load" style="margin-top:-5px">&#xE88E;</i>Hide Bar</div>
 
-              <div class="showInfo showInfoLink menuItem" style="display:none"><i class="material-icons" style="margin-top:-10px">&#xE88E;</i>Show Info</div>
+              <div class="showInfo showInfoLink menuItem" style="display:none"><i class="material-icons show-on-load" style="margin-top:-10px">&#xE88E;</i>Show Info</div>
 
             </div>
 
@@ -517,6 +544,12 @@
 
 
 </div>
+
+<!-- Same height as filterbarOffset within header above -->
+<!--
+<div class="filterbarOffset2" style="displayX:none;height:56px;"></div>
+-->
+
 <!-- END FILTERS -->
 
 
@@ -725,7 +758,7 @@
 <div style="clear:both"></div>
 <!-- /APP MENU -->
 
-            
+
 <!-- LOCATION SEARCH -->
 <!-- For inactive portions - copy scripts from explore/js/embed.js -->
 <div id="filterLocations" class="fieldSelector filterBubbleHolder">
@@ -753,7 +786,7 @@
       -->
     
     
-      <div class="hideMobile" style="display:none; float:left; clear:both">
+      <div class="hideMobile localonly" style="display:none; float:left; clear:both">
         <ul class="filterUL" style="margin:18px 12px 0 30px;clear:both;min-width:120px;float:left">
 
             <li data-id="all" style="display:none"><a href="#">All</a></li>
@@ -784,15 +817,16 @@
               <b>State</b><br>
                 <select id="state_select" name="state">
                  <option></option>
-<option value="AL" stateid="01" lat="32.7396" lon="-86.8435" km="131174">Alabama</option>
-<option value="AK" stateid="02" lat="63.3474" lon="-152.8397" km="1478927">Alaska</option>
+<!-- Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
+<option value="AL" stateid="1" lat="32.7396" lon="-86.8435" km="131174">Alabama</option>
+<option value="AK" stateid="2" lat="63.3474" lon="-152.8397" km="1478927">Alaska</option>
 <option value="AS" stateid="60" lat="-14.2672" lon="-170.6683" km="198"  style="display:none">American Samoa</option>
-<option value="AZ" stateid="04" lat="34.2039" lon="-111.6064" km="294360">Arizona</option>
-<option value="AR" stateid="05" lat="34.8955" lon="-92.4446" km="134777">Arkansas</option>
-<option value="CA" stateid="06" lat="37.1552" lon="-119.5434" km="403660">California</option>
-<option value="CO" stateid="08" lat="38.9938" lon="-105.5083" km="268420">Colorado</option>
+<option value="AZ" stateid="4" lat="34.2039" lon="-111.6064" km="294360">Arizona</option>
+<option value="AR" stateid="5" lat="34.8955" lon="-92.4446" km="134777">Arkansas</option>
+<option value="CA" stateid="6" lat="37.1552" lon="-119.5434" km="403660">California</option>
+<option value="CO" stateid="8" lat="38.9938" lon="-105.5083" km="268420">Colorado</option>
 <option value="MP" stateid="69" lat="14.9368" lon="145.601" km="472" style="display:none">Commonwealth of the Northern Mariana Islands</option>
-<option value="CT" stateid="09" lat="41.5799" lon="-72.7467" km="12542">Connecticut</option>
+<option value="CT" stateid="9" lat="41.5799" lon="-72.7467" km="12542">Connecticut</option>
 <option value="DE" stateid="10" lat="38.9986" lon="-75.4416" km="5047">Delaware</option>
 <option value="DC" stateid="11" lat="38.9042" lon="-77.0165" km="158" style="display:none">District of Columbia</option>
 <option value="FL" stateid="12" lat="28.4574" lon="-82.4091" km="138947">Florida</option>
@@ -854,7 +888,7 @@
                   <option value='Metro Atlanta' lat='33.8498' lon='-84.4383' geo='US13121,US13097,US13067,US13,US13057,US13113,US13063,US13089,US13135,US13151,US13247'>Metro Atlanta</option>
                   <option value='West Central Georgia' lat='33.0362' lon='-85.0322' geo='US13045,US13077,US13143,US13145,US13149,US13199,US13223,US13233,US13263,US13285,US01111,US01017'>West Central Georgia</option>
                   <option value='Central Georgia' lat='32.3771' lon='-82.5924' geo='US13023,US13043,US13091,US13109,US13167,US13175,US13209,US13267,US13271,US13279,US13283,US13309,US13315,US13107,US13235'>Central Georgia</option>
-                  <option value='Savannah Coastal' lat='32.0809' lon='-81.0912'  geo='US13127,US13039,US13191,US13179,US13029,US13051'>Coastal Georgia</option>
+                  <option value='Coastal Georgia' lat='32.0809' lon='-81.0912'  geo='US13127,US13039,US13191,US13179,US13029,US13051'>Coastal Georgia</option>
                   <option value='Southeast Coastal' lat='31.1891' lon='-81.4979' geo='US13001,US13005,US13127,US13161,US13229,US13305'>Southeast Coastal</option>
                 </select>
                 <br><br>
@@ -863,41 +897,50 @@
             </div>
 
         <!-- GOOGLE ADDRESS AUTOCOMPLETE -->
+        <!-- USES "Google Autocomplete" javascript in map-filters.js 
+        Currently flacky.  Works after returning to page, sometimes.
+
+        For testing (this works fine):
+          /localsite/map/auto/
+        -->
         <style>
 
         </style>
         <div id="app">
 
-          <div class="place_details input-output" style="float:left;margin-bottom:15px">
-          
-            <b style="margin-top:0px">Address Lookup</b><br>
-          
-            <input 
-              class="filterClick"
-              id="searchloc"
-              style="max-width:400px; float:left; display: block; width: 60vw; font-size: 1rem; font-weight: 400; line-height: 2rem;"
-              placeholder="Enter an address, city, state, county or zip"
-              onfocus="value = ''" 
-              type="text" />
-            <br><br>
-          
-            <div style="display:none">
-            <h3 class>Latitude: &nbsp; {{ lat }}</h3>
-            <h3>Longitude: &nbsp; {{ lng }}</h3>
-            <h3>Address: &nbsp; {{ address }}</h3>
-            <h3>State: &nbsp; {{ state }}</h3>
-            <h3>Phone: &nbsp; {{ phone }}</h3>
-            <h3>Website: &nbsp; {{ website }}</h3>
+          <div class="local" style="display:none">
+            <div class="place_details input-output" style="float:left;margin-bottom:15px">
+            
+              <b style="margin-top:0px">Address Lookup</b> <a href="auto">project</a><br>
+            
+              <input 
+                class="filterClick"
+                id="searchloc"
+                style="max-width:400px; float:left; display: block; width: 60vw; font-size: 1rem; font-weight: 400; line-height: 2rem;"
+                placeholder="Enter an address, city, state, county or zip"
+                onfocus="value = ''" 
+                type="text" />
+              <br><br>
+            
+              <div class="localX" style="display:none">
+              <h3 class>Latitude: &nbsp; {{ lat }}</h3>
+              <h3>Longitude: &nbsp; {{ lng }}</h3>
+              <h3>Address: &nbsp; {{ address }}</h3>
+              <h3>State: &nbsp; {{ state }}</h3>
+              <h3>Phone: &nbsp; {{ phone }}</h3>
+              <h3>Website: &nbsp; {{ website }}</h3>
+              </div>
+
+              <div id="readmeDiv"></div>
             </div>
 
-            <div id="readmeDiv"></div>
+            <!--
+            <input id="searchX" autocomplete="off" style="width:100%;max-width:400px;padding-right:27px;margin-bottom:10px" class="filterClick mobileWide textInput si-input" type="text" value="" 
+            placeholder="Address Lookup"
+            onkeyupX="return SearchEnter(event);" />
+            -->
           </div>
 
-          <!--
-          <input id="searchX" autocomplete="off" style="width:100%;max-width:400px;padding-right:27px;margin-bottom:10px" class="filterClick mobileWide textInput si-input" type="text" value="" 
-          placeholder="Address Lookup"
-          onkeyupX="return SearchEnter(event);" />
-          -->
         </div>
 
         
@@ -1004,7 +1047,7 @@
 
         <div style="clear:both"></div>
 
-        <div id="geoPicker">
+        <div id="geoPicker" style="display:none">
           <div style="float:left">
             <!-- Must be displayed initiallly so tiles are visible -->
               <div id="geomap" style="width:440px; height:530px; margin:0 30px 30px 0; border:1px solid blue; position: relative">
@@ -1063,7 +1106,7 @@ Displayed by hashChanged() in map-filters.js
   <br>
     
     <div style="float:right; padding: 12px 0px 10px 0" class="noprint hideMobile">
-      <a href="https://model.earth/io/charts/">About Widgets</a>
+      <a href="https://model.earth/io/charts/">About&nbsp;Widgets</a>
     </div>
      <div id="pageLinksInsert" style="displayX:none; float:left; font-size: 15px; padding: 12px 30px 10px 0">
           <a onClick="go({}); return false;"  href="./">Overview</a> | 
@@ -1084,7 +1127,7 @@ Displayed by hashChanged() in map-filters.js
 <div style="clear:both"></div>
 
 <div class="displayOnload" style="display:none;position:relative">
-  <div id="map1"></div>
+  <div id="map1" style="display:none"></div>
   <div class="localonly" id="legendHolder" style="display:none">
     <div id="allLegends"></div>
   </div>
@@ -1092,11 +1135,159 @@ Displayed by hashChanged() in map-filters.js
 
 <div style="clear:both"></div>
 
-<div style="margin:0px 40px 0 40px"><iframe id="mapframe" style="display:none; margin-top:40px; width:100%;height:800px;"></iframe></div>
+<div id="showIframeCover" onclick="this.style.display='none';$('#iframeCover').show();" style="display:none;position:fixed; z-index:10; color:#fff; cursor: pointer; padding:10px">Reactivate Scrolling</div>
+<!-- ../img/hero/hexagon-pattern.png  -->
+<div id="iframeCover" onclick="this.style.display='none';$('#showIframeCover').show();" style="display:none; background-image: url('https://www.georgia.org/themes/custom/mmg8_cog/dist/images/honeycomb.png'); position: absolute; z-index: 10; width:100%; height:800px"></div>
+<div style="margin:0px">
+  <iframe id="mapframe" style="display:none; width:100%;height:800px;"></iframe>
+</div>
 
 <div id="tableSide" class="hideMobile">
 
-  <div id='sidecolumn' class='hideprint' style="display: none">
+  <div id='sidecolumn' class='hideprint, local, earth' style="display: none">
+
+
+
+<style>
+  #selected_states {
+    border-right: 1px solid #ccc;
+    min-width: 150px;
+    display: none;
+    margin-left: 20px;
+  }
+  #selected_states input {
+    display: none;
+    float:left;
+  }
+  #selected_states label {
+    display: block;
+    padding: 6px 10px 4px 10px;
+  }
+  #selected_states label:hover {
+    background-color: #ccc;
+    color: #333;
+  }
+</style>
+<div style="display:none" class="local">
+<!-- 
+Checkbox list.  The select list above is used by naics.js
+Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
+<div id="selected_states">
+<input type="checkbox" class="selected_state" name="local-states" id="AL" stateid="1" lat="32.7396" lon="-86.8435" km="131174">
+<label for="AL" class="">Alabama</label>
+<input type="checkbox" class="selected_state" name="local-states" id="AK" stateid="2" lat="63.3474" lon="-152.8397" km="1478927">
+<label for="AK" class="">Alaska</label>
+<input type="checkbox" class="selected_state" name="local-states" id="AS" stateid="60" lat="-14.2672" lon="-170.6683" km="198" style="display:none">
+<label for="AS" class="" style="display:none">American Samoa</label>
+<input type="checkbox" class="selected_state" name="local-states" id="AZ" stateid="4" lat="34.2039" lon="-111.6064" km="294360">
+<label for="AZ" class="">Arizona</label>
+<input type="checkbox" class="selected_state" name="local-states" id="AR" stateid="5" lat="34.8955" lon="-92.4446" km="134777">
+<label for="AR" class="">Arkansas</label>
+<input type="checkbox" class="selected_state" name="local-states" id="CA" stateid="6" lat="37.1552" lon="-119.5434" km="403660">
+<label for="CA" class="">California</label>
+<input type="checkbox" class="selected_state" name="local-states" id="CO" stateid="8" lat="38.9938" lon="-105.5083" km="268420">
+<label for="CO" class="">Colorado</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MP" stateid="69" lat="14.9368" lon="145.601" km="472" style="display:none">
+<label for="MP" class="" style="display:none">Commonwealth of the Northern Mariana Islands</label>
+<input type="checkbox" class="selected_state" name="local-states" id="CT" stateid="9" lat="41.5799" lon="-72.7467" km="12542">
+<label for="CT" class="">Connecticut</label>
+<input type="checkbox" class="selected_state" name="local-states" id="DE" stateid="10" lat="38.9986" lon="-75.4416" km="5047">
+<label for="DE" class="">Delaware</label>
+<input type="checkbox" class="selected_state" name="local-states" id="DC" stateid="11" lat="38.9042" lon="-77.0165" km="158" style="display:none">
+<label for="DC" class="" style="display:none">District of Columbia</label>
+<input type="checkbox" class="selected_state" name="local-states" id="FL" stateid="12" lat="28.4574" lon="-82.4091" km="138947">
+<label for="FL" class="">Florida</label>
+<input type="checkbox" class="selected_state" name="local-states" id="GA" stateid="13" lat="32.6296" lon="-83.4235" km="149485">
+<label for="GA" class="">Georgia</label>
+<input type="checkbox" class="selected_state" name="local-states" id="GU" stateid="66" lat="13.4417" lon="144.7719" km="544" style="display:none">
+<label for="GU" class="" style="display:none">Guam</label>
+<input type="checkbox" class="selected_state" name="local-states" id="HI" stateid="15" lat="19.5978" lon="-155.5024" km="16634">
+<label for="HI" class="">Hawaii</label>
+<input type="checkbox" class="selected_state" name="local-states" id="ID" stateid="16" lat="44.3484" lon="-114.5589" km="214050">
+<label for="ID" class="">Idaho</label>
+<input type="checkbox" class="selected_state" name="local-states" id="IL" stateid="17" lat="40.1029" lon="-89.1526" km="143780">
+<label for="IL" class="">Illinois</label>
+<input type="checkbox" class="selected_state" name="local-states" id="IN" stateid="18" lat="39.9013" lon="-86.2919" km="92790">
+<label for="IN" class="">Indiana</label>
+<input type="checkbox" class="selected_state" name="local-states" id="IA" stateid="19" lat="42.07" lon="-93.4933" km="144660">
+<label for="IA" class="">Iowa</label>
+<input type="checkbox" class="selected_state" name="local-states" id="KS" stateid="20" lat="38.4985" lon="-98.3834" km="211753">
+<label for="KS" class="">Kansas</label>
+<input type="checkbox" class="selected_state" name="local-states" id="KY" stateid="21" lat="37.5337" lon="-85.293" km="102282">
+<label for="KY" class="">Kentucky</label>
+<input type="checkbox" class="selected_state" name="local-states" id="LA" stateid="22" lat="30.8634" lon="-91.7987" km="111899">
+<label for="LA" class="">Louisiana</label>
+<input type="checkbox" class="selected_state" name="local-states" id="ME" stateid="23" lat="45.4093" lon="-68.6666" km="79888">
+<label for="ME" class="">Maine</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MD" stateid="24" lat="38.9467" lon="-76.6745" km="25152">
+<label for="MD" class="">Maryland</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MA" stateid="25" lat="42.1565" lon="-71.4896" km="20204">
+<label for="MA" class="">Massachusetts</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MI" stateid="26" lat="44.8442" lon="-85.6605" km="146609">
+<label for="MI" class="">Michigan</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MN" stateid="27" lat="46.316" lon="-94.1996" km="206230">
+<label for="MN" class="">Minnesota</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MS" stateid="28" lat="32.6865" lon="-89.6561" km="121537">
+<label for="MS" class="">Mississippi</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MO" stateid="29" lat="38.3507" lon="-92.4568" km="178050">
+<label for="MO" class="">Missouri</label>
+<input type="checkbox" class="selected_state" name="local-states" id="MT" stateid="30" lat="47.0512" lon="-109.6348" km="376967">
+<label for="MT" class="">Montana</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NE" stateid="31" lat="41.5433" lon="-99.8119" km="198954">
+<label for="NE" class="">Nebraska</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NV" stateid="32" lat="39.3311" lon="-116.6151" km="284537">
+<label for="NV" class="">Nevada</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NH" stateid="33" lat="43.6727" lon="-71.5843" km="23189">
+<label for="NH" class="">New Hampshire</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NJ" stateid="34" lat="40.1073" lon="-74.6652" km="19049">
+<label for="NJ" class="">New Jersey</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NM" stateid="35" lat="34.4347" lon="-106.1316" km="314197">
+<label for="NM" class="">New Mexico</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NY" stateid="36" lat="42.9134" lon="-75.5963" km="122050">
+<label for="NY" class="">New York</label>
+<input type="checkbox" class="selected_state" name="local-states" id="NC" stateid="37" lat="35.5397" lon="-79.1309" km="125926">
+<label for="NC" class="">North Carolina</label>
+<input type="checkbox" class="selected_state" name="local-states" id="ND" stateid="38" lat="47.4422" lon="-100.4608" km="178696">
+<label for="ND" class="">North Dakota</label>
+<input type="checkbox" class="selected_state" name="local-states" id="OH" stateid="39" lat="40.4149" lon="-82.712" km="105824">
+<label for="OH" class="">Ohio</label>
+<input type="checkbox" class="selected_state" name="local-states" id="OK" stateid="40" lat="35.5901" lon="-97.4868" km="177663">
+<label for="OK" class="">Oklahoma</label>
+<input type="checkbox" class="selected_state" name="local-states" id="OR" stateid="41" lat="43.9717" lon="-120.623" km="248608">
+<label for="OR" class="">Oregon</label>
+<input type="checkbox" class="selected_state" name="local-states" id="PA" stateid="42" lat="40.9046" lon="-77.8275" km="115880">
+<label for="PA" class="">Pennsylvania</label>
+<input type="checkbox" class="selected_state" name="local-states" id="PR" stateid="72" lat="18.2176" lon="-66.4108" km="8869" style="display:none">
+<label for="PR" class="" style="display:none">Puerto Rico</label>
+<input type="checkbox" class="selected_state" name="local-states" id="RI" stateid="44" lat="41.5974" lon="-71.5273" km="2678">
+<label for="RI" class="">Rhode Island</label>
+<input type="checkbox" class="selected_state" name="local-states" id="SC" stateid="45" lat="33.8742" lon="-80.8543" km="77865">
+<label for="SC" class="">South Carolina</label>
+<input type="checkbox" class="selected_state" name="local-states" id="SD" stateid="46" lat="44.4468" lon="-100.2382" km="196346">
+<label for="SD" class="">South Dakota</label>
+<input type="checkbox" class="selected_state" name="local-states" id="TN" stateid="47" lat="35.8608" lon="-86.35" km="106806">
+<label for="TN" class="">Tennessee</label>
+<input type="checkbox" class="selected_state" name="local-states" id="TX" stateid="48" lat="31.4347" lon="-99.2818" km="676668">
+<label for="TX" class="">Texas</label>
+<input type="checkbox" class="selected_state" name="local-states" id="VI" stateid="78" lat="18.3267" lon="-64.9713" km="348" style="display:none">
+<label for="VI" class="" style="display:none">United States Virgin Islands</label>
+<input type="checkbox" class="selected_state" name="local-states" id="UT" stateid="49" lat="39.335" lon="-111.6563" km="213355">
+<label for="UT" class="">Utah</label>
+<input type="checkbox" class="selected_state" name="local-states" id="VT" stateid="50" lat="44.0686" lon="-72.6692" km="23874">
+<label for="VT" class="">Vermont</label>
+<input type="checkbox" class="selected_state" name="local-states" id="VA" stateid="51" lat="37.5223" lon="-78.6682" km="102258">
+<label for="VA" class="">Virginia</label>
+<input type="checkbox" class="selected_state" name="local-states" id="WA" stateid="53" lat="47.4073" lon="-120.5758" km="172118">
+<label for="WA" class="">Washington</label>
+<input type="checkbox" class="selected_state" name="local-states" id="WV" stateid="54" lat="38.6473" lon="-80.6183" km="62266">
+<label for="WV" class="">West Virginia</label>
+<input type="checkbox" class="selected_state" name="local-states" id="WI" stateid="55" lat="44.6309" lon="-89.7094" km="140293">
+<label for="WI" class="">Wisconsin</label>
+<input type="checkbox" class="selected_state" name="local-states" id="WY" stateid="56" lat="42.9897" lon="-107.5444" km="251459">
+<label for="WY" class="">Wyoming</label>
+</div>
+</div>
+
   </div>
 
   <!-- INDUSTRIES -->
@@ -1246,7 +1437,7 @@ Displayed by hashChanged() in map-filters.js
     <div id="hublist" style="margin-top:20px">
       <div id="hublist-padding">
         
-        <h1 class="listTitle" style="display:none;margin-bottom:12px"></h1>
+        <h1 class="listTitle" style="margin-bottom:12px">Loading...</h1>
         <h2 class="listSubtitle" style="display:none"></h2>
 
         <div style="display:none" class="layerclass farmfresh">
@@ -1390,96 +1581,7 @@ Displayed by hashChanged() in map-filters.js
           <b>Disclaimer:</b>  The Georgia Department of Economic Development (GDEcD) is collecting information from Georgia companies that indicate they are producing essential medical supplies in response to the COVID-19 pandemic. GDEcD is sharing these companies’ information with Georgia’s units of local government and other potential in-state buyers of these essential medical supplies merely as a courtesy. The following product information and addresses were submitted by private companies to GDEcD, and this list does not constitute an endorsement of any particular company or product by the State or by GDEcD.  GDEcD does not make any representations or warranties as to the accuracy of this information, or as to the quality or quantity of the products offered by these companies. Buyers use this information at their own risk.  Buyers are encouraged to contact the companies directly, for product specifications, delivery options, and other information required for executing a purchase.  Buyers are cautioned to make their own determinations regarding supplier responsibility, including but not limited to assessing whether the supplier has appropriate financial, organization and operational capacity, appropriate legal authority to do business in Georgia, a satisfactory record of integrity, and an acceptable performance record on past contracts.
         </div>
 
-        <!-- INDUSTRIES -->
-        <div class="mock-up" style="display:none; padding-bottom:80px">
-
-          <!-- TOP WIDGETS -->
-          <div>
-
-            <div style="margin-bottom:14px">
-              <b style="font-size:16px">About</b><br>
-              <a href="https://model.earth/io/charts">Embeddable  charts</a> - 
-              <a href="./?show=pickup&design=1">Design Ideas</a> - 
-              <a href="./?show=suppliers">C19 Logistics</a>
-            </div>
-
-            <div style="display:none; float:left; margin-right:30px">
-              Changing filters will update the URL hash value, which will trigger updates to independent widgets.
-
-              <b>Location & Weight:</b> Country, State, County, Zip<br>
-              <b>BEA Sector & Intensity:</b> Industry ID : Percent<br>
-              <b>Census & Level:</b> Population, Education, etc.<br>
-              <b>Product HS Codes</b>
-            </div>
-            
-            <div style="clear:both"></div>
-
-
-            
-            <div style="overflow: auto;" class="leftWidget eWidget">
-             
-                <!-- POSITIVE OUTCOMES -->
-                <div class="widgetbar">
-                  <div style="float:left">OUTCOME</div>
-                  <div style="float:right; padding-right:10px"><span style='color:#555'>YOUR SCORE:</span> 500</div>
-                </div>
-                <div class="topboxes outcomesbox" style="min-height: 120px">
-
-                  <!-- was width:230px; -->
-                  <div style="float:left;width:250px; margin-right:30px">
-                    <div>1. Value-Added <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>2. Quality Jobs <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>3. Clean Air <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>4. Clean Water <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>5. Clean Energy <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    
-                  </div>
-                  <div style="float:left;width:250px">
-                    <div>6. Local Suppliers <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>7. Green Materials <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>8. Inclusive Design <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>9. Improves Health <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                    <div>10. Creates Beauty <span><img src="/localsite/info/img/greenbar.gif" style="width:80px;height:14px;margin-right:8px">50</span></div>
-                  </div>
-                </div>
-              
-            </div>
-            <div style="clear:both"></div>
-
-
-            <div style="overflow: auto;" class="leftWidget eWidget">
-                <div class="widgetbar">
-                  ADVERSE IMPACTS
-                  <div style="float:right; font-weight:400; padding-right:10px">
-                  Supply Chain - Full System - Production
-                  </div>
-                </div>
-                <div style="clear:both">
-                </div>
-                <div class="topboxes">
-                  <div style="display:none; border-bottom: 1px solid #eee; padding-bottom:8px; margin-bottom:8px">
-                    <b>Perspective:</b> Supply Chain, Point of Consumption<br>
-                    <b>System:</b> Full System, Food System<br>
-                    <b>Type:</b> Consumption, Production<br>
-                    <b>Indicator & Weight:</b> Impact, Resources, Waste, Chem, Econ<br>
-                  </div>
-
-                  <div class="column50" style="float:left"><img src="/localsite/info/img/impacts1.gif" style="width:100%; padding-right:40px" />
-                  </div>
-                  <div class="column50mid" style="float:left">&nbsp;
-                  </div>
-                  <div class="column50" style="float:left"><img src="/localsite/info/img/impacts2.gif" style="width:100%; padding-right:40px" />
-                  </div>
-              </div>
-
-            </div>
-
-          </div>
-          <!-- END TOP WIDGETS -->
-          &nbsp;
-          <br><br>
-        </div>
-        <!-- /INDUSTRIES -->
+        
 
       </div>
 
@@ -1509,6 +1611,7 @@ Displayed by hashChanged() in map-filters.js
 
 <!-- End HTML -->
 
+</div><!-- End insertedText -->
 
 
 <!--
@@ -1555,12 +1658,12 @@ function loadScript(url, callback)
 // INIT
 hash = getHash(); // Allows hiddenhash set above to be included.
 
-dual_map.init(["somevalue", 1, "controlId"]); // Used by link to feedback form
-//dual_map.helloWorld();
-//dual_map.community_root();
+localsite_app.init(["somevalue", 1, "controlId"]); // Used by link to feedback form
+//localsite_app.helloWorld();
+//localsite_app.community_root();
 
 //var localmap = 
-loadMap1("map/index.html 2", hash.show, dp);
+//loadMap1("map/index.html 2", hash.show, dp); // Now in map-filters.js
 if (param["show"] != "suppliers") {
   // Additional layer
   //loadMap1("suppliers", dp);
@@ -1568,7 +1671,10 @@ if (param["show"] != "suppliers") {
 document.addEventListener('hashChangeEvent', function (elem) {
   //param = loadParam(location.search,location.hash);
   console.log("index.html detects hashChangeEvent");
-  loadMap1("map/index.html");
+  hash = getHash();
+  //if 
+  //loadMap1("map/index.html");
+  
 }, false);
 
 // Append railroads here, somehow
