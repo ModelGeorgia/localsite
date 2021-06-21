@@ -265,7 +265,7 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
       })
     } else if (dp.googleDocID) {
       // 
-      loadScript(localsite_app.modelearth_data_root() + '/localsite/map/neighborhood/js/tabletop.js', function(results) {
+      loadScript(local_app.modelearth_root() + '/localsite/map/neighborhood/js/tabletop.js', function(results) {
 
         tabletop = Tabletop.init( { key: dp.googleDocID, // from constants.js
           callback: function(data, tabletop) { 
@@ -956,11 +956,11 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
   if (!show) {
     show = param["show"];
   }
-
+  let layers = param["layers"];
   let hash = getHash();
 
   $("#dataList").html("");
-  $("#detaillist").html("<img src='" + localsite_app.localsite_root() + "img/icon/loading.gif' style='margin:40px; width:120px' alt='Loading'>");
+  $("#detaillist").html("<img src='" + local_app.localsite_root() + "img/icon/loading.gif' style='margin:40px; width:120px' alt='Loading'>");
   // 
 
   //if (!show && param["go"]) {
@@ -1040,9 +1040,9 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
     this.getContainer()._leaflet_map = this;
   });
 
-  let community_root = localsite_app.community_data_root();
+  let community_root = local_app.community_data_root();
   //let state_root = "/georgia-data/";
-  //let state_root = localsite_app.custom_data_root();
+  //let state_root = local_app.custom_data_root();
   let state_abbreviation = hash.state || "GA";
 
   let dp1 = {}
@@ -1102,7 +1102,7 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
     //} else {
     //  // Older data
     //  dp1.valueColumn = "Prepared";
-    //  dp1.dataset = localsite_app.custom_data_root()  + "farmfresh/farmersmarkets-" + state_abbreviation + ".csv";
+    //  dp1.dataset = local_app.custom_data_root()  + "farmfresh/farmersmarkets-" + state_abbreviation + ".csv";
     //}
     dp1.name = "Local Farms"; // To remove
     dp1.dataTitle = "Farm Fresh Produce";
@@ -1123,7 +1123,7 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
     // community/farmfresh/ 
     dp1.listInfo = "Farmers markets and local farms providing fresh produce directly to consumers. <a style='white-space: nowrap' href='https://model.earth/community/farmfresh/ga/'>About Data</a> | <a href='https://www.ams.usda.gov/local-food-directories/farmersmarkets'>Update Listings</a>";
   
-  } else if (show == "brigades") {
+  } else if (layers == "brigades") { // To do: Check an array of layers
     dp1.listTitle = "Coding Brigades";
     dp1.dataset = "https://neighborhood.org/brigade-information/organizations.json";
     dp1.datatype = "json";
@@ -1185,7 +1185,7 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
       } else if (show == "360") {
         dp1.listTitle = "Birdseye Views";
         //  https://model.earth/community-data/us/state/GA/VirtualTourSites.csv
-        dp1.dataset =  localsite_app.custom_data_root() + "360/GeorgiaPowerSites.csv";
+        dp1.dataset =  local_app.custom_data_root() + "360/GeorgiaPowerSites.csv";
 
       } else if (show == "recycling" || show == "transfer" || show == "recyclers" || show == "inert" || show == "landfills") { // recycling-processors
         if (!param.state || param.state == "GA") {
@@ -1228,6 +1228,7 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
         dp1.listTitle = "Motor Vehicle and Motor Vehicle Equipment Manufacturing";
         if (show == "ev") {
           dp1.listTitle = "Electric Vehicle Manufacturing";
+          dp1.zoom = 14;
         }
         dp1.editLink = "https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing";
         dp1.googleDocID = "1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs";
@@ -1259,9 +1260,9 @@ function loadMap1(calledBy, show, dp) { // Called by index.html, map-embed.js an
         //dp1.listSubtitle = "Smart & Sustainable Movement of Goods & Services";
         dp1.industryListTitle = "Mobility Tech";
 
-        console.log("map.js loading " + localsite_app.custom_data_root() + "communities/map-georgia-smart.csv");
+        console.log("map.js loading " + local_app.custom_data_root() + "communities/map-georgia-smart.csv");
 
-        dp1.dataset =  localsite_app.custom_data_root() + "communities/map-georgia-smart.csv";
+        dp1.dataset =  local_app.custom_data_root() + "communities/map-georgia-smart.csv";
         dp1.listInfo = "Includes Georgia Smart Community Projects";
         dp1.search = {"In Title": "title", "In Description": "description", "In Website URL": "website", "In Address": "address", "In City Name": "city", "In Zip Code" : "zip"};
         dp1.markerType = "google";
@@ -1530,7 +1531,7 @@ function loadGeos(geo, attempts, callback) {
 
     //Load in contents of CSV file
     if (theState) {
-      d3.csv(localsite_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv").then(function(myData,error) {
+      d3.csv(local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv").then(function(myData,error) {
         if (error) {
           //alert("error")
           console.log("Error loading file. " + error);
