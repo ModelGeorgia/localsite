@@ -418,6 +418,7 @@ mark {
 code {
   background-color: #eee;
   padding: 2px  5px;
+  overflow: scroll;
 }
 content .js, pre code { /* Prevents .js from impacting js class within Drupal body tag */
   background-color: #eee;
@@ -943,3 +944,16 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   }
 }
 /* END HEADER */
+
+#hero-rect {
+  position: absolute;
+  top: 60px;
+  left: 60px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 40px;
+  margin: 0 auto; /* We'll center instead */
+  max-width: 600px;
+  padding: 50px;
+  padding-bottom: 20px;
+  clear: both;
+}
