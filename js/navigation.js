@@ -40,6 +40,8 @@ $(document).ready(function(){
  	$("body").wrapInner( "<div id='fullcolumn'></div>"); // Creates space for sidecolumn
  	if(document.getElementById("sidecolumn") == null) {
  		$("body").prepend( "<div id='sidecolumn' class='hideprint'></div>\r" );
+ 	} else {
+ 		$("#sidecolumn").addClass("sidecolumn-inpage");
  	}
  	$("body").addClass("flexbody"); // For footer to stick at bottom on short pages
  	$("body").wrapInner( "<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
@@ -150,10 +152,8 @@ $(document).ready(function(){
 				 	} else if (!Array.isArray(param.titleArray)) {
 				 		$(".siteTitleShort").text("Model Earth");
 				 		param.titleArray = ["model","earth"]
-			  			//param.headerLogo = "<img src='/community/img/logo/favicon.png' style='width:26px;opacity:0.9;margin-right:0.8px'>"
 			  			param.headerLogo = "<img src='/community/img/logo/model-earth.png' style='width:34px; margin-right:2px'>";
 			  			document.title = "Model Earth - " + document.title
-			  			//changeFavicon(modelpath + "../community/img/logo/favicon.png")
 			  			changeFavicon(modelpath + "../community/img/logo/model-earth.png")
 			  			$('.earth').css('display', 'inline'); 
 				 		console.log(".earth display")
@@ -332,8 +332,9 @@ $(document).ready(function(){
 		
 	});
  	// SIDE NAV WITH HIGHLIGHT ON SCROLL
-	if (param["sidecolumn"]) {
-		$("#sidecolumn").load( modelpath + "../community/nav.html", function( response, status, xhr ) {
+ 	if (param["sidecolumn"]) {
+		let targetColumn = "#sidecolumn";
+		$(targetColumn).load( modelpath + "../community/nav.html", function( response, status, xhr ) {
 
 			// Make paths relative to current page
 	 		$("#sidecolumn a[href]").each(function() {
@@ -454,7 +455,9 @@ $(document).ready(function(){
 			      		// To do: Change to highlight the uppermost section.
 			      		menuItems.filter("[href='..\/tools\/#']").addClass("active");
 			      	} else {
+			      		//alert("id " + id)
 			      		menuItems.filter("[href*='#"+id+"']").addClass("active"); // *= means contains
+			      		menuItems.filter("[hashid='" + id + "']").addClass("active");
 			      	}
 			  	  }
 			      /*
@@ -477,6 +480,7 @@ $(document).ready(function(){
 
 			// Initial page load
 			var currentSection = currentSideID();
+			//alert("currentSection " + currentSection)
 			if (currentSection && currentSection.length) {
 				if (currentSection == "intro") {
 			      	// To do: Change to highlight the uppermost section.
@@ -484,6 +488,7 @@ $(document).ready(function(){
 			      	lastID = "intro";
 			    } else {
 			    	menuItems.filter("[href*='#"+currentSection+"']").addClass("active");
+			    	menuItems.filter("[hashid='" + currentSection + "']").addClass("active");
 			    	// To do: If not found, try using folder name from link when no #
 			    	//menuItems.filter("[href*='interns/']").addClass("active");
 				}
