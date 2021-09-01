@@ -1,5 +1,7 @@
 # Getting Started  
 
+You can use these steps to create a website with free GitHub hosting  
+
 <!--
 
 	Not using curretnly, made a physcial copy instead
@@ -14,29 +16,16 @@
 	https://github.com/GeorgiaData/localsite/compare/master...modelearth:master
 -->
 
-### We'll help you create a custom page in our "apps" repo
+### We'll help you create a new website repo, or a custom page within our "apps" repo
 
-Fork the [apps repo](https://github.com/modelearth/apps), the [localsite repo](https://github.com/modelearth/localsite), and the [io repo](https://github.com/modelearth/io).  
-Place in the same webroot. (More local webroot setup info below.)  
+First, clone the [apps repo](https://github.com/modelearth/apps), the [localsite repo](https://github.com/modelearth/localsite), and the [io repo](https://github.com/modelearth/io).  Place all three in the same local webroot folder.<br><br> 
 
-<a href="../../io/team/">Contact our team for pointers</a> and <a href="../../community/challenge/meetups/">join us on Slack</a>
-
-More <a href="../../community/start/">Starter Samples</a> - maps, charts, widgets<br><br>
 
 # Local Webroot Setup
 
-### You can use these steps to create a website with free GitHub hosting  
+## 1. Activate a webroot folder on your computer
 
-The Localsite Framework is designed to allow multiple Github repos (using JQuery, React,&nbsp;Vue, etc.) to communicate using hash values.  
-
-[Edit in Github](https://github.com/modelearth/localsite/blob/master/start/README.md) - 
-[Edit in StackEdit](https://stackedit.io/app#providerId=githubWorkspace&owner=localsite&repo=localsite&branch=) - Click folder icon in upper right within StackEdit. ([Direct links are not yet available in StackEdit](https://community.stackedit.io/t/open-file-from-github-using-a-link/495))
-
-
-
-## 1. View in webroot on your computer
-
-You'll launch [http://localhost:8887/localsite/](http://localhost:8887localsite/) to view multiple repos in the same webroot.
+The following will allow you to launch [http://localhost:8887/localsite/](http://localhost:8887localsite/) to view multiple repos in the same webroot.
 
 WITH A PYTHON COMMAND:
 
@@ -69,9 +58,11 @@ ON A PC: [Install IIS](https://www.techwalla.com/articles/how-to-circumvent-mcaf
 
 ## 2. Clone the "localsite" repo into your webroot 
 
-Place the <a href='https://github.com/modelearth/localsite/'>localsite repo</a> within the root of your local web folder, along with other repos that reference&nbsp;it.  
+Place the <a href='https://github.com/modelearth/localsite/'>localsite repo</a> within the root of your local web folder, along with other repos that reference&nbsp;it, such as the [apps repo](https://github.com/modelearth/apps) and the [io repo](https://github.com/modelearth/io).  
 
-Click the green "Code" button on the page above to clone the repo.  
+Fork any repo you intend to edit, such as the apps repo. (Click the Fork button in the upper right, then clone from your fork.) 
+
+Click the green "Code" button and "clone" the repos you don't plan to edit. (You can convert a clone to a fork later.)   
 
 Choose "Open with Github Desktop" to pull down using <a href="https://desktop.github.com/">GitHub Desktop</a>.  
 
@@ -149,7 +140,7 @@ To activate GitHub Pages on your fork’s settings page, set the Github Pages So
 ### How to host multiple repos in one site using Github Pages - without using subdomains
 
 - Use CloudFlare.com as a free proxy for your domain name - [setup steps](cloudflare/) - [more about Cloudflare with GitHub](https://www.toptal.com/github/unlimited-scale-web-hosting-github-pages-cloudflare)  
-- Important: Avoid adding the 4 Google A records (these prevent adding the CNAME record).  
+- Important: If you are using the same domain for Google email accounts, avoid adding the 4 Google A records (these prevent adding the CNAME record). You'll only need to add the 5 MX records provided by Google.  
 - Create a repo in your primary account matching the name of the account: [github username].github.io  
 - Click settings and activate GitHub Pages for your [github username].github.io and each repo that is a subfolder in your site.  
 - Add your custom domain name to the root repo called [github username].github.io.  
@@ -158,7 +149,7 @@ To activate GitHub Pages on your fork’s settings page, set the Github Pages So
 - Wait 2 to 10 minutes for new GitHub Pages site to become available.
 - Activate GitHub Pages for each additional repo residing within the primary account. These can be forks from other accounts.  
 - Avoid putting referenced files in your [github username].github.io root repo because it won't be the root of your site when you view on localhost.  
-- Make a fork of the current "[localsite](https://github.com/modelearth/localsite/)" repo to include it's functionality in your site design.  
+- Fork the "[localsite](https://github.com/modelearth/localsite/)" repo into your GitHub account if you'd like to include it's functionality in any of your sites. Turn on GitHub pages to display at YourDomain.com/localsite/  
 
 
 ## 5. Update your forked repos
@@ -176,11 +167,13 @@ To activate GitHub Pages on your fork’s settings page, set the Github Pages So
 
 ## Additional Resources
 
-Edit using [stackedit.io](https://stackedit.io/)
+<a href="https://neighborhood.org/localsite/">The Localsite Framework</a> is designed to allow multiple Github repos to communicate using hash values.  
 
-Another great markdown editor: [Dillinger Markdown to HTML](https://dillinger.io/)  
+<a href="../../community/start/">View Starter Samples</a> - maps, charts, widgets.  <a href="../../io/team/">Contact our team for pointers</a> and <a href="../../community/challenge/meetups/">join us on Slack</a>.  
 
 Learn more about [JAM Stack Development](https://jamstack.org) - the process of creating fast sites using static pages with CSV files, JSON and APIs.  
+
+Edit online using [stackedit.io](https://stackedit.io/) and [Dillinger Markdown to HTML](https://dillinger.io/)  
 
 [AWS Amplify, and site hosting info](https://model.earth/aws/amplify/) - Azure, Firebase, GitHub Pages, Netlify and more.
 
@@ -194,3 +187,15 @@ luZyBzdGFja2VkaXQuaW8/IEl0J3MgY29vbC4iLCJjcmVhdGVk
 IjoxNjA4MzkzMTE2NjUxfX0sImhpc3RvcnkiOlsxNzcyNzQ2OD
 Y5LDE0MTk2NDEzOTFdfQ==
 -->
+
+
+---
+<br>
+[Edit the page above in Github](https://github.com/modelearth/localsite/blob/master/start/README.md) - 
+[Edit in StackEdit](https://stackedit.io/app#providerId=githubWorkspace&owner=localsite&repo=localsite&branch=) - Click folder icon in upper right within StackEdit. ([Direct links are not yet available in StackEdit](https://community.stackedit.io/t/open-file-from-github-using-a-link/495))
+
+
+
+
+
+
