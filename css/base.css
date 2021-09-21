@@ -75,6 +75,9 @@ body {
   display: flex; /* for footer */
   flex-direction: column; /* for footer */
 }
+.flexmain {
+	max-width: 2100px;
+}
 main, .flexmain {
     flex-grow: 1; /* for footer */
 }
@@ -104,12 +107,6 @@ Creates gap on some image buttons. Might reactivate after search page graphic bu
 textarea {
     /* border:solid 1px #777; */
     border-color: rgb(238, 238, 238);
-}
-/* input needed below for search field. Might remove others if id conflicts arrise */
-input, label, button, select, textarea {
-  /* font-size: 13.5px; */
-  /* font-weight: normal; */
-  /* line-height: 20px; */
 }
 a {
   text-decoration: none;
@@ -274,6 +271,12 @@ summary::-webkit-details-marker {
   position: relative;
   overflowX: auto; /* Test when activating */
 }
+@media (min-width: 1800px) {
+	.content {
+	  max-width: 1500px;
+	  font-size: 18px;
+	}
+}
 .contentpadding {
   padding-top: 25px;
   padding-left: 40px;
@@ -357,7 +360,7 @@ summary::-webkit-details-marker {
   margin-right:40px;
   line-height: 1.55;
   border: 1px solid rgba(255,255,255,0);
-  font-size: 18px;
+  font-size: 16px;
   /* overflow: hidden; */ /* Covers indicator bar */
 }
 .pageColumns > .pageColumn:last-child {
@@ -572,20 +575,32 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   */
 }
 #local-footer {
-  clear: both;
-  position: relative;
-  z-index: 1000;
-  background: #dae8eb;
-  padding-bottom: 15px;
-  border-top: 6px solid #fff;
+	clear: both;
+	position: relative;
+	z-index: 1000;
+	background: #dae8eb;
+	padding-bottom: 15px;
+	border-top: 6px solid #fff;
+}
+@media (max-width: 800px) {
+	#local-footer {
+		padding-left: 30px
+	}
 }
 #showSide {
 	padding: 8px;
-	padding-top: 13px;
+	padding-top: 8px;
 	position: fixed;
 	z-index: 99999;
 	pointer-events: auto;
 	cursor: pointer;
+
+	padding-right: 6px;
+	margin-left:-12px;
+	border:1px solid #aaa;
+	background-color: #fff;
+	border-radius: 8px;
+	height: 34px;
 }
 .close-X-sm {
   cursor:pointer;
@@ -744,8 +759,7 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 }
 
 /* Temp until io renamed in useeio-widget */
-.input-output input[type="text"], .input-output input[type="search"], .input-output select {
-    height: 30px;
+.input-output input[type="text"], .input-output input[type="search"], .input-output select, select {
     font-size: 18px;
     border: 1px solid lightgray;
     border-radius: 20px;
@@ -998,12 +1012,4 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 }
 #hero-rect:hover {
   background-color: rgba(255, 255, 255, 0.9);
-}
-#hero-rect-new {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 40px;
-  margin: 0 auto; /* We'll center instead */
-  max-width: 600px;
-  padding: 20px 50px 20px 50px;
-  float: left;
 }

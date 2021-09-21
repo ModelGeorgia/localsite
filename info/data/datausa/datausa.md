@@ -1,8 +1,10 @@
-[Data Commons](../)  
+[Display Data](../)  
 
 # DataUSA.io
 
-Investigate using [D3Plus](https://d3plus.org/examples/) charts in tandom with [Datausa.io API](https://github.com/DataUSA/datausa-site) which uses [Mondrian REST](https://github.com/ojbc/mondrian-rest#api-usage).  Example: [Automotive Parts](https://datausa.io/profile/naics/automotive-parts-accessories-tire-stores-)
+Investigate using [D3Plus](https://d3plus.org/examples/) charts in tandom with [Datausa.io API](https://github.com/DataUSA/datausa-site) which uses [Mondrian REST](https://github.com/ojbc/mondrian-rest#api-usage).
+
+Example: [Automotive Parts](https://datausa.io/profile/naics/automotive-parts-accessories-tire-stores)
 
 ## DataUSA.io - Local Setup
 

@@ -47,7 +47,6 @@ $(document).ready(function(){
  		console.log("navigation.js report: sidecolumn already exists")
  		$("#sidecolumn").addClass("sidecolumn-inpage");
  	}
- 	$("body").prepend( "<div id='sidecolumn-closed' class='hideprint' style='position:relative'><div id='showSide' class='showSide' style='top:108px'><img src='/localsite/img/icon/sidemenu.png' style='width:15px'></div></div>\r" );
  	
  	$("body").addClass("flexbody"); // For footer to stick at bottom on short pages
  	$("body").wrapInner( "<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
@@ -61,7 +60,7 @@ $(document).ready(function(){
 			$("#sidecolumn").hide();
 			$("#showSide").show();
 		} else {
-			$("#showSide").css("opacity",".4");
+			$("#showSide").hide();
 			$("#sidecolumn").show();
 			let headerFixedHeight = $("#headerFixed").height();
 			$('#sidecolumnContent').css("top",headerFixedHeight + "px");
@@ -91,7 +90,7 @@ $(document).ready(function(){
 	// TO DO: Add support for custom headerpath
 
  	} else {
-
+ 		
  		$(".headerOffset").show();
 		$("#headeroffset").show();
 		$(".headerOffset").show();
@@ -110,7 +109,14 @@ $(document).ready(function(){
 		if (param.header) headerFile = param.header;
 		
 		$(document).ready(function () {
+			let showLeftIcon = false;
 			$("#local-header").load(headerFile, function( response, status, xhr ) {
+
+					// BUG - Not header.html is not always ready in DOM yet, add a loop.
+					console.log("Doc is ready, header file loaded,place #sidecolumnContent into #sidecolumn")
+  					$("#sidecolumn").append($("#sidecolumnContent")); // Bug - need to wait until #sidecolumn is appended by navigation.js.
+  					$("#sidecolumnContent").show(); // Still hidden, just removing the div that prevents initial exposure.
+	
 
 			 		// Move filterbarOffset and filterEmbedHolder immediately after body tag start.
 			 		// Allows map embed to reside below intro text and additional navigation on page.
@@ -151,12 +157,14 @@ $(document).ready(function(){
 
 			 		// To do: fetch the existing background-image.
 			 		if (param.startTitle == "Code for America" ||  location.host.indexOf('codeforamerica') >= 0) {
+			 			showLeftIcon = true;
 			  			param.titleArray = []
 			  			param.headerLogo = "<img src='/localsite/img/logo/partners/code-for-america.png' style='width:110px;margin:10px 10px 10px 0;'>";
 				 		document.title = "Code for America - " + document.title
 				 		// BUGBUG - error in console
 				 		//changeFavicon("https://lh3.googleusercontent.com/HPVBBuNWulVbWxHAT3Nk_kIhJPFpFObwNt4gU2ZtT4m89tqjLheeRst_cMnO8mSrVt7FOSlWXCdg6MGcGV6kwSyjBVxk5-efdw")
 				 	} else if (param.startTitle == "Code for Atlanta" ||  location.host.indexOf('atlanta') >= 0) {
+			  			showLeftIcon = true;
 			  			param.titleArray = []
 			  			param.headerLogo = "<img src='https://scienceatl.org/wp-content/uploads/2020/04/code.png' style='width:150px;'>";
 				 		document.title = "Code for Atlanta - " + document.title
@@ -165,9 +173,10 @@ $(document).ready(function(){
 				 	// localhost will be removed from the following. Currently allows Georgia branding during testing.
 				 	// location.host.indexOf('localhost') >= 0 || 
 				 	} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0
-				 		// Show locally for Brave Browser only
-				 		|| ((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false)
-				 		) {
+				 	// Show locally for Brave Browser only
+				 	//|| ((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false)
+				 	) {
+				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Model Georgia");
 				 		param.titleArray = [];
 				 		//param.headerLogo = "<a href='https://georgia.org'><img src='" + modelpath + "../community/img/logo/georgia_usa_gray.png' style='width:130px;padding-top:4px'></a>";
@@ -189,20 +198,26 @@ $(document).ready(function(){
 				 			$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
 				 		//}
 				 	} else if (!Array.isArray(param.titleArray) && (param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
+				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Neighborhood Modeling");
 				 		param.titleArray = ["neighbor","hood"]
 			  			param.headerLogo = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
 			  			document.title = "Neighborhood.org - " + document.title
 			  			changeFavicon("/localsite/img/logo/partners/neighborhood-icon.png")
 			  			$('.neighborhood').css('display', 'inline');
-				 	} else if (!Array.isArray(param.titleArray)) {
+				 	} else if (!Array.isArray(param.titleArray) && !param.headerLogo) {
+				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Model Earth");
 				 		param.titleArray = ["model","earth"]
-			  			param.headerLogo = "<img src='/community/img/logo/model-earth.png' style='width:34px; margin-right:2px'>";
+			  			param.headerLogoSmall = "<img src='/community/img/logo/model-earth.png' style='width:34px; margin-right:2px'>";
 			  			document.title = "Model Earth - " + document.title
 			  			changeFavicon(modelpath + "../community/img/logo/model-earth.png")
 			  			$('.earth').css('display', 'inline'); 
 				 		console.log(".earth display")
+				 	}
+
+				 	if (location.host.indexOf('model.earth') >= 0) { // Since above might not be detecting model.earth, probably is now.
+				 		showLeftIcon = true;
 				 	}
 
 				 	if (param["show"] == "mockup") {
@@ -218,7 +233,7 @@ $(document).ready(function(){
 				 		// Since deactivated above due to conflict with header logo in app.
 				 		$('.neighborhood').css('display', 'block');
 				 	}
-				 	if (param.titleArray) {
+				 	if (param.titleArray && !param.headerLogo) {
 				 		if (param.titleArray[1] == undefined) {
 				 			$('#headerSiteTitle').html("");
 				 		} else {
@@ -251,7 +266,9 @@ $(document).ready(function(){
 				 		$('.logoholder-modelearth').css('margin-right', '20px');
 				 	}
 				 	*/
-				 	if (param.headerLogo) {
+				 	if (param.headerLogoSmall) {
+				 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
+				 	} else if (param.headerLogo) {
 				 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
 				 	} else {
 					 	$('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
@@ -285,6 +302,7 @@ $(document).ready(function(){
 						event.stopPropagation();
 					});
 					$(document).on("click", ".hideAdvanced", function(event) {
+						updateHash({"mapview":""});
 						$(".fieldSelector").hide();
 						$("#filterLocations").hide();
 						$("#filterClickLocation").removeClass("filterClickActive");
@@ -325,12 +343,18 @@ $(document).ready(function(){
 					}
 				}, 1000);
 
-
 				activateSideColumn();
 
-			}); // End $("#header").load
-		}); 
+				if (location.host.indexOf('localhost') >= 0) {
+					showLeftIcon = true;
+				}
+				if (showLeftIcon) {
+					$("body").prepend( "<div id='sidecolumn-closed' class='hideprint' style='position:relative'><div id='showSide' class='showSide' style='top:108px'><img src='/localsite/img/icon/sidemenu.png' style='width:15px'></div></div>\r" );
+		 		}
 
+			}); // End $("#header").load
+
+		});
 	}
 
 	/*

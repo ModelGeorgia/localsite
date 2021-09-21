@@ -177,20 +177,9 @@ Edit online using [stackedit.io](https://stackedit.io/) and [Dillinger Markdown 
 
 [AWS Amplify, and site hosting info](https://model.earth/aws/amplify/) - Azure, Firebase, GitHub Pages, Netlify and more.
 
-<!--stackedit_data:
-eyJkaXNjdXNzaW9ucyI6eyJUVnA4TEhxcU93YTk2N1Y2Ijp7In
-N0YXJ0Ijo3MTU5LCJlbmQiOjcxNjMsInRleHQiOiJFZGl0In19
-LCJjb21tZW50cyI6eyJoZnUwbjMwM0RrdEV6d25uIjp7ImRpc2
-N1c3Npb25JZCI6IlRWcDhMSHFxT3dhOTY3VjYiLCJzdWIiOiJn
-aDoyNjAwNDIzOSIsInRleHQiOiJJcyBhbnlvbmUgZWxzZSB1c2
-luZyBzdGFja2VkaXQuaW8/IEl0J3MgY29vbC4iLCJjcmVhdGVk
-IjoxNjA4MzkzMTE2NjUxfX0sImhpc3RvcnkiOlsxNzcyNzQ2OD
-Y5LDE0MTk2NDEzOTFdfQ==
--->
-
-
 ---
 <br>
+
 [Edit the page above in Github](https://github.com/modelearth/localsite/blob/master/start/README.md) - 
 [Edit in StackEdit](https://stackedit.io/app#providerId=githubWorkspace&owner=localsite&repo=localsite&branch=) - Click folder icon in upper right within StackEdit. ([Direct links are not yet available in StackEdit](https://community.stackedit.io/t/open-file-from-github-using-a-link/495))
 

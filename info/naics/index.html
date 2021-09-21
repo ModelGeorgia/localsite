@@ -10,15 +10,23 @@ Reactivate once widget widths fixed
 <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 
 <title>Industry Data Prep, Data Commons Census Data</title>
-<link type="text/css" rel="stylesheet" href="../../../../localsite/css/base.css" />
+<link type="text/css" rel="stylesheet" href="../../../../localsite/css/base.css" id="/localsite/css/base.css" />
 <link type="text/css" rel="stylesheet" href="../../../../localsite/css/naics.css" />
 <script type="text/javascript" src="../../../../localsite/js/d3.v5.min.js" id="/localsite/js/d3.v5.min.js"></script>
 <script type="text/javascript" src="../../../../localsite/js/jquery.min.js" id="/localsite/js/jquery.min.js"></script>
-<script type="text/javascript" src="../../../../localsite/js/localsite.js?display=locfilters&state=GA&geo=US13189,US13025,US13171"></script>
+<script type="text/javascript" src="../../../../localsite/js/localsite.js?display=locfilters"></script>
 <script type="text/javascript" src="../../../../localsite/js/showdown.min.js" id="/localsite/js/showdown.min.js"></script>
 
 
 <script type="text/javascript" src="../../../../localsite/js/naics2.js"></script>
+
+<style>
+#tabulator-industrytable-count {
+	border-top: 2px solid #333;
+	margin-top: 10px;
+	padding-top: 5px;
+}
+</style>
 
 </head>
 
@@ -41,12 +49,12 @@ Reactivate once widget widths fixed
 				settings
 				</span>
 			</div>
-			<select id="catsort" class="picklist" onchange="goHash({'catsort':this.value});">
+			<select id="catsort" class="picklist" onchange="goHash({'catsort':this.value});" style="display:none">
 	          <option value="payann" selected>By Annual Payroll</option>
 	          <option value="emp" >By Employee Count</option>
 	          <option value="estab">By Establishments</option>
 	        </select>
-	        <select id="catsize" class="picklist" onchange="goHash({'catsize':this.value});">
+	        <select id="catsize" class="picklist" onchange="goHash({'catsize':this.value});" style="display:none">
 	          <option value="2">Sectors - 2 digits</option>
 	          <!--option value="2">Subsectors - 3 digits</option-->
 	          <option value="4">Industry Group - 4 digits</option>
@@ -69,7 +77,13 @@ Reactivate once widget widths fixed
 			</div>
 		</div>
 		
-		
+		<div style="height:500px">
+			<div id="tabulator-industrytable"></div>
+			<div id="tabulator-industrytable-count"></div>
+		</div>
+
+		<br><br>
+		<div id="sector_list_intro"></div>
 		<div id="sector_list"></div>
 		
 	</div>

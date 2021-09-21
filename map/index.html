@@ -6,7 +6,7 @@
 <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 
 <!--
-  To create a widget from this page, see steps in map-embed.js.
+  localsite.js pulls in the #insertedText div within this page as template for map portion of layout.
 -->
 
 <title>Community Map</title>
@@ -275,7 +275,7 @@ class="headerbarheight"
         </div>
       </div>
 
-      <div style="display:none;" class="filterField layerclass mock-up suppliers exporter">
+      <div style="display:none;" class="filterField layerclass mock-up suppliers exporter products">
         <div id="catSearchHolder">
           <div class="filterLabel">
             <div class="filterLabelMain">
@@ -812,20 +812,14 @@ class="headerbarheight"
     
       <div id="locationFilterHolder" style="overflow:auto; padding:20px 0 20px 40px;">
 
-            <!--
+            
             <div class="hideAdvanced close-X" style="float:right; margin-top:-20px">&#10005;
             </div>
-            -->
-
-            <div style="float:right; padding:18px 7px 7px 7px;">
-              <div class="detailbutton hideAdvanced greenbutton">Continue</div>
-            </div>
-
 
             <div class="stateFilters input-output" style="float:left; display:none" class="mock-up earth">
-              <b>State</b><br>
+              <b><!--States--></b><br>
                 <select id="state_select" name="state">
-                 <option value="">Choose a state...</option>
+                 <option value="">Choose a location...</option>
 <!-- Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 <option value="AL" stateid="1" lat="32.7396" lon="-86.8435" km="131174">Alabama</option>
 <option value="AK" stateid="2" lat="63.3474" lon="-152.8397" km="1478927">Alaska</option>
@@ -937,7 +931,7 @@ class="headerbarheight"
               <h3>Website: &nbsp; {{ website }}</h3>
               </div>
 
-              <div id="readmeDiv"></div>
+              
             </div>
 
             <!--
@@ -1056,7 +1050,7 @@ class="headerbarheight"
         <div id="geoPicker" style="display:none">
           <div style="float:left">
             <!-- Must be displayed initiallly so tiles are visible -->
-              <div id="geomap" style="width:440px; height:530px; margin:0 30px 30px 0; border:1px solid blue; position: relative">
+              <div id="geomap" style="width:702px; height:530px; margin:0 30px 30px 0; border:1px solid blue; position: relative">
               </div>
           </div>
 
@@ -1067,6 +1061,10 @@ class="headerbarheight"
               </div>
 
               <div style="position:absolute; bottom:0; left:0px; right:36px; padding:2px 2px 2px 16px; background-color:#ddd; z-index:2">
+
+                  <div style="float:right; padding:0px 12px 0px 12px; margin-top:5px; margin-bottom:5px;">
+                    <div class="detailbutton hideAdvanced greenbutton" style="padding:10px 18px 10px 18px;">DONE</div>
+                  </div>
 
                   <div style="displayX:table; width:100%">
                     <div style="float:left; min-height:30px; padding:10px; displayX: table-cell; vertical-align: middle">
@@ -1083,6 +1081,13 @@ class="headerbarheight"
                 </div>
                 -->
                 
+                <!-- Tabular: Latest version -->
+                
+                <div id="tabulator-geotable"></div>
+                <div style="margin-top:8px; font-size: 12px">
+                  Dataset displayed by <a href="../../../localsite/info/data/" target="_blank">Tabulator</a><br><br>
+                </div>
+
                 <div style="width:100%" class="output_table rotateHeader">
                 </div>
               </div>
@@ -1539,7 +1544,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
           <div id="detaillist"></div>
           <div id="narrowlist" style="display:none"></div>
 
-          <div id="dataListTop" class='exporter' style="display:none;overflow:auto;margin-bottom:8px">
+          <div id="dataListTop" class='exporter products' style="display:none;overflow:auto;margin-bottom:8px">
 
             <div style='float:left'>
               Select up to 10 companies when requesting contact info.
