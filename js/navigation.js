@@ -179,7 +179,6 @@ $(document).ready(function(){
 				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Model Georgia");
 				 		param.titleArray = [];
-				 		//param.headerLogo = "<a href='https://georgia.org'><img src='" + modelpath + "../community/img/logo/georgia_usa_gray.png' style='width:130px;padding-top:4px'></a>";
 				 		param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA.png' style='width:130px;padding-top:4px'></a>";
 				 		param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA-notext.png' style='width:40px;padding-top:0px;margin-top:-4px'></a>";
 				 		if (document.title) {
@@ -187,16 +186,22 @@ $(document).ready(function(){
 					 	} else {
 					 		document.title = "Georgia.org";
 					 	}
-				 		changeFavicon("/localsite/img/logo/states/GA-favicon.png")
+				 		changeFavicon("/localsite/img/logo/states/GA-favicon.png");
+
+				 		// BUGBUG - This needs to be css insert rather than being applied before README loads
 				 		$('.georgia').css('display', 'inline');
 				 		$('.georgia-hide').css('display', 'none');
-				 		if (location.host.indexOf('localhost') < 0) {
-				 			//$(".locationTab").hide(); // So we can test locally
-				 		}
-				 		//if (location.host.indexOf('georgia.org') >= 0) {
+				 		$('.georgiaorg-hide').css('display', 'none');
+				 		$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
+
+				 		// TEMP
+				 		setTimeout( function() {
+							$('.georgia').css('display', 'inline');
+				 			$('.georgia-hide').css('display', 'none');
 				 			$('.georgiaorg-hide').css('display', 'none');
-				 			$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
-				 		//}
+				 			$('#headerOffset').css('display', 'block');
+						}, 1500);
+
 				 	} else if (!Array.isArray(param.titleArray) && (param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
 				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Neighborhood Modeling");
@@ -209,9 +214,9 @@ $(document).ready(function(){
 				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Model Earth");
 				 		param.titleArray = ["model","earth"]
-			  			param.headerLogoSmall = "<img src='/community/img/logo/model-earth.png' style='width:34px; margin-right:2px'>";
+			  			param.headerLogoSmall = "<img src='/localsite/img/logo/partners/model-earth.png' style='width:34px; margin-right:2px'>";
 			  			document.title = "Model Earth - " + document.title
-			  			changeFavicon(modelpath + "../community/img/logo/model-earth.png")
+			  			changeFavicon(modelpath + "../localsite/img/logo/partners/model-earth.png")
 			  			$('.earth').css('display', 'inline'); 
 				 		console.log(".earth display")
 				 	}
@@ -253,6 +258,9 @@ $(document).ready(function(){
 					 	}
 				 	}
 
+				 	if (param.favicon) {
+				 		changeFavicon(param.favicon);
+				 	}
 					// WAS LIMITED TO HEADER
 
 					/*
@@ -306,6 +314,11 @@ $(document).ready(function(){
 						$(".fieldSelector").hide();
 						$("#filterLocations").hide();
 						$("#filterClickLocation").removeClass("filterClickActive");
+
+						if (typeof relocatedStateMenu != "undefined") {
+				            relocatedStateMenu.appendChild(state_select); // For apps hero
+				        }
+				        $("#hero_holder").show();
 					});
 
 
@@ -354,7 +367,18 @@ $(document).ready(function(){
 
 			}); // End $("#header").load
 
-		});
+		}); // End doc ready
+	}
+
+	if (param.headerFile) {
+		//$(document).ready(function () {
+		setTimeout( function() {
+			//$('body').prepend($("#local-header"));
+			$('.headerOffsetOne').prepend($("#local-header"));
+
+			//$("#headerFixed").hide();
+		}, 1000);
+		//});
 	}
 
 	/*

@@ -59,15 +59,12 @@
 					Data source: U.S. Bureau of Economic Analysis
 				</div>
 
-				<div>
-					<div id="quickLinks" style="display:none">
-						<div>Choose counties</div>
-					</div>
+				<div style="clear:both">
 					<h1 class="region_service" style="margin-top:0;padding-top:0;"></h1>
-					<h4 class="location_titles" style="font-size:16px;color:#555;display:none"></h4>
+					<h2 class="location_titles" style="font-size:24px;color:#555;display:none"></h2>
 				</div>
 
-				<div id="topMessage"></div>
+				<div id="topMessage" style="clear:both"></div>
 
 				<!--
 				<div style="max-width:700px">
@@ -100,8 +97,9 @@
 			        <div style="clear:both;margin-bottom:2px"></div>
 
 			        <div class="industry_filter_settings" style="display:none" style="margin:10px 0 0 10px">
-				        <div class="state-view">
+				        <div class="state-view" style="margin:20px 0 20px 30px">
 				        	Choose a county or region above to view filter settings.
+				        	<a href="/localsite/info/naics/">View upcoming industry list</a>
 				        </div>
 				        <div class="county-view" style="display:none">
 					        <select id="catmethod" class="picklist" onchange="goHash({'catmethod':this.value});">
@@ -165,13 +163,13 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 
         <div style="float:right;">
             <div id="impactIcons">
-                <!--  some must be wrong -->
-                <div onclick="goHash({'set':'air','indicators':'GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS'});">Air</div>
-                <div onclick="goHash({'set':'water','indicators':'WATR,ACID,EUTR,ETOX'});">Water</div>
-                <div onclick="goHash({'set':'land','indicators':'LAND,MNRL,PEST,METL,CRHW,CMSW,FMSW,CCDD'});">Land</div>
-                <div onclick="goHash({'set':'energy','indicators':'ENRG,NNRG,RNRG'});">Energy</div>
-                <div onclick="goHash({'set':'health','indicators':'HTOX,HCAN,HNCN,HTOX,HRSP'});">Health</div>
-                <div onclick="goHash({'set':'prosperity','indicators':'VADD,JOBS'});">Prosperity</div>
+                <!-- to do: check if indicators match USEEIO 2.0 -->
+                <div id="impactIcon_Air" onclick="goHash({'set':'air','indicators':'GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS'});">Air</div>
+                <div id="impactIcon_Water" onclick="goHash({'set':'water','indicators':'WATR,ACID,EUTR,ETOX'});">Water</div>
+                <div id="impactIcon_Land" onclick="goHash({'set':'land','indicators':'LAND,MNRL,PEST,METL,CRHW,CMSW,FMSW,CCDD'});">Land</div>
+                <div id="impactIcon_Energy" onclick="goHash({'set':'energy','indicators':'ENRG,NNRG,RNRG'});">Energy</div>
+                <div id="impactIcon_Health" onclick="goHash({'set':'health','indicators':'HTOX,HCAN,HNCN,HTOX,HRSP'});">Health</div>
+                <div id="impactIcon_Prosperity" onclick="goHash({'set':'prosperity','indicators':'VADD,JOBS'});">Prosperity</div>
             </div><br>
 
             
@@ -690,6 +688,8 @@ config.join(sectorList);
 
       <div>
        
+       	BUG FIX: If the bubble rollover is not working above, toggle the highlight below off-and-on.<br><br>
+
         <label id="switchRedBubbles" style="float:left; margin-right:6px" class="switch">
           <input id="mySelect" type="checkbox" checked>
           <span class="slider round"></span>
