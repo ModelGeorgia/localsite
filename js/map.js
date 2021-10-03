@@ -1,5 +1,4 @@
-// TO DO - Use group to remove prior layer.
-// https://stackoverflow.com/questions/38845292/filter-leaflet-geojson-object-based-on-checkbox-status/38845970#38845970
+// DISPLAYS LEAFLET MAPS FOR SEARCH FILTERS, DIRECTORY POINTS AND SIDE CLOSEUP
 
 // INIT
 var dataParameters = [];
@@ -60,6 +59,9 @@ var localsite_map = localsite_map || (function(){
 }());
 */
 
+// FOR MAP LAYERS - A group for removing prior layers.
+// https://stackoverflow.com/questions/38845292/filter-leaflet-geojson-object-based-on-checkbox-status/38845970#38845970
+
 /* Allows map to remove selected shapes when backing up. */
 document.addEventListener('hashChangeEvent', function (elem) {
   console.log("map.js detects URL hashChangeEvent");
@@ -85,10 +87,12 @@ function hashChangedMap() {
     hash.show = param.show;
     hiddenhash.show = param.show;
   }
-  if (!hash.state) {
+  if (!hash.state && param.state) {
     // For embed link
-    hash.state = param.state;
-    hiddenhash.state = param.state;
+
+    // Reactivate if needed
+    //hash.state = param.state;
+    //hiddenhash.state = param.state;
   }
 
   // Temp for PPE
@@ -215,6 +219,7 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
     if (!dp.dataset && !dp.googleDocID) {
       console.log('CANCEL loadFromSheet. No dataset selected for top map. May not be one for state.');
       $("#" + whichmap).hide();
+      $("#list_main").hide();
       if (param.showsearch == "true") { // For EPD products io/template
         $(".keywordField").show();
       } else {
@@ -269,29 +274,48 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
     */
 
     // Pevent error when backing up: map container is already initialized
-    if (map) {
-      map.off();
-      map.remove();
-    }
-    if( $('#' + whichmap).length > 5) {
+    //if (map) {
+    //  map.off();
+    //  map.remove();
+    //}
+
+
+    //map2 = document.querySelector('#' + whichmap2)._leaflet_map; // Recall existing map
+    //  var container2 = L.DomUtil.get(map2);
+    //  if (container2 == null) { // Initialize map
+
+
+
+    let map;
+    //alert(whichmap + " length: " + $('#' + whichmap).length);
+    if( $('#' + whichmap).length >= 1) {
       console.log("#" + whichmap + " is populated");
       map = document.querySelector('#'+whichmap)._leaflet_map; // Recall existing map
     } else {
-      
-      console.log("Initialize map");
-      var map = L.map(whichmap, {
-        center: mapCenter,
-        scrollWheelZoom: false,
-        zoom: dp.zoom,
-        dragging: !L.Browser.mobile, 
-        tap: !L.Browser.mobile
-      });
+      //alert("#" + whichmap + " not found");
+      //var containerExists = L.DomUtil.get(map); // NOT NEEDED
 
+      // https://help.openstreetmap.org/questions/12935/error-map-container-is-already-initialized
+      // if(container != null){ container._leaflet_id = null; }
+
+      //if (containerExists == null) { // NOT NEEDED - need to detect L.map
+        if (location.host.indexOf('localhost') >= 0) {
+          alert("Initialize map - this may never be reached unless #" + whichmap + " div does not exist.");
+        }
+        map = L.map(whichmap, { // var --> Map container is already initialized.
+          center: mapCenter,
+          scrollWheelZoom: false,
+          zoom: dp.zoom,
+          dragging: !L.Browser.mobile, 
+          tap: !L.Browser.mobile
+        });
+      //}
     }
 
     console.log("typeof map: " + typeof map);
     console.log("typeof document.querySelector ._leaflet_map: " + typeof document.querySelector('#' + whichmap)._leaflet_map);
     
+    // Might be able to rename/reconfig/reuse containerExists above to container and remove this line:
     var container = L.DomUtil.get(map);
     //dp.zoom = 18; // TEMP - Causes map to start with extreme close-up, then zooms out to about 5.
     // Otherwise starts with 7ish and zooms to 5ish.
@@ -951,7 +975,7 @@ function addIcons(dp,map,map2) {
     if (element.property_link) {
       output += "<a href='" + element.property_link + "'>Property Details</a><br>";
     } else if (element["name"]) {
-      output += "<a href='#show=" + hash.show + "&name=" + element["name"].replace(/\ /g,"_") + "''>View Details</a><br>";
+      output += "<a onclick='goHash({\"name\":\"" + element["name"].replace(/\ /g,"_").replace(/'/g,"\'") + "\"}); return false;' href='#show=" + hash.show + "&name=" + element["name"].replace(/\ /g,"_").replace(/'/g,"\'") + "'>View Details</a><br>";
     }
     // ADD POPUP BUBBLES TO MAP POINTS
     if (circle) {
@@ -1441,7 +1465,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.sheetName = "Automotive";
         dp.dataset = "https://model.earth/georgia-data/automotive/automotive.csv";
         dp.datastates = "GA";
-        dp.listInfo = "<br><br>Blue map points indicate electric vehicle parts manufacturing.<br>Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates. Learn about <a href='../../community/projects/mobility/'>data sources</a>.";
+        dp.listInfo = "<br><br>Dark green map points indicate electric vehicle parts manufacturing.<br>Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates. Learn about <a href='../../community/projects/mobility/'>data sources</a>.";
         dp.valueColumn = "ev industry";
         dp.valueColumnLabel = "EV Industry";
         dp.markerType = "google";
@@ -1561,8 +1585,6 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
       } else if (show == "restaurants") {
         // Fulton County 5631 restaurants
-        
-        dp = {};
         dp.listTitle = "Restaurant Ratings";
         dp.dataTitle = "Restaurant Ratings";
         dp.dataset = "/community/tools/map.csv";
@@ -1613,6 +1635,37 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
   } // end state GA
 
+  if (theState == "CA") {
+    //alert("theState " + theState)
+    if (show == "businesses") { // San Diego - Mike
+        dp.nameColumn = "Name";
+        dp.titleColumn = "Name";
+
+        dp.listTitle = "Businesses";
+        dp.dataTitle = "Businesses";
+        dp.dataset = "/apps/benchmarks/data/beyond_businesses.csv";
+        dp.latitude = 32.71;
+        dp.longitude = -117.16;
+        dp.zoom = 11;
+        dp.latColumn = "lat";
+        dp.lonColumn = "lon";
+        dp.valueColumnLabel = "NAICS";
+        dp.valueColumn = "NAICS";
+      } else if (show == "buildings") { // San Diego - Mike
+        dp.nameColumn = "Name";
+        dp.listTitle = "Buildings";
+        dp.dataTitle = "Buildings";
+        dp.dataset = "/apps/benchmarks/data/beyond_carbon.csv";
+        dp.latitude = 32.71;
+        dp.longitude = -117.16;
+        dp.zoom = 11;
+        dp.latColumn = "lat";
+        dp.lonColumn = "lon";
+        dp.valueColumnLabel = "ENERGY STAR";
+        dp.valueColumn = "ENERGY STAR";
+        dp.scale = "scaleThreshold"; // No effect?
+      }
+  }
   console.log("loadMap1 dp.zoom " + dp.zoom);
 
   if(dp.dataset) {
@@ -2472,8 +2525,9 @@ function showList(dp,map) {
           //line below was here
         }
       }
-      searchFor += " <div id='viewAllLink' style='float:right;display:none;'><a href='#show=" + param["show"] + "'>View All</a></div>";
-      
+      // We're not using "loc" yet, but it seems better than using id to avoid conflicts.
+      // Remove name from hash to trigger refresh
+      searchFor += " <div id='viewAllLink' style='float:right;display:none;'><a onclick='goHash({},[\"name\",\"loc\"]); return false;' href='#show=" + param["show"] + "'>View All</a></div>";
 
       if (dp.listInfo) {
         searchFor += dp.listInfo;

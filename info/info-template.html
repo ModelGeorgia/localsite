@@ -19,7 +19,7 @@
 
 <div class="contentpadding">
 	<h1>Info Template</h1>
-	View HTML below <a href="./">applied to data</a> and <a href="../../io/charts">learn about widgets</a>.
+	This page is blank without data. View <a href="./">with data</a> and <a href="../../io/charts">learn about widgets</a>.
 </div>
 
 <div id="info-template">
@@ -162,14 +162,14 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
     <div class="contentpadding" id="impactTopHolder" style="overflow:auto; padding-bottom:20px;">
 
         <div style="float:right;">
-            <div id="impactIcons">
+            <div class="impactIcons">
                 <!-- to do: check if indicators match USEEIO 2.0 -->
-                <div id="impactIcon_Air" onclick="goHash({'set':'air','indicators':'GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS'});">Air</div>
-                <div id="impactIcon_Water" onclick="goHash({'set':'water','indicators':'WATR,ACID,EUTR,ETOX'});">Water</div>
-                <div id="impactIcon_Land" onclick="goHash({'set':'land','indicators':'LAND,MNRL,PEST,METL,CRHW,CMSW,FMSW,CCDD'});">Land</div>
-                <div id="impactIcon_Energy" onclick="goHash({'set':'energy','indicators':'ENRG,NNRG,RNRG'});">Energy</div>
-                <div id="impactIcon_Health" onclick="goHash({'set':'health','indicators':'HTOX,HCAN,HNCN,HTOX,HRSP'});">Health</div>
-                <div id="impactIcon_Prosperity" onclick="goHash({'set':'prosperity','indicators':'VADD,JOBS'});">Prosperity</div>
+                <div class="impactIcon_Air" onclick="goHash({'set':'air','indicators':'GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS'});">Air</div>
+                <div class="impactIcon_Water" onclick="goHash({'set':'water','indicators':'WATR,ACID,EUTR,ETOX'});">Water</div>
+                <div class="impactIcon_Land" onclick="goHash({'set':'land','indicators':'LAND,MNRL,PEST,METL,CRHW,CMSW,FMSW,CCDD'});">Land</div>
+                <div class="impactIcon_Energy" onclick="goHash({'set':'energy','indicators':'ENRG,NNRG,RNRG'});">Energy</div>
+                <div class="impactIcon_Health" onclick="goHash({'set':'health','indicators':'HTOX,HCAN,HNCN,HTOX,HRSP'});">Health</div>
+                <div class="impactIcon_Prosperity" onclick="goHash({'set':'prosperity','indicators':'VADD,JOBS'});">Prosperity</div>
             </div><br>
 
             
@@ -368,21 +368,29 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 
 
 <style>
-#impactIcons div {
+.impactIcons div {
     float: left;
     font-size: 13px;
     border: 1px solid #ccc;
     width: 100px;
     padding: 20px;
     margin-right: 15px;
-    margin-bottom: 15px;
     text-align: center
 }
-#impactIcons div.active {
+#hero-mini .impactIcons div {
+	border: 0px solid #ccc;
+	border-bottom: 1px solid #ccc;
+	padding: 5px;
+	text-align: left;
+}
+#impact-widget-vertical #impactIcons div {
+	margin-bottom: 15px;
+}
+.impactIcons div.active {
     border: 4px solid #aaa;
     padding: 17px;
 }
-#impactIcons div:hover {
+.impactIcons div:hover {
     cursor: pointer;
     background-color: rgba(33,33,33,.8);
     color: #fff;
@@ -502,91 +510,6 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 }
 </style>
 
-<script>
-// Not used - Delete
-function updateMosic(naics) {
-	alert("updateMosic");
-    var config = useeio.urlConfig();
-    var modelID = config.get().model || 'GAUSEEIO';
-
-    var model = useeio.model({
-        endpoint: '/io/build/api',
-        model: modelID,
-        asJsonFiles: true,
-        view: 'mosaic',
-    });
-
-    //naics = "311615,311812,321113,221112,113310,322110,311821,311612,325211,311813,311911,311919,311830,311119,322121,311824,311941,325991,311710,311930";
-
-    var naicsCodes = naics.split(',');
-
-    var sectorListMosaic = useeio.sectorList({
-        model: model,
-        selector: '.industry-list-mosaic',
-    });
-    config.withDefaults({
-    	view: 'mosaic',
-        count: 30,
-        naics: naicsCodes,
-    });
-    config.join(sectorListMosaic);
-}
-
-// 'USEEIOv2.0'; // GAUSEEIO returned Wild-caught fish and game outflow 
-
-// Not used - Delete
-function updateMosicNew(naics) {
-	alert("updateMosicNew");
-	// Might not use this, unless it can be revised to allow the hash to trigger when indicators dropdown changes. Remove location.reload() above.
-	var modelID = 'USEEIO';
-
-    var model = useeio.model({
-        //endpoint: 'https://useeiowidgets.imfast.io/api',
-        endpoint: '/io/build/api',
-        model: modelID,
-        asJsonFiles: true,
-        view: 'mosaic'
-    });
-
-    var sectorList = useeio.sectorList({
-        model: model,
-        selector: '.industry-list-mosaic',
-    });
-
-    var naicsCodes = naics.split(',');
-    var handled = {};
-    var beaCodes = naicsCodes.map(useeio.toBEA)
-        .filter(function (code) {
-            // remove unmapped codes and duplicates
-            if (!code || handled[code])
-                return false;
-            handled[code] = true;
-            return true;
-        });
-
-    var config = {
-        count: 30,
-        view: 'mosaic',
-        naics: naicsCodes,
-        sectors: beaCodes,
-    };
-
-    //inputs.update(config);
-    //outputs.update(config);
-    sectorList.update(config);
-    sectorList.onChanged(function (change) {
-        for (var prop in change) {
-            if (change.hasOwnProperty(prop)) {
-                config[prop] = change[prop];
-            }
-        }
-        //inputs.update(config);
-        //outputs.update(config);
-        sectorList.update(config);
-    });
-}
-</script>
-
 <section id="impact">
 <div class="contentpadding" style="min-height:200px;border-bottom:1px solid #ccc;">
 
@@ -688,8 +611,9 @@ config.join(sectorList);
 
       <div>
        
+       	<!--
        	BUG FIX: If the bubble rollover is not working above, toggle the highlight below off-and-on.<br><br>
-
+		-->
         <label id="switchRedBubbles" style="float:left; margin-right:6px" class="switch">
           <input id="mySelect" type="checkbox" checked>
           <span class="slider round"></span>
@@ -751,6 +675,7 @@ config.join(sectorList);
 
 
 <script type="text/javascript">
+console.log("info-template.html loaded");
 
 // INIT
 var priorHashLocal = {};
