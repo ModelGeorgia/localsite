@@ -50,6 +50,8 @@ Activate GitHub Pages for each of your forked repos by going to "Settings > Page
 <img src="img/github-pages.png">
 </div>
 
+IMPORTANT: DO NOT SELECT A THEME - The Jekyll theme will break the modular site integration.  
+
 Wait a few minutes for a new GitHub Pages site to become available at a link in the following format:
 
 https://[your account].Github.io/[repo name]  
@@ -161,7 +163,7 @@ In the old days you had to do the following:
 You can point a domain at all the repos in your Github account with the steps below.  
 
 
-- Use CloudFlare.com as a free proxy for your domain name - [setup steps](cloudflare/) - [more about Cloudflare with GitHub](https://www.toptal.com/github/unlimited-scale-web-hosting-github-pages-cloudflare)  
+- Use CloudFlare.com as a free proxy for your domain name - [setup steps](cloudflare/) - [more about Cloudflare with GitHub](https://www.toptal.com/github/unlimited-scale-web-hosting-github-pages-cloudflare). AWS can also be used.  
 - Important: If you are using the same domain for Google email accounts, avoid adding the 4 Google A records (these prevent adding the CNAME record). You'll only need to add the 5 MX records provided by Google.  
 - Create a repo in your primary account matching the name of the account: [github username].github.io  
 - Click settings and activate GitHub Pages for your [github username].github.io and each repo that is a subfolder in your site.  
