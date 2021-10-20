@@ -6,6 +6,10 @@ Investigate using [D3Plus](https://d3plus.org/examples/) charts in tandom with [
 
 Example: [Automotive Parts](https://datausa.io/profile/naics/automotive-parts-accessories-tire-stores)
 
+We have not yet found documentation on the newer [DataUSA API](https://datausa.io/about/api/).
+Can we see what nodes are available using Postman?  
+
+
 ## DataUSA.io - Local Setup
 
 We have not yet figured out how to hit the DataUSA API rather than local postgresql database.
@@ -63,7 +67,8 @@ Can't authenticate to database.
 
 Question: How would we hit the DataUSA API rather than a local postgresql database?  
 
-Tried installing [datausa-api](https://github.com/DataUSA/datausa-api)  
+Tried installing [datausa-api](https://github.com/DataUSA/datausa-api) - This API is probably the legacy one.
+We've been unable to find the newer API. [Dig around and make contact](https://github.com/DataUSA/datausa-api/wiki).
 
 If you install Python using brew, the relevant headers are already installed for you.
 In other words, you don't need python-devel.
