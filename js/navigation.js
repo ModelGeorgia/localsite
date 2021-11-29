@@ -23,10 +23,12 @@ if (climbpath == "") {
 	climbpath += "./"; // Eliminates ? portion of URL
 }
 //console.log("climbpath " + climbpath);
+let earthFooter = false;
 
 $(document).ready(function(){
 	
  	var modelpath = climbpath;
+ 	
  	if(location.host.indexOf('localhost') < 0 && location.host.indexOf('model.') < 0 && location.host.indexOf('hood') < 0) { // When not localhost or other sites that have a fork of io and community.
  		// To do: allow "Input-Output Map" link in footer to remain relative.
  		modelpath = "https://model.earth/" + modelpath; // Avoid - gets applied to #headerSiteTitle and hamburger menu
@@ -83,7 +85,6 @@ $(document).ready(function(){
 		$(".headerOffset").hide();
 
 		// Insert for map filters since header.html file is not loaded.
-		//alert("123")
 		//$("body").prepend( "<div id='filterbaroffset' style='height:56px; pointer-events:none'></div>");
 
 	// TO DO: Add support for custom headerpath
@@ -106,8 +107,8 @@ $(document).ready(function(){
  		}
 
 		if (param.header) headerFile = param.header;
-		
-		$(document).ready(function () {
+
+		//$(document).ready(function () {
 			let showLeftIcon = false;
 			$("#local-header").load(headerFile, function( response, status, xhr ) {
 
@@ -155,6 +156,7 @@ $(document).ready(function(){
 			 		// Set here so path works at all levels.
 
 			 		// To do: fetch the existing background-image.
+
 			 		if (param.startTitle == "Code for America" ||  location.host.indexOf('codeforamerica') >= 0) {
 			 			showLeftIcon = true;
 			  			param.titleArray = []
@@ -176,9 +178,10 @@ $(document).ready(function(){
 				 		param.headerLogoSmall = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
   						$('.lifecycle').css('display', 'inline');
 				 		$('.lifecycle-hide').css('display', 'none');
+				 		earthFooter = true;
   					} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0
 				 	// Show locally for Brave Browser only
-				 	//|| ((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false)
+				 	//|| (((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false) && !param.headerLogo)
 				 	) {
 				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Model Georgia");
@@ -205,7 +208,7 @@ $(document).ready(function(){
 				 			$('.georgiaorg-hide').css('display', 'none');
 				 			$('#headerOffset').css('display', 'block');
 						}, 1500);
-
+				 		earthFooter = true;
 				 	} else if (!Array.isArray(param.titleArray) && (param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
 				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Neighborhood Modeling");
@@ -214,7 +217,18 @@ $(document).ready(function(){
 			  			document.title = "Neighborhood.org - " + document.title
 			  			changeFavicon("/localsite/img/logo/partners/neighborhood-icon.png")
 			  			$('.neighborhood').css('display', 'inline');
+			  			earthFooter = true;
+			  		// location.host.indexOf('localhost') >= 0 || 
+			  		} else if (!Array.isArray(param.titleArray) && (location.host.indexOf("democracy.lab") >= 0)) {
+			  			showLeftIcon = true;
+				 		$(".siteTitleShort").text("Democracy Lab");
+
+				 		param.headerLogo = "<img src='/localsite/img/logo/partners/democracy-lab.png' style='width:190px;margin-top:15px'>";
+    					param.headerLogoSmall = "<img src='/localsite/img/logo/partners/democracy-lab-icon.jpg' style='width:32px;margin:4px 8px 0 0'>";
+    					$('.dlab').css('display', 'inline'); 
+    					earthFooter = true;
 				 	} else if (!Array.isArray(param.titleArray) && !param.headerLogo) {
+				 	//} else if (location.host.indexOf('model.earth') >= 0) {
 				 		showLeftIcon = true;
 				 		$(".siteTitleShort").text("Model Earth");
 				 		param.titleArray = ["model","earth"]
@@ -222,13 +236,19 @@ $(document).ready(function(){
 			  			document.title = "Model Earth - " + document.title
 			  			changeFavicon(modelpath + "../localsite/img/logo/partners/model-earth.png")
 			  			$('.earth').css('display', 'inline'); 
-				 		console.log(".earth display")
+				 		console.log(".earth display");
+				 		earthFooter = true;
 				 	}
 
 				 	if (location.host.indexOf('model.earth') >= 0) { // Since above might not be detecting model.earth, probably is now.
 				 		showLeftIcon = true;
+				 		earthFooter = true;
 				 	}
 
+				 	if (param.footer || param.showfooter == false) {
+				 		earthFooter = false;
+				 		console.log("param.footer " + param.footer);
+				 	}
 				 	if (param["show"] == "mockup") {
 				 		if(location.host.indexOf("georgia") >= 0) {
 				 			$('#headerLocTitle').html("West Central Georgia");
@@ -369,12 +389,12 @@ $(document).ready(function(){
 					showLeftIcon = true;
 				}
 				if (showLeftIcon) {
-					$("body").prepend( "<div id='sidecolumn-closed' class='hideprint' style='position:relative'><div id='showSide' class='showSide' style='top:108px'><img src='/localsite/img/icon/sidemenu.png' style='width:15px'></div></div>\r" );
+					$("body").prepend( "<div id='sidecolumn-closed' class='hideprint' style='position:relative'><div id='showSide' class='showSide' style='top:180px; opacity:.8'><img src='/localsite/img/icon/sidemenu.png' style='width:13px'></div></div>\r" );
 		 		}
 
 			}); // End $("#header").load
 
-		}); // End doc ready
+		//}); // End doc ready
 	}
 
 	if (param.headerFile) {
@@ -405,8 +425,11 @@ $(document).ready(function(){
 		//$("#footer").addClass("flexfooter");
 		$("#footer").prepend( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
 	}
+	if (location.host.indexOf('localhost') >= 0 && param.showfooter != false && !param.footer) {
+		earthFooter = true; // Need to drive localhost by settings in a file ignored by .gitignore
+	}
 	if (param["showfooter"] && param["showfooter"] == "false") {
-	} else {
+	} else if (earthFooter) {
 		var footerClimbpath = "";
 		let footerFile = modelpath + "../localsite/footer.html"; // modelpath remains relative for site desgnated above as having a local copy of io and community.
 		if (param.footer) {
