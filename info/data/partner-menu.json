@@ -1,0 +1,76 @@
+[
+{
+	"menulevel": "1",
+	"item": "industries",
+	"rootfolder": "info",
+	"title": "Page Details",
+	"tabtitle": "Page Details",
+	"mobiletitle": "Page Details",
+	"section": "Page Details",
+	"provider": "Admin",
+	"image": "/localsite/img/show/industries.jpg",
+	"siteHeaderHeight": "10px",
+	"siteHeaderHeightMax": "230px",
+	"icon": "<i class='material-icons'>&#xE87A;</i>",
+	"hideOverlaysButton": "true",
+	"sectionTitle": "leftNav",
+	"topnavaccess": "10",
+	"menuaccess": "0",
+	"defaultroot": "/localsite/info/",
+	"directlink": "/localsite/info/",
+	"caption": ""
+},
+{
+	"menulevel": "1",
+	"section": "Page Details",
+	"title": "Edit Content"
+},
+{
+	"menulevel": "1",
+	"section": "Page Details",
+	"title": "Add Subtopic"
+},
+{
+	"menulevel": "1",
+	"section": "Page Details",
+	"title": "Page Admin"
+},
+{
+	"section": "News and Specials",
+	"title": "News and Specials"
+},
+{
+	"section": "News and Specials",
+	"title": "Add News"
+},
+{
+	"section": "News and Specials",
+	"title": "Add Special Deals"
+},
+{
+	"section": "Event Calendar",
+	"title": "Event Calendar"
+},
+{
+	"section": "Event Calendar",
+	"title": "Add Event",
+	"link": "/net/calendar/addevent.aspx?p=[itemid]"
+},
+{
+	"section": "Group Members",
+	"title": "Group Members"
+},
+{
+	"section": "Group Members",
+	"title": "Add Group Member"
+},
+{
+	"section": "Images and Files",
+	"title": "Images and Files",
+	"link": "/elements/[itemid]"
+},
+{
+	"section": "Images and Files",
+	"title": "Add Image or File"
+}
+]

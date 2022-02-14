@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+
+<title>Local Site Menus</title>
+<!--
+<link type="text/css" rel="stylesheet" href="/explore/css/site.css" id="/explore/css/site.css" />
+-->
+<link type="text/css" rel="stylesheet" href="../../../../localsite/css/base.css" id="/localsite/css/base.css" />
+<link type="text/css" rel="stylesheet" href="../../../../localsite/css/menu.css" id="/localsite/css/menu.css" />
+
+<script type="text/javascript" src="js/d3.v5.min.js" id="/localsite/js/d3.v5.min.js"></script>
+<script type="text/javascript" src="js/jquery.min.js" id="/localsite/js/jquery.min.js"></script>
+<script type="text/javascript" src="js/localsite.js"></script>
+<script type="text/javascript" src="/localsite/js/menu.js" id="/localsite/js/menu.js"></script>
+
+<!--
+<script type="text/javascript" src="../../../../localsite/js/showdown.min.js" id="/localsite/js/showdown.min.js"></script>
+<script type="text/javascript" src="../../../../localsite/js/navigation.js" id="/localsite/js/navigation.js"></script>
+
+Not retained currently:
+
+Send to a Friend
+/send/67463?u=https%3a%2f%2fgpna.org%2ftechnology?norobots%3d0%26mode%3de&s=0.0.0.20
+
+Add Task
+/add-project/?s=0.67463
+
+Print as PDF
+/net/content/pdf.aspx?s=67463.0.0.20&listid=67463&u=%2ftechnology?norobots%3d0%26mode%3dp%26pdf%3d1
+
+Change Status / Related Sites
+/net/content/relatedsites.aspx?s=67463.0.0.20
+
+Refresh
+/technology?refresh=1
+-->
+
+<script>
+localSiteMenu={};
+localSiteMenu.current = "Special"
+localSiteMenu.layerJson = "http://localhost:8887/explore/json/menu-array.json";
+//localSiteMenu.layerJson = "https://neighborhood.org/brigade-information/organizations.json";
+//localSiteMenu.layerJson = "/localsite/info/data/organizations-test.json";
+localSiteMenu.revealButton = "#showSiteNav"
+localSiteMenu.menuDiv = "#localSiteMenu";
+initMenu(localSiteMenu);
+
+industryMenu={};
+industryMenu.current = "Special"
+industryMenu.layerJson = "/localsite/info/data/ga-layers-array.json";
+industryMenu.revealButton = "#showIndustryMenu"
+industryMenu.menuDiv = "#partnerCheckboxes";
+industryMenu.autoDisplay = false;
+initMenu(industryMenu);
+
+partnerMenu={};
+partnerMenu.current = "Special"
+partnerMenu.layerJson = "/localsite/info/data/partner-menu.json";
+partnerMenu.revealButton = "#showPartnerMenu"
+partnerMenu.menuDiv = "#partnerMenu";
+partnerMenu.autoDisplay = false;
+initMenu(partnerMenu);
+
+//filterClickLocation();
+</script>
+
+</head>
+<body>
+
+<div class="moduleJS" style="padding:50px">
+
+  <!-- 3 dots: … -->
+  <div style="font-size:15px; width:300px; float:left; padding-right: 30px; border-right:1px solid #ccc; margin-right:30px">
+	<div id="showSiteNav" class="btn btn-white" style="cursor:pointer;">Map Layers</div>
+
+	<div id="localSiteMenu" class="partnerCheckboxes"></div>
+
+  </div>
+
+  <div style="font-size:15px; width:300px; float:left; padding-right: 30px; border-right:1px solid #ccc; margin-right:30px">
+  	<div id="showIndustryMenu" class="btn btn-white" style="cursor:pointer;">Industry Menu</div>
+  	<div id="partnerCheckboxes"></div>
+  </div>
+
+  <div style="font-size:15px; width:300px; float:left">
+  	<div id="showPartnerMenu" class="btn btn-white" style="cursor:pointer;">Partner Tools</div>
+  	<div id="partnerMenu"></div>
+  </div>
+
+  <div style="clear:both; padding-top:30px;">
+  	
+	  <div style="border:1px solid #ccc; padding:30px">
+	  	Overlays In Side<br><br>
+	  	<div class="overlaysInSide"></div>
+	  </div>
+  </div>
+
+</div>
+
+</body>
+</html>

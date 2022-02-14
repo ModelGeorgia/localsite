@@ -1,6 +1,4 @@
-callback(
-{
-  "items": [
+[
 	{
 		"menulevel": "1",
 		"item": "industries",
@@ -79,7 +77,6 @@ callback(
 		"sectionTitle": "leftNav",
 		"topnavaccess": "10",
 		"menuaccess": "0",
-		"directlinkX": "/localsite/map/#show=smart",
 		"directlink": "/community/projects/#state=GA&show=smart",
 		"states": "GA"
 	},
@@ -215,7 +212,5 @@ callback(
 		"directlink": "/localsite/map/#show=opendata",
 		"menuaccess": "10",
 		"states": "GA"
-	},
-  ]
-}
-);
+	}
+]
