@@ -11,7 +11,13 @@
 
 Used in open data lists and maps - CSV files and Google Sheets
 
-Status - 0: hide | 1: show | 2: show, but needs updates     
+Status
+- Pending - New, waiting for review. Has Timestamp, not yet reviewed and approved (blank)
+- Update - Waiting for updates, but still show on map
+- Current - Active - All info is correct - Show on map
+- Hide - Exclude from directory, Temporarily closed, incorrect info, etc.
+- Delete
+
 Name - Location name or web service name  
 Comments  
 ContactDate  
@@ -74,4 +80,4 @@ In addition to CSV and Google Sheets, we'd like to also pull layers from AirTabl
 Editable link is in our Slack #epa group.
 -->
 
-[Google Sheet Editor](../../../editor/)
+[Google Sheet Editor](https::/neighborhood.org/editor/)

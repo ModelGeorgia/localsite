@@ -4,17 +4,19 @@
 
 ### Manually Geocoding using the Script Editor
 
-Select the content of three adjacent columns: Address, Latitude and Longitude.  
+If needed, merge multiple address columns into one, then paste into a new column as "Values only".
+=B2 & ", " & C2 & ", " & E2 & " " & F2
 
-Choose "Tools > Script Editor" and click next to the function "addressToPosition" and click the run button.  
+Select the content of three adjacent columns: Address, Latitude and Longitude, then choose: 
+Extensions > Macros > addressToPosition
 
-You may see a security alert the first time. 
-Processing requires choosing the unsafe option since the geocoding script will be run in your personal Google account.  
+If you don't yet have the addressToPosition, choose Extensions > Macros > Import Macro
+You will need to choose the unsafe option and authorize the first time you add the macro to your sheet.
 
-If you don't yet have the addressToPosition function, copy it from below (or from the MapsforUS template above).  
+If addressToPosition is not in your available macros, paste function(s) below under Extensions > Apps Script > macros.gs (or Code.gs)
 
-You should be able to geocode at least 400 rows each time. If you reach the max for one request, 
-select the remaining batch in sets of 400 to 500 and run again until you hit your max for the day, which might be 2,000.  
+You should be able to geocode about 300 to 400 rows each time. If you reach the max for one request, 
+select the remaining batch in sets of 400 to 500 and run again until you hit your max for the day, which seems to be 1,900.  
 
 ```
 function addressToPosition() {
@@ -57,6 +59,9 @@ function addressToPosition() {
   }
 };
 
+function getGeocodingRegion() {
+  return PropertiesService.getDocumentProperties().getProperty('GEOCODING_REGION') || 'us';
+}
 function positionToAddress() {
   var sheet = SpreadsheetApp.getActiveSheet();
   var cells = sheet.getActiveRange();
