@@ -10,13 +10,22 @@
 <!--
 <link type="text/css" rel="stylesheet" href="/explore/css/site.css" id="/explore/css/site.css" />
 -->
-<link type="text/css" rel="stylesheet" href="../../../../localsite/css/base.css" id="/localsite/css/base.css" />
-<link type="text/css" rel="stylesheet" href="../../../../localsite/css/menu.css" id="/localsite/css/menu.css" />
-
-<script type="text/javascript" src="js/d3.v5.min.js" id="/localsite/js/d3.v5.min.js"></script>
-<script type="text/javascript" src="js/jquery.min.js" id="/localsite/js/jquery.min.js"></script>
-<script type="text/javascript" src="js/localsite.js"></script>
+<link type="text/css" rel="stylesheet" href="/localsite/css/base.css" id="/localsite/css/base.css" />
+<link type="text/css" rel="stylesheet" href="/localsite/css/menu.css" id="/localsite/css/menu.css" />
+<script type="text/javascript" src="/localsite/js/d3.v5.min.js" id="/localsite/js/d3.v5.min.js"></script>
+<script type="text/javascript" src="/localsite/js/jquery.min.js" id="/localsite/js/jquery.min.js"></script>
+<script type="text/javascript" src="/localsite/js/localsite.js?material_icons=true"></script>
 <script type="text/javascript" src="/localsite/js/menu.js" id="/localsite/js/menu.js"></script>
+
+<!--
+NOT NEEDED
+<link rel="stylesheet" href="/community/css/material_icons.css" />
+-->
+
+<!--
+LOADED BY localsite.js
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+-->
 
 <!--
 <script type="text/javascript" src="../../../../localsite/js/showdown.min.js" id="/localsite/js/showdown.min.js"></script>
@@ -41,11 +50,21 @@ Refresh
 -->
 
 <script>
+scopeMenu={};
+scopeMenu.current = "Special"
+scopeMenu.layerJson = "/localsite/info/data/scope-menu.json";
+scopeMenu.revealButton = "#showScope"
+scopeMenu.menuDiv = "#scopeMenu";
+scopeMenu.sublevels = 0;
+initMenu(scopeMenu);
+
 localSiteMenu={};
 localSiteMenu.current = "Special"
 localSiteMenu.layerJson = "/explore/json/menu-array.json";
 localSiteMenu.revealButton = "#showSiteNav"
 localSiteMenu.menuDiv = "#localSiteMenu";
+localSiteMenu.rootfolder = "https://georgiadata.github.io/explore/"; // Triggers appending # item
+localSiteMenu.showArrows = true;
 initMenu(localSiteMenu);
 
 industryMenu={};
@@ -53,6 +72,7 @@ industryMenu.current = "Special"
 industryMenu.layerJson = "/localsite/info/data/ga-layers-array.json";
 industryMenu.revealButton = "#showIndustryMenu"
 industryMenu.menuDiv = "#partnerCheckboxes";
+industryMenu.sublevels = 0;
 industryMenu.autoDisplay = false;
 initMenu(industryMenu);
 
@@ -62,31 +82,105 @@ partnerMenu.layerJson = "/localsite/info/data/partner-menu.json";
 partnerMenu.revealButton = "#showPartnerMenu"
 partnerMenu.menuDiv = "#partnerMenu";
 partnerMenu.autoDisplay = false;
+partnerMenu.itemid = "1234"
+partnerMenu.partnerid = "789"
+partnerMenu.basetype = "4"
 initMenu(partnerMenu);
 
 //filterClickLocation();
+function changeMenuLinks(itemid) {
+  //$("button").click(function() {
+    $("#partnerMenu a[href]").each(function() {
+      if ($(this).attr('data-link')) {
+        var datalink = $(this).attr('data-link').replace(/\[itemid\]/g,itemid);
+        $(this).attr("href", datalink);
+      }
+    })
+  //});
+}
 </script>
+
+<style>
+.moduleJS {
+  padding:50px;
+}
+.menuPackage {
+  font-size:15px;
+  width:300px;
+  float:left;
+  border:1px solid #ccc;
+  margin-right:30px;
+  margin-bottom: 30px;
+}
+
+.hideAdvanced {
+  width: auto !important;
+  margin-top: 8px;
+}
+@media (max-width:500px) {
+  .menuPackage {
+    width:100%;
+    padding-right:0px;
+    margin-right:0px;
+    border:0px;
+    padding-bottom: 40px;
+    border-bottom: #333 4px solid;
+    margin-bottom: 0px;
+  }
+  .sectionArrowHolder {
+    padding-right: 8px;
+  }
+  .moduleJS {
+    padding: 0px;
+    margin: 0px;
+  }
+  .hideMenuPackage {
+    /* display: block; */
+  }
+}
+.revealButton {
+  border: 0px;
+  font-weight: bolder;
+  font-size: 18px;
+  margin-top: 10px;
+  width: auto !important;
+}
+
+@media (max-width: 800px) {
+  .menuPackage {
+    width:auto !important;
+  }
+}
+</style>
 
 </head>
 <body>
 
-<div class="moduleJS" style="padding:50px">
+<span class="material-icons blue-color">recycling</span>
+<a href="javascript:changeMenuLinks(1234);">set links</a>
+
+<div class="moduleJS">
 
   <!-- 3 dots: … -->
-  <div style="font-size:15px; width:300px; float:left; padding-right: 30px; border-right:1px solid #ccc; margin-right:30px">
-	<div id="showSiteNav" class="btn btn-white" style="cursor:pointer;">Map Layers</div>
 
-	<div id="localSiteMenu" class="partnerCheckboxes"></div>
-
+  <div class="menuPackage">
+  <div id="showScope" class="revealButton btn btn-white" style="cursor:pointer;">Scope</div>
+  <div id="scopeMenu" class="partnerCheckboxes"></div>
   </div>
 
-  <div style="font-size:15px; width:300px; float:left; padding-right: 30px; border-right:1px solid #ccc; margin-right:30px">
-  	<div id="showIndustryMenu" class="btn btn-white" style="cursor:pointer;">Industry Menu</div>
+  <div class="menuPackage">
+	<div id="showSiteNav" class="revealButton btn btn-white" style="cursor:pointer;">Map Layers</div>
+	<div id="localSiteMenu" class="partnerCheckboxes"></div>
+  </div>
+
+  <div class="menuPackage">
+  	<div id="showIndustryMenu" class="revealButton btn btn-white" style="cursor:pointer;">Industries</div>
   	<div id="partnerCheckboxes"></div>
   </div>
 
-  <div style="font-size:15px; width:300px; float:left">
-  	<div id="showPartnerMenu" class="btn btn-white" style="cursor:pointer;">Partner Tools</div>
+  <div class="menuPackage" style="padding-right:0px;">
+    <div class="hideMenuPackage hideAdvanced close-X btn btn-white" style="float:right; padding-left:12px; padding-right:12px;">✕</div>
+  	<div id="showPartnerMenu" class="revealButton btn btn-white" style="cursor:pointer;">Partner Tools</div>
   	<div id="partnerMenu"></div>
   </div>
 

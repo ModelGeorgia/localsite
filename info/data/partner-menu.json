@@ -1,75 +1,84 @@
 [
 {
 	"menulevel": "1",
-	"item": "industries",
-	"rootfolder": "info",
-	"tabtitle": "Page Details",
-	"mobiletitle": "Page Details",
 	"section": "Page Details",
-	"provider": "Admin",
-	"image": "/localsite/img/show/industries.jpg",
-	"siteHeaderHeight": "10px",
-	"siteHeaderHeightMax": "230px",
-	"icon": "<i class='material-icons'>&#xE87A;</i>",
-	"hideOverlaysButton": "true",
-	"sectionTitle": "leftNav",
-	"topnavaccess": "10",
-	"menuaccess": "0",
-	"defaultroot": "/localsite/info/",
-	"directlink": "/localsite/info/",
-	"caption": ""
+	"title": "Overview",
+	"link": "/info/[itemid]",
+	"icon": "/localsite/img/icon/scope/overview.png"
 },
 {
 	"menulevel": "1",
 	"section": "Page Details",
-	"title": "Edit Content"
+	"title": "Edit Content",
+	"link": "/core/item/edit.aspx?s=[itemid]"
 },
 {
 	"menulevel": "1",
 	"section": "Page Details",
-	"title": "Add Subtopic"
+	"title": "Edit Location",
+	"link": "/net/org/edit.aspx?s=[itemid]"
 },
 {
 	"menulevel": "1",
 	"section": "Page Details",
-	"title": "Page Admin"
+	"title": "Add Subtopic",
+	"link": "/core/item/add.aspx?parentid=[itemid]"
 },
 {
-	"section": "News and Specials"
+	"section": "Group Members",
+	"title": "View Group Members",
+	"icon": "/localsite/img/icon/scope/community.png",
+	"link": "/core/member/list.aspx?load=1&p=[partnerid]&s=[itemid]",
+	"basetype": "3,4"
 },
 {
-	"section": "News and Specials",
-	"title": "Add News"
-},
-{
-	"section": "News and Specials",
-	"title": "Add Special Deals"
+	"section": "Group Members",
+	"title": "Add Group Member",
+	"link": "/account/add?listid=[itemid]&relationAccess=2&p=[itemid]",
+	"basetype": "3,4"
 },
 {
 	"section": "Event Calendar",
 	"title": "View Calendar",
-	"link": "/calendar/[itemid]"
+	"icon": "<span class='material-icons'>event</span>",
+	"link": "/calendar?p=[partnerid]",
+	"basetype": "3,4"
 },
 {
 	"section": "Event Calendar",
 	"title": "Add Event",
-	"link": "/net/calendar/addevent.aspx?p=[itemid]"
-},
-{
-	"section": "Group Members",
-	"title": "View Group Members"
-},
-{
-	"section": "Group Members",
-	"title": "Add Group Member"
+	"link": "/net/calendar/addevent.aspx?s=[itemid]&p=[partnerid]",
+	"basetype": "3,4"
 },
 {
 	"section": "Images and Files",
 	"title": "View Images and Files",
+	"icon": "<span class='material-icons'>collections</span>",
 	"link": "/elements/[itemid]"
 },
 {
 	"section": "Images and Files",
-	"title": "Add Image or File"
+	"title": "Add Image or File",
+	"link": "/core/item/upload.aspx?s=[itemid]&p=[partnerid]"
+},
+{
+	"section": "Related Pages"
+},
+{
+	"section": "Related Pages",
+	"title": "News and Specials",
+	"icon": "<span class='material-icons'>article</span>",
+	"link": "/net/content/related.aspx?s=[itemid]"
+},
+{
+	"section": "Related Pages",
+	"title": "Add Related Content",
+	"icon": "<span class='material-icons'>article</span>",
+	"link": "/core/item/add.aspx?parentid=[itemid]"
+},
+{
+	"section": "Related Pages",
+	"title": "Page Admin",
+	"link": "/net/content/admin.aspx?s=[itemid]"
 }
 ]

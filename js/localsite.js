@@ -304,9 +304,17 @@ function loadScript(url, callback)
   //let urlID = url.replace(/^.*\/\/[^\/]+/, ''); // Allows id's to always omit the domain.
 
   let urlID = getUrlID3(url);
+  var loadFile = true;
+
+    // TODO: load a comma separated list of filenames in param.existing_files into an array that can be searched here. Try to allow for
+    // minified and debug versions, i.e. use the filename only and no extension. Load the array outside of this function so the array
+    // doesn't have to be rebuilt each time this function is called.
+  if (param.existing_files == "jquery" && url.indexOf(param.existing_files) >= 0) {
+     loadFile = false;
+  }
 
   //alert(urlID)
-  if (!document.getElementById(urlID)) { // Prevents multiple loads.
+  if (loadFile && !document.getElementById(urlID)) { // Prevents multiple loads.
     consoleLog("loadScript seeking: " + url + " via urlID: " + urlID);
     var script = document.createElement('script');
       script.type = 'text/javascript';
@@ -576,6 +584,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           //alert("Before template Loaded: " + bodyFile);
           $("#infoFile").load(infoFile, function( response, status, xhr ) {
             consoleLog("Info Template Loaded: " + infoFile);
+            $("#industryFilters").appendTo("#append_industryFilters");
           });
         }
 
@@ -679,11 +688,18 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
   </script>
   */
+
+
+  
+
+  let fullsite = false;
+  // FULL SITE - everything or map
   if (param.showheader == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "navigation" || param.display == "map") {
 
+    fullsite = true;
     includeCSS3(theroot + 'css/map.css',theroot); // Before naics.js so #industries can be overwritten.
     includeCSS3(theroot + 'css/naics.css',theroot);
-// customD3loaded
+    // customD3loaded
     if (param.preloadmap != "false") {
       loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
           includeCSS3(theroot + 'css/leaflet.css',theroot);
@@ -740,35 +756,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       includeCSS3(theroot + 'css/map-display.css',theroot);
     }
     
-
-    //includeCSS3('https://fonts.googleapis.com/icon?family=Material+Icons',theroot);
-    !function() {
-      // Setting up listener for font checking
-      var font = "1rem 'Material Icons'";
-      document.fonts.addEventListener('loadingdone', function(event) {
-          console.log("Font loaded: ${font}: ${ document.fonts.check(font)}");
-      })
-
-      // Loading font
-      var link = document.createElement('link'),
-          head = document.getElementsByTagName('head')[0];
-
-      link.addEventListener('load', function() {
-          //alert('Font loaded');
-          $(document).ready(function () {
-            $(".show-on-load").show();
-          });
-      })
-
-      link.type = 'text/css';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
-      head.appendChild(link);
-    }();
-
     includeCSS3(theroot + 'css/leaflet.icon-material.css',theroot);
     
-    loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
+    //loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
 
 
     if (param.display == "everything") {
@@ -793,16 +783,46 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
   } // end everything or map
 
+  if (fullsite || param.material_icons == "true") {
+    // This was inside FULL SITE above, but it is needed for menus embedded in external sites.
+    //includeCSS3('https://fonts.googleapis.com/icon?family=Material+Icons',theroot);
+    !function() {
+      // Setting up listener for font checking
+      var font = "1rem 'Material Icons'";
+      document.fonts.addEventListener('loadingdone', function(event) {
+          console.log("Font loaded: ${font}: ${ document.fonts.check(font)}");
+      })
 
-      } else {
-      if(location.host.indexOf('localhost') >= 0) {
-        alert("Localhost alert: JQUERY NOT YET AVAILABLE!");
-      } else {
-        consoleLog("JQUERY NOT YET AVAILABLE! Use this more widely.");
-      }
+      // Loading font
+      var link = document.createElement('link'),
+          head = document.getElementsByTagName('head')[0];
+
+      link.addEventListener('load', function() {
+          //alert('Font loaded');
+          $(document).ready(function () {
+            $(".show-on-load").show();
+          });
+      })
+
+      link.type = 'text/css';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+      head.appendChild(link);
+    }();
+  }
+
+
+
+  } else { // jQuery not available yet!
+
+    if(location.host.indexOf('localhost') >= 0) {
+      alert("Localhost alert: JQUERY NOT YET AVAILABLE!");
+    } else {
+      consoleLog("JQUERY NOT YET AVAILABLE! Use this more widely.");
     }
+  }
       
-  }, 10); // End block, could move to end of jQuery loadScript.
+}, 10); // End block, could move to end of jQuery loadScript.
 
 
 }); // End JQuery loadScript
@@ -1307,8 +1327,10 @@ addEventListener("load", function(){
     var anchor = getParentAnchor(e.target);
     if(anchor !== null) {
       //$('#log_display').hide();
-      if (document.getElementById("log_display").length >= 0) {
-        document.getElementById("log_display").style.display = 'none';
+      if (document.getElementById("log_display")) {
+        if (document.getElementById("log_display").length >= 0) {
+          document.getElementById("log_display").style.display = 'none';
+        }
       }
     }
   }, false);
@@ -1322,3 +1344,6 @@ String.prototype.toTitleCase = function () {
 function getKeyByValue(object, value) {
   return Object.keys(object).find(key => object[key] === value);
 }
+$(document).click(function(event) { // Hide open menus in core
+  $('.hideOnDocClick').hide();
+});

@@ -1,0 +1,40 @@
+[
+{
+	"section-user": "My Impact",
+	"section": "My Impact",
+	"title": "My Impact",
+	"icon": "/localsite/img/icon/scope/overview.png",
+	"link": "#scope=ind"
+},
+{
+	"section": "Community",
+	"title": "Community",
+	"icon": "/localsite/img/icon/scope/community.png",
+	"link": "#scope=community"
+},
+{
+	"section": "Household",
+	"title": "Household",
+	"icon": "/localsite/img/icon/scope/household.png"
+},
+{
+	"section": "Work",
+	"title": "Work",
+	"icon": "/localsite/img/icon/scope/work.png"
+},
+{
+	"section": "Travel",
+	"title": "Travel",
+	"icon": "/localsite/img/icon/scope/travel.png"
+},
+{
+	"section": "Food",
+	"title": "Food",
+	"icon": "/localsite/img/icon/scope/food.png"
+},
+{
+	"section": "Shopping",
+	"title": "Shopping",
+	"icon": "/localsite/img/icon/scope/shopping.png"
+}
+]

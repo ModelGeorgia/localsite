@@ -1642,7 +1642,7 @@ function jsLoaded(root) {
 		  }
 	});
 
-	loadScript(root + 'js/table-sort.js', function(results) {});
+	//loadScript(root + 'js/table-sort.js', function(results) {});
 }
 function leafletLoaded(root, count) {
 	console.log("From leafletLoaded typeof L: " + typeof L);
@@ -1786,8 +1786,8 @@ function lazyLoadFiles() {
 	//includeCSS(root + 'css/hexagons.css',root);
 
 
-	
-	includeCSS('https://fonts.googleapis.com/icon?family=Material+Icons',root);
+	// Moved to localsite.js for menu icons
+	//includeCSS('https://fonts.googleapis.com/icon?family=Material+Icons',root);
 	includeCSS(root + 'css/leaflet.icon-material.css',root);
 	includeCSS(root + 'css/map.css',root);
 }
