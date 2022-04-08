@@ -17,6 +17,7 @@ You can transfer an existing domain to Cloudflare for cheaper hosting.
 
 - Auto Minify - All 3 (Javascript, CSS, HTML)  
 - Brotli compression - On (the default)  
+- Early Hints  
 - Rocket Loader™ - Improve the paint time for pages which include JavaScript.  
 - AMP Real URL - Display your site’s actual URL on your AMP pages, instead of the traditional Google AMP cache URL.  
 
@@ -37,7 +38,7 @@ https://www.youtube.com/watch?time_continue=1&v=mVzdEl5G0iM
 
 - Always Use HTTPS - On  
 - Click "Enable HSTS" - Turn on all 4 and set the Max Age Header to 12 months. (6 months is too short for hstspreload.org)  
-- Minimum TLS Version: Minimum TSL 1.2 (but use TSL 1.3)  
+- Minimum TLS Version: Minimum TLS 1.2 - because your server might be using 1.2<!--(but use TLS 1.3)-->  
 - Leave the default of "TLS 1.3" as "On"  
 - Keep on "Automatic HTTPS Rewrites" (ON by default) - Allows Cloudflare to automatically change all links in the HTML to https when appropriate, including links to external sites.  
 - Certificate Transparency Monitoring - ON. Receive an email when a Certificate Authority issues a certificate for your domain.  
@@ -46,7 +47,7 @@ https://www.youtube.com/watch?time_continue=1&v=mVzdEl5G0iM
 
 Go to [hstspreload.org](https://hstspreload.org) and click two checkboxes here so browsers always preload as https.  
 
-Optional: Test with ssllabs.com (after 24 hours)  
+Optional: Test with [ssllabs.com](https://www.ssllabs.com/ssltest/analyze.html?hideResults=on&latest) (after 24 hours)  
 
 ### You won't be able to add a true wildcard redirect under "Page Rule"
 
