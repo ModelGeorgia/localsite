@@ -101,8 +101,7 @@ h2, h3, h4 {
 }
 h1 {
   font-weight: 300;
-  color: #5f5f5f;
-  colorX: #333;
+  color: #444;
   line-height: 1.3;
   margin-top: 10px;
   font-size: 31px;
@@ -996,7 +995,6 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   float: right;
   background-color: rgba(33, 33, 33, 0.85);
   border-radius: 20px;
-  padding: 20px;
   padding-bottom: 0px;
   color: #fff;
   margin-bottom: 20px;
