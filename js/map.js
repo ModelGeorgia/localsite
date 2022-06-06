@@ -1366,7 +1366,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
     dp.addlisting = "https://www.ams.usda.gov/services/local-regional/food-directories-update";
     // community/farmfresh/ 
-    dp.listInfo = "Farmers markets and local farms providing fresh produce directly to consumers. <a style='white-space: nowrap' href='https://model.earth/community/farmfresh/ga/'>About Data</a> | <a href='https://www.ams.usda.gov/local-food-directories/farmersmarkets'>Update Listings</a>";
+    dp.listInfo = "Farmers markets and local farms providing fresh produce directly to consumers. <a style='white-space: nowrap' href='https://model.earth/community/farmfresh/'>About Data</a> | <a href='https://www.ams.usda.gov/local-food-directories/farmersmarkets'>Update Listings</a>";
   
   } else if (show == "buses") {
     dp.listTitle = "Bus Locations";
@@ -1849,7 +1849,7 @@ function onTabletopLoad(dp1) {
 function loadGeos(geo, attempts, callback) {
 
   // load only, no search filter display - get county name from geo value.
-  // created from a copy of showCountiesOrStates() in search-filters.js
+  // created from a copy of loadStateCounties() in search-filters.js
 
   if (typeof d3 !== 'undefined') {
 
@@ -2282,6 +2282,30 @@ function showList(dp,map) {
 
     //console.log("foundMatch: " + foundMatch + ", productMatchFound: " + productMatchFound);
 
+    var key, keys = Object.keys(elementRaw);
+    var n = keys.length;
+    var element={};
+    while (n--) {
+      key = keys[n];
+      //element[key] = elementRaw[key]; // Also keep uppercase for element["Prepared"]
+      element[key.toLowerCase()] = elementRaw[key];
+    }
+
+    iconColor = colorScale(element[dp.valueColumn]);
+    if (dp.color) { 
+      iconColor = dp.color;
+    }
+    //iconColorRGB = hex2rgb(iconColor);
+    //console.log("element state2 " + element.state + " iconColor: " + iconColor)
+
+    //console.log("element[dp.valueColumn] " + element[dp.valueColumn]);
+    if(!catList[element[dp.valueColumn]]) {
+      catList[element[dp.valueColumn]] = {};
+      catList[element[dp.valueColumn]].count = 1;
+    } else {
+      catList[element[dp.valueColumn]].count++;
+    }
+    catList[element[dp.valueColumn]].color = iconColor;
 
     // BUGBUG - Is it valid to search above before making key lowercase? Should elementRaw key be made lowercase?
 
@@ -2290,14 +2314,7 @@ function showList(dp,map) {
     //if (count <= 500) {
 
       data_out.push(elementRaw);
-      var key, keys = Object.keys(elementRaw);
-      var n = keys.length;
-      var element={};
-      while (n--) {
-        key = keys[n];
-        //element[key] = elementRaw[key]; // Also keep uppercase for element["Prepared"]
-        element[key.toLowerCase()] = elementRaw[key];
-      }
+
 
       let name = element.name;
       if (element[dp.nameColumn]) {
@@ -2328,14 +2345,6 @@ function showList(dp,map) {
         //console.log("Status: " + element.status + ". Name: " + name)
       }
 
-      iconColor = colorScale(element[dp.valueColumn]);
-      if (dp.color) { 
-        iconColor = dp.color;
-      }
-      //iconColorRGB = hex2rgb(iconColor);
-
-      //console.log("element state2 " + element.state + " iconColor: " + iconColor)
-
 
       /*
       // Make dp lowercase and add element.
@@ -2355,7 +2364,7 @@ function showList(dp,map) {
       // Bug, this overwrote element.latitude and element.longitude
       //element = mix(dp,element); // Adds existing column names, giving priority to dp assignments made within calling page.
       
-      var theTitleLink = 'https://www.google.com/maps/search/' + (name + ', ' + element.county + ' County').replace(/ /g,"+");
+      var theTitleLink = 'https://www.google.com/maps/search/' + (name + ', ' + element.address + ', ' + element.county + ' County, ' + hash.state).replace(/ /g,"+");
 
       if (element.website && !element.website.toLowerCase().includes("http")) {
         element.website = "http://" + element.website;
@@ -2501,13 +2510,6 @@ function showList(dp,map) {
           } else if (element[dp.valueColumn] != element.name) {
             output += element[dp.valueColumn] + "<br>";
           }
-          //console.log("element[dp.valueColumn] " + element[dp.valueColumn]);
-          if(!catList[element[dp.valueColumn]]) {
-            catList[element[dp.valueColumn]] = {};
-            catList[element[dp.valueColumn]].count = 1;
-          } else {
-            catList[element[dp.valueColumn]].count++;
-          }
         }
         if (element[dp.showKeys]) {
           output += "<b>" + dp.showLabels + ":</b> " + element[dp.showKeys] + "<br>";
@@ -2594,17 +2596,21 @@ function showList(dp,map) {
 
   console.log("catList:");
   console.log(catList);
-  if (catList && Object.keys(catList).length > 0) {
-    let catNavSide = "<div>All Categories</div>";
+  //alert(hash.show + " + " + showprevious)
+  if (hash.show != showprevious || $("#tableSide > .catList").text().length == 0) { // Prevents selected category from being overwritten.
+    if (hash.show != "ppe") { // PPE cats are still hardcoded in localsite/map/index.html
+      if (catList && Object.keys(catList).length > 0) {
+        let catNavSide = "<div>All Categories</div>";
 
-    Object.keys(catList).forEach(key => {
-      catNavSide += "<div title='" + key + "'>" + key + " (" + catList[key].count + ")</div>";
-    });
-    console.log(catNavSide)
-    $("#tableSide").html(""); // Clear
-    $("#tableSide").append("<div class='catList'>" + catNavSide + "</div>");
+        Object.keys(catList).forEach(key => {
+          catNavSide += "<div style='background:" + catList[key].color + ";padding:0px;width:13px;height:13px;border:1px solid #ccc;margin-top:12px;margin-left:12px;margin-right:5px;float:left'></div><div title='" + key + "' style='min-height:38px'>" + key + " (" + catList[key].count + ")</div>";
+        });
+        console.log(catNavSide)
+        $("#tableSide").html(""); // Clear
+        $("#tableSide").append("<div class='catList' style='white-space:nowrap; margin:15px; margin-left:10px;'>" + catNavSide + "</div>");
+      }
+    }
   }
-
   if (hash.name && $("#detaillist > [name='"+ hash.name.replace(/_/g,' ') +"']").length) {
     let listingName = hash.name.replace(/_/g,' ');
     $("#detaillist > [name='"+ listingName.replace(/'/g,'&#39;') +"']").show(); // To do: check if this or next line for apostrophe in name.
@@ -3175,12 +3181,12 @@ function styleShape(feature) { // Called FOR EACH topojson row
   } else if (hash.mapview == "country" && hash.state && hash.state.includes(stateID)) {
       fillColor = 'red';
       fillOpacity = .2;
-  } else if ((hash.mapview == "country" || (hash.mapview == "state" && !hash.state)) && typeof stateImpact != 'undefined') {
+  } else if ((hash.mapview == "country" || (hash.mapview == "state" && !hash.state)) && typeof localObject.state != 'undefined') {
       let theValue = 2;
-      if (stateImpact[getState(stateID)] && stateImpact[getState(stateID)].CO2_per_capita != "No data") {
+      if (localObject.state[getState(stateID)] && localObject.state[getState(stateID)].CO2_per_capita != "No data") {
         console.log(stateID + " " + getState(stateID));
-        console.log(stateID + " " + stateImpact[getState(stateID)].CO2_per_capita);
-        theValue = stateImpact[getState(stateID)].CO2_per_capita;
+        console.log(stateID + " " + localObject.state[getState(stateID)].CO2_per_capita);
+        theValue = localObject.state[getState(stateID)].CO2_per_capita;
       }
       theValue = theValue/4;
       fillColor = colorTheStateCarbon(theValue);
@@ -3319,7 +3325,16 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
   var url;
   let topoObjName = "";
   var layerName = "Map Layer";
-  if (stateAbbr.length <= 1 || hash.mapview == "country") { // USA
+  if (hash.mapview == "zip") {
+    layerName = "Zipcodes";
+    if (stateAbbr) {
+      url = local_app.modelearth_root() + "/community-forecasting/map/zcta/states/" + getState(stateAbbr) + ".topo.json";
+    } else {
+      url = local_app.modelearth_root() + "/community-forecasting/map/zip/topo/zips_us_topo.json";
+    }
+    topoObjName = "topoob.objects.data";
+    $("#geomap").width("700px");
+  } else if (stateAbbr.length <= 1 || hash.mapview == "country") { // USA
     layerName = "States";
     url = local_app.modelearth_root() + "/localsite/map/topo/states-10m.json";
     topoObjName = "topoob.objects.states";
@@ -3791,10 +3806,6 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
               //$("#locationFilterHolder").prepend("<div id='layerStringDiv' style='width:220px'>" + layerString + "<hr></div>");
             
             }
-
-            if (hash.mapview == "country") {
-              loadStateDataList(true); // New list
-            }
           }
       }
 
@@ -3804,12 +3815,14 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
     }
 
     // NOT USED
+    /*
     if (typeof stateImpact != 'undefined') {
       //alert("found stateImpact " + stateImpact);
       let dp = {};
       dp.data = stateImpact;
       dp.scale = getScale(dp.data, dp.scaleType, dp.valueColumn);
     }
+    */
 
     // Remove - clear the markers from the map for the layer
      //if (map.hasLayer(overlays1[dp.dataTitle])){
@@ -3942,68 +3955,6 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
 }
 
 
-// To add:
-    // https://model.earth/beyond-carbon-scraper/scraped/us-carbon-emissions.json
-var stateDataList = [];
-function loadStateDataList(applyFilter) {
-  //alert("loading")
-  d3.text("https://model.earth/beyond-carbon-scraper/scraped/us-carbon-emissions.json").then(function(data) {
-      stateDataList = d3.csvParseRows(data);
-      console.log("loadHtmlTable - stateDataList row count: " + stateDataList.length);
-      //alert(stateDataList);
-
-        let theStateName = $("#state_select").find(":selected").text();
-        //alert("theStateName " + theStateName);
-        setTimeout( function() {
-          theStateName = $("#state_select").find(":selected").text();
-          if(!theStateName) { // Hack. We need to instead trigger when #state_select menu becomes available.
-            //theStateName = "Georgia"
-          }
-          displayStateDataList(theStateName);
-        }, 1000 ); // Allow time for state dropdown to load.
-  });
-}
-function statePhraseForList(stateRow, rowIndex, theStateName) {
-  return(stateRow[rowIndex].replace("[XX]" || "[XX's]", theStateName) )
-}
-function displayStateDataList(theStateName) {
-  console.log("displayStateData: " + theStateName);
-  if (theStateName.length == 0) {
-    //alert("test")
-    $("#about-profile").show();
-    $("#choose-counties").hide();
-    $("#dataDisplay").hide();
-    return;
-  }
-  $("#about-profile").hide();
-  $("#choose-counties").show();
-  $("#dataDisplay").show();
-
-  let rowcount = 0;
-  let dataRow = "";
-  
-  for(var i = 0; i < stateDataList.length; i++) {
-    rowcount++;
-    if (stateDataList[i][0]==theStateName) {
-      
-      dataRow += "<table id='resultsTable'>";
-      dataRow += "<tr><td><div style='float:left;font-size:24px;font-weight:400'>" + theStateName + " Clean Energy Progress</div><div style='float:right;font-size:11px'>Source: <a target='_blank' href='https://beyondcarbon.org'>BeyondCarbon.org</a></div></td></tr>"
-      dataRow += "<tr><td>" + statePhraseForList(stateDataList[i], 5, theStateName) + "</td></tr>"
-      dataRow += "<tr><td>Has " + theStateName + " committed to 100% clean energy? " + statePhrase(stateDataList[i], 1, theStateName) + "</td></tr>"
-      dataRow += "<tr><td>" + statePhraseForList(stateDataList[i], 2, theStateName)  + "</td></tr>"
-      dataRow += "<tr><td>Does " + theStateName + " have a goal for reducing carbon pollution across the entire economy? " + statePhrase(stateDataList[i], 3, theStateName)  + "</td></tr>"
-      dataRow += "<tr><td>Does " + theStateName + " have goals or incentives for electric vehicles? " + statePhrase(stateDataList[i], 4, theStateName) + "</td></tr>"
-      dataRow += "</table>";
-    }
-  }
-  //alert("rowcount " + rowcount);
-  //$(dataRow).insertAfter($("#dataHeader"));
-
-  $("#dataDisplay").html(dataRow);
-  //$("#dataHeader").html(dataRow);
-}
-
-
 
 $(document).on("click", "#show_county_colors", function(event) {
   let hash = getHash();
@@ -4017,7 +3968,6 @@ $(document).on("click", "#show_county_colors", function(event) {
   });
   //alert("done"); // Occurs before layers above appear.
 });
-
 
 console.log('end of localsite/js/map.js');
 

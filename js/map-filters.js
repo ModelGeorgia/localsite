@@ -25,7 +25,10 @@ if(typeof localObject.stateCountiesLoaded == 'undefined') {
     // Later: localObject.stateZipsLoaded
 }
 if(typeof localObject.geo == 'undefined') {
-    localObject.geo = []; // Holds counties.
+    localObject.geo = []; // Holds counties. Should this also be {} ?
+}
+if(typeof localObject.state == 'undefined') {
+    localObject.state = {}; // Holds states.
 }
 
 function populateFieldsFromHash() {
@@ -295,7 +298,8 @@ $(document).ready(function () {
  		if (this.value) {
 	    	$("#geoPicker").show();
 	    	$("#region_select").val("");
-	    	goHash({'state':this.value,'name':'','regiontitle':''}); // triggers renderMapShapes("geomap", hash); // County select map
+            // Later a checkbox could be added to retain geo values across multiple states
+	    	goHash({'state':this.value,'geo':'','name':'','regiontitle':'','mapview':'state'}); // triggers renderMapShapes("geomap", hash); // County select map
 	    	//$("#filterLocations").hide(); // So state appears on map immediately
 	    } else { // US selected
 	    	goHash({'mapview':'country','state':''});
@@ -362,7 +366,7 @@ $(document).ready(function () {
     	$('#topPanel').hide();
 	});
 	*/
-    
+
 	function hideNonListPanels() {
 		$(".fieldSelector").hide(); // Avoid since this occurs when typing text in search field.
     	$('#topPanel').hide();
@@ -772,7 +776,7 @@ function locationFilterChange(selectedValue,selectedGeo) {
     	if (hash.state || hash.geo) {
     		$("#geoPicker").show();
     		// Avoid here because called below - caused checkboxes to be unchecked.
-    		//showCountiesOrStates(0);
+    		//loadStateCounties(0);
 
     		if($("#geomap").is(':visible')) {
     			if($("#geomap").html().length < 20) {
@@ -821,7 +825,7 @@ function locationFilterChange(selectedValue,selectedGeo) {
     }
     if (selectedValue == 'counties') {
     	// Not necessary to show when not displayed yet
-    	//showCountiesOrStates(0);
+    	//loadStateCounties(0);
     }
     if (selectedValue == 'city') {
         $("#distanceField").show();
@@ -867,8 +871,8 @@ function locClick(which) {
 // Data as values, not objects.
 let geoCountyTable = []; // Array of arrays
 let currentRowIDs = [];
-function showCountiesOrStates(attempts) { // To avoid broken tiles, this won't be executed if the #geomap div is not visible.
-	console.log("showCountiesOrStates " + attempts);
+function loadStateCounties(attempts) { // To avoid broken tiles, this won't be executed if the #geomap div is not visible.
+	console.log("loadStateCounties " + attempts);
 	if (typeof d3 !== 'undefined') {
 
 		let hash = getHash();
@@ -881,7 +885,7 @@ function showCountiesOrStates(attempts) { // To avoid broken tiles, this won't b
 		}
 		if ($(".output_table > table").length) {
 			if (theState == priorHash.state || (theState == "GA" && !priorHash.state)) {
-				console.log("cancel showCountiesOrStates: " + theState + " prior: " + priorHash.state);
+				console.log("cancel loadStateCounties: " + theState + " prior: " + priorHash.state);
 				return; // Avoid reloading
 			}
 			$(".output_table").html(""); // Clear prior state
@@ -891,124 +895,220 @@ function showCountiesOrStates(attempts) { // To avoid broken tiles, this won't b
 
 		//Load in contents of CSV file
 		if (theState.length == 2) {
-			d3.csv(local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv").then(function(myData,error) {
+            let csvFilePath = local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv";
+            if (hash.mapview == "zip") {
+                csvFilePath = local_app.community_data_root() + "us/zipcodes/zipcodes6.csv";
+            
+                //alert("hash.mapview " + hash.mapview)
+            }
+			d3.csv(csvFilePath).then(function(myData,error) {
 				if (error) {
 					//alert("error")
 					console.log("Error loading file. " + error);
 				}
 
-				
+                if (hash.mapview == "zip") {
 
+                } else { // Counties
 
+    				//alert($("#county-table").length());
+    				// No effect
+    				//$("#county-table").empty(); // Clear previous state. geo is retained in URL hash.
+    				//$("#county-table").text("")
+    				//alert($("#county-table").length());
 
-				//alert($("#county-table").length());
-				// No effect
-				//$("#county-table").empty(); // Clear previous state. geo is retained in URL hash.
-				//$("#county-table").text("")
-				//alert($("#county-table").length());
+    				// Add a new variable, to make it easier to do a color scale.
+    				// Alternately, you could extract these values with a map function.
+    				let allDifferences = [];
 
-				// Add a new variable, to make it easier to do a color scale.
-				// Alternately, you could extract these values with a map function.
-				let allDifferences = [];
+    				// geo is country, state/province, county
 
-				// geo is country, state/province, county
+    				let theStateGeo = "US" + ('0'+us_stateIDs[theState]).slice(-2);
+    				
+    				myData.forEach(function(d, i) {
 
-				let theStateGeo = "US" + ('0'+us_stateIDs[theState]).slice(-2);
-				
-				myData.forEach(function(d, i) {
+    					d.difference =  d.US_2007_Demand_$;
 
-					d.difference =  d.US_2007_Demand_$;
+    					// OBJECTID,STATEFP10,COUNTYFP10,GEOID10,NAME10,NAMELSAD10,totalpop18,Reg_Comm,Acres,sq_miles,Label,lat,lon
+    					//d.name = ;
+    					d.idname = "US" + d.GEOID + "-" + d.NAME + " County, " + theState;
 
-					// OBJECTID,STATEFP10,COUNTYFP10,GEOID10,NAME10,NAMELSAD10,totalpop18,Reg_Comm,Acres,sq_miles,Label,lat,lon
-					//d.name = ;
-					d.idname = "US" + d.GEOID + "-" + d.NAME + " County, " + theState;
+    					//d.perMile = Math.round(d.totalpop18 / d.sq_miles).toLocaleString(); // Breaks sort
+    					d.perMile = Math.round(d.totalpop18 / d.sq_miles);
 
-					//d.perMile = Math.round(d.totalpop18 / d.sq_miles).toLocaleString(); // Breaks sort
-					d.perMile = Math.round(d.totalpop18 / d.sq_miles);
+    					//console.log("d.sq_miles " + d.sq_miles);
 
-					//console.log("d.sq_miles " + d.sq_miles);
+    					//d.sq_miles = Number(Math.round(d.sq_miles).toLocaleString());
 
-					//d.sq_miles = Number(Math.round(d.sq_miles).toLocaleString());
+    					d.sq_miles = Math.round(d.sq_miles).toLocaleString();
 
-					d.sq_miles = Math.round(d.sq_miles).toLocaleString();
+    				 	// Add an array to the empty array with the values of each:
+    				 	// d.difference, 
+    				 	// , d.sq_miles
+    			 	 	geoCountyTable.push([d.idname, d.totalpop18, d.perMile]);
 
-				 	// Add an array to the empty array with the values of each:
-				 	// d.difference, 
-				 	// , d.sq_miles
-			 	 	geoCountyTable.push([d.idname, d.totalpop18, d.perMile]);
+    			 	 	// Save to localObject so counties in multiple states can be selected
+    			 	 	if (localObject.stateCountiesLoaded.indexOf(theStateGeo)==-1) { // Just add first time
 
-			 	 	// Save to localObject so counties in multiple states can be selected
-			 	 	if (localObject.stateCountiesLoaded.indexOf(theStateGeo)==-1) { // Just add first time
+    			 	 		//BUGBUG - Also need to check that state was not already added.
+    				 	 	let element = {};
+    				 	 	element.id = "US" + d.GEOID;
+    				 	 	//element.county = d.NAME;
+    				 	 	element.name = d.NAME + " County, " + theState;
+    				 	 	element.state = theState;
+    				 	 	element.sqmiles = d.sq_miles;
+    				 	 	element.pop = d.totalpop18;
+    				 	 	element.permile = d.perMile;
+    				 	 	localObject.geo.push(element); 
+    				 	 }
 
-			 	 		//BUGBUG - Also need to check that state was not already added.
-				 	 	let element = {};
-				 	 	element.id = "US" + d.GEOID;
-				 	 	//element.county = d.NAME;
-				 	 	element.name = d.NAME + " County, " + theState;
-				 	 	element.state = theState;
-				 	 	element.sqmiles = d.sq_miles;
-				 	 	element.pop = d.totalpop18;
-				 	 	element.permile = d.perMile;
-				 	 	localObject.geo.push(element); 
-				 	 }
+    					// this is just a convenience, another way would be to use a function to get the values in the d3 scale.
+    					//alert("d.perMile " + d.perMile)
 
-					// this is just a convenience, another way would be to use a function to get the values in the d3 scale.
-					//alert("d.perMile " + d.perMile)
+    					// Not working
+    			 	 	//allDifferences.push(d.difference);
+    			 	 	//allDifferences.push(d.perMile + 0);
+    			 	 	allDifferences.push(d.perMile);
+    				});
 
-					// Not working
-			 	 	//allDifferences.push(d.difference);
-			 	 	//allDifferences.push(d.perMile + 0);
-			 	 	allDifferences.push(d.perMile);
-				});
+    				// Track the states that have been added to localObject.geo
+    				if (localObject.stateCountiesLoaded.indexOf(theStateGeo)==-1) {
+    					if (localObject.stateCountiesLoaded.indexOf(theStateGeo)==-1) localObject.stateCountiesLoaded.push(theStateGeo);
+    					//alert(localObject.stateCountiesLoaded)
+    				}
 
-				// Track the states that have been added to localObject.geo
-				if (localObject.stateCountiesLoaded.indexOf(theStateGeo)==-1) {
-					if (localObject.stateCountiesLoaded.indexOf(theStateGeo)==-1) localObject.stateCountiesLoaded.push(theStateGeo);
-					//alert(localObject.stateCountiesLoaded)
-				}
-
-				console.log("myData");
-				console.log(myData);
-					
-				//console.log("geoCountyTable");
-				//console.log(geoCountyTable);
-
+    				
+    					
+    				//console.log("geoCountyTable");
+    				//console.log(geoCountyTable);
+                }
+                console.log("myData");
+                console.log(myData);
 				showTabulatorList(0);
 
 			});
-		} else { // Show country
-            showTabulatorList(0);
-        }
+		} 
 	} else {
 		attempts = attempts + 1;
 	      if (attempts < 2000) {
-	      	// To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
-	        setTimeout( function() {
-	          showCountiesOrStates(attempts);
+	      	setTimeout( function() {
+	          loadStateCounties(attempts);
 	        }, 20 );
 	      } else {
-	        alert("D3 javascript not available for loading counties csv.")
+	        alert("D3 javascript not available for loadStateCounties csv.")
 	      }
 	}
 }
 
+function loadCountryStates(attempts) {
+    console.log("loadCountryStates " + attempts);
+    if (typeof d3 !== 'undefined') {
+
+        //if (localObject.state && localObject.state.length <= 0) { // Just add first time
+        if (Object.keys(localObject.state).length <= 0) {
+            let stateDataUrl = "https://model.earth/beyond-carbon-scraper/fused/result.json"; // Also resides in app/js/bc.js
+
+            d3.json(stateDataUrl).then(function(json,error) {
+
+
+              stateImpact = $.extend(true, {}, json); // Clone/copy object without entanglement
+              if (param.state) {
+                //theStateName = $("#state_select").find(":selected").text();
+                //let theStateName = getState(param.state);
+
+                  $(document).ready(function () {
+                    //displaystateImpact(theStateName, stateImpact);
+                  });
+
+              }
+
+              /*
+              if (Array.isArray(json)) { // Other than DifBot - NASA when count included
+                for (a in json) {
+                  fullHtml += "<div class='level1'><b>Product ID:</b> " + json[a].id + "</div>\n";
+                  for (b in json[a]) {
+                    fullHtml += formatRow(b,json[a][b],1); // Resides in localsite.js
+                  }
+                }
+              } else {
+                alert("not array")
+                if (!json.data) {
+                  //json.data = json; // For NASA
+                }
+              }
+              alert(fullHtml);
+              */
+
+              if (error) throw error;
+              //console.log("stateImpact");
+              //return(stateImpact);
+              
+              /*
+              let rowcount = 0;
+              //stateImpactArray = [];
+              $.each(stateImpact, function(key,val) {             
+                  //alert(key+val);
+                  if (val["jurisdiction"]) {
+                    //stateImpactArray.push(val)
+
+                    localObject.state.push(val)
+                    rowcount++;
+                  }
+              });
+              console.log("Loaded set of states. rowcount: " + rowcount)
+              */
+
+              localObject.state = $.extend(true, {}, json); // Clone/copy object without entanglement
+
+              showTabulatorList(0);
+            });
+
+        } else {
+            showTabulatorList(0);
+        }
+
+    } else {
+        attempts = attempts + 1;
+          if (attempts < 2000) {
+            setTimeout( function() {
+              lloadCountryStates(attempts);
+            }, 20 );
+          } else {
+            alert("D3 javascript not available for loadCountryStates csv.")
+          }
+    }
+}
 var statetable = {};
 var geotable = {};
 function showTabulatorList(attempts) {
+    //alert("showTabulatorList " + attempts);
 	let hash = getHash();
 	if (typeof Tabulator !== 'undefined') {
 		console.log("showTabulatorList " + attempts)
 		// Try this with 5.0. Currently prevents row click from checking box.
 		// selectable:true,
 
+        // Since localObject.state is an array of objects (for each state), convert to a flat array (like a spreadsheet)
+        let stateImpactArray = [];
+        $.each(localObject.state , function(key,val) {             
+          //alert(key+val);
+          if (val["jurisdiction"]) {
+            stateImpactArray.push(val)
+
+            //localObject.state.push(val)
+            //rowcount++;
+          }
+        });
+
 		// For fixed header, also allows only visible rows to be loaded. See "Row Display Test" below.
 		// maxHeight:"100%",
-        // if (stateAbbr.length <= 1 || hash.mapview == "country") { // USA
+
+        // COUNTRY
         if (!hash.state && typeof stateImpact != 'undefined') {
          $("#tabulator-geotable").hide();
          $("#tabulator-statetable").show();
          statetable = new Tabulator("#tabulator-statetable", {
-            data:stateImpactArray,         //load row data from array of objects
+            data:stateImpactArray,    //load row data from array of objects
             layout:"fitColumns",      //fit columns to width of table
             responsiveLayout:"hide",  //hide columns that dont fit on the table
             tooltips:true,            //show tool tips on cells
@@ -1017,7 +1117,6 @@ function showTabulatorList(attempts) {
             movableColumns:true,      //allow column order to be changed
             resizableRows:true,       //allow row order to be changed
             
-            maxHeight:"100%",
             paginationSize:10000,
             columns:[
                 {formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
@@ -1094,99 +1193,118 @@ function showTabulatorList(attempts) {
          });
         } // End typeof stateImpact != 'undefined'
 
-		// More filter samples
-		// https://stackoverflow.com/questions/2722159/how-to-filter-object-array-based-on-attributes
+
+        // STATE
+		// Might modify to load multiple states
+
         if (hash.state) {
-        $("#tabulator-statetable").hide();
-        $("#tabulator-geotable").show();
-		geotable = new Tabulator("#tabulator-geotable", {
-		    data:localObject.geo.filter(function(el){return el.state == hash.state.split(",")[0].toUpperCase();}),     //load row data from array of objects
-		    layout:"fitColumns",      //fit columns to width of table
-		    responsiveLayout:"hide",  //hide columns that dont fit on the table
- 		    //tooltips:true,            //show tool tips on cells
-		    addRowPos:"top",          //when adding a new row, add it to the top of the table
-		    history:true,             //allow undo and redo actions on the table
-		    movableColumns:true,      //allow column order to be changed
-		    resizableRows:true,       //allow row order to be changed
-		    initialSort:[             //set the initial sort order of the data - NOT WORKING
-		        {column:"pop", dir:"desc"},
-		    ],
-		    maxHeight:"100%",
-		    paginationSize:10000,
-		    columns:[
-		    	{formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
-		        {title:"County", field:"name"},
-		        {title:"Population", field:"pop", hozAlign:"right", headerSortStartingDir:"desc", formatter:"money", formatterParams:{precision:false}},
-		        {title:"Sq Miles", field:"sqmiles", hozAlign:"right"},
-		        {title:"Per Mile", field:"permile", hozAlign:"right"},
-		    ],
+            $("#tabulator-statetable").hide();
+            $("#tabulator-geotable").show();
 
-		    rowClick:function(e, row){
-		        row.toggleSelect(); //toggle row selected state on row click
+            // Prevented up-down scrolling:
+            // maxHeight:"100%",
 
-		        console.log("row:");
-		        console.log(row); // Single row component
-		        console.log(e); // Info about PointerEvent - the click event object
+            // More filter samples
+            // https://stackoverflow.com/questions/2722159/how-to-filter-object-array-based-on-attributes
 
-		        
+            var columnArray;
+            var rowData;
+            if (hash.mapview == "zip") {
+                columnArray = [
+                    {formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
+                    {title:"ZIPCODE", field:"name"}
+                ];
+            } else {
+                rowData = localObject.geo.filter(function(el){return el.state == hash.state.split(",")[0].toUpperCase();}); // load row data from array of objects
+                columnArray = [
+                    {formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
+                    {title:"County", field:"name"},
+                    {title:"Population", field:"pop", hozAlign:"right", headerSortStartingDir:"desc", formatter:"money", formatterParams:{precision:false}},
+                    {title:"Sq Miles", field:"sqmiles", hozAlign:"right"},
+                    {title:"Per Mile", field:"permile", hozAlign:"right"},
+                ];
+            }
+    		geotable = new Tabulator("#tabulator-geotable", {
+    		    data:rowData,  
+    		    layout:"fitColumns",      //fit columns to width of table
+    		    responsiveLayout:"hide",  //hide columns that dont fit on the table
+     		    //tooltips:true,            //show tool tips on cells
+    		    addRowPos:"top",          //when adding a new row, add it to the top of the table
+    		    history:true,             //allow undo and redo actions on the table
+    		    movableColumns:true,      //allow column order to be changed
+    		    resizableRows:true,       //allow row order to be changed
+    		    initialSort:[             //set the initial sort order of the data - NOT WORKING
+    		        {column:"pop", dir:"desc"},
+    		    ],
+    		    paginationSize:10000,
+    		    columns:columnArray,
 
-		        currentRowIDs = [];
-			    //e.forEach(function (row) {
-				    //console.log(row.geoid);
-				    currentRowIDs.push(row._row.data.id);
-				//});
-			    //alert(currentRowIDs.toString())
+    		    rowClick:function(e, row){
+    		        row.toggleSelect(); //toggle row selected state on row click
 
-			    // Possible way to get currently selected rows - not sure is this includes rows not in DOM
-			    // var selectedRows = $("#tabulator-geotable").tabulator("getSelectedRows"); //get array of currently selected row components.
+    		        console.log("row:");
+    		        console.log(row); // Single row component
+    		        console.log(e); // Info about PointerEvent - the click event object
 
-			    // Merge with existing geo values from hash. This allows map to match.
-			    let hash = getHash();
-			    if (row.isSelected()) {
-			    	if(hash.geo) {
-			    		//hash.geo = hash.geo + "," + currentRowIDs.toString();
-			    		hash.geo = hash.geo + "," + row._row.data.id;
-			    	} else {
-			    		hash.geo = currentRowIDs.toString();
-			    	}
-		        } else { // Uncheck
-		        	// Remove only unchecked row.
-		        	//$.each(currentRowIDs, function(index, value) {
-		        		hash.geo = hash.geo.split(',').filter(e => e !== row._row.data.id).toString();
-		        	//}
-		        }
-			    goHash({'geo':hash.geo});
+    		        
 
-		        //var selectedData = geotable.getSelectedData(); // Array of currently selected
-		        //alert(selectedData);
-		    },
-		    rowSelectionChanged: function(e, row) {
-		    	//alert("rowSelectionChanged")
+    		        currentRowIDs = [];
+    			    //e.forEach(function (row) {
+    				    //console.log(row.geoid);
+    				    currentRowIDs.push(row._row.data.id);
+    				//});
+    			    //alert(currentRowIDs.toString())
 
-		    	//console.log("rowSelectionChanged");
-			    //console.log(e); // Contains all selected rows.
+    			    // Possible way to get currently selected rows - not sure is this includes rows not in DOM
+    			    // var selectedRows = $("#tabulator-geotable").tabulator("getSelectedRows"); //get array of currently selected row components.
 
-			    //console.log("Row Selection (checkbox) Changed");
-			    //console.log(row); // Has extra levels
+    			    // Merge with existing geo values from hash. This allows map to match.
+    			    let hash = getHash();
+    			    if (row.isSelected()) {
+    			    	if(hash.geo) {
+    			    		//hash.geo = hash.geo + "," + currentRowIDs.toString();
+    			    		hash.geo = hash.geo + "," + row._row.data.id;
+    			    	} else {
+    			    		hash.geo = currentRowIDs.toString();
+    			    	}
+    		        } else { // Uncheck
+    		        	// Remove only unchecked row.
+    		        	//$.each(currentRowIDs, function(index, value) {
+    		        		hash.geo = hash.geo.split(',').filter(e => e !== row._row.data.id).toString();
+    		        	//}
+    		        }
+    			    goHash({'geo':hash.geo});
 
-			    /*
-			    currentRowIDs = [];
-			    e.forEach(function (row) {
-				    //console.log(row.geoid);
-				    currentRowIDs.push(row.id)
-				});
-			    */
+    		        //var selectedData = geotable.getSelectedData(); // Array of currently selected
+    		        //alert(selectedData);
+    		    },
+    		    rowSelectionChanged: function(e, row) {
+    		    	//alert("rowSelectionChanged")
 
-		    	if (row[0]) {
-		    		//console.log(e[0].id); // the geoid
+    		    	//console.log("rowSelectionChanged");
+    			    //console.log(e); // Contains all selected rows.
 
-		    		// Works - but currently showing first item in array of objects:
-			    	//console.log(row[0]._row.data.id); // .data.geoid
+    			    //console.log("Row Selection (checkbox) Changed");
+    			    //console.log(row); // Has extra levels
 
-			        //this.recalc();
-			    }
-		    },
-		});
+    			    /*
+    			    currentRowIDs = [];
+    			    e.forEach(function (row) {
+    				    //console.log(row.geoid);
+    				    currentRowIDs.push(row.id)
+    				});
+    			    */
+
+    		    	if (row[0]) {
+    		    		//console.log(e[0].id); // the geoid
+
+    		    		// Works - but currently showing first item in array of objects:
+    			    	//console.log(row[0]._row.data.id); // .data.geoid
+
+    			        //this.recalc();
+    			    }
+    		    },
+    		});
         }
 		//geotable.selectRow(geotable.getRows().filter(row => row.getData().name == 'Fulton County, GA'));
 		//geotable.selectRow(geotable.getRows().filter(row => row.getData().name.includes('Ba')));
@@ -1208,38 +1326,42 @@ function showTabulatorList(attempts) {
 	}
 }
 function updateSelectedTableRows(geo, clear, attempts) {
-	if (typeof geotable.getRows === "function") {
-    	//geotable.selectRow(geotable.getRows().filter(row => row.getData().name.includes('Ba')));
-    	if (clear) {
-            geotable.deselectRow(); // All
-    	}
-    	if (geo) {
-			$.each(geo.split(','), function(index, value) {
-				geotable.selectRow(geotable.getRows().filter(row => row.getData().id == value));
-			});
-		}
-		// Row Display Test - scroll down to see which rows were not initially in DOM.
-    	//$('.tabulator-row input:checkbox').css('display', 'none');
-
-    	//var selectedRows = ; //get array of currently selected row components.
-    	let county_names = []
-    	$.each(geotable.getSelectedRows(), function(index, value) {
-    		// TODO - Group by state
-    		county_names.push(value._row.data.name.split(",")[0].replace(" County",""));
-    	});
-    	console.log("county_names " + county_names.toString());
-    	$(".counties_title").text(county_names.toString().replaceAll(",",", "));
+    if (!hash.state) {
+        console.log("ALERT - A state value is needed in the URL")
     } else {
-	  attempts = attempts + 1;
-      if (attempts < 200) {
-      	// To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
-        setTimeout( function() {
-          updateSelectedTableRows(geo,clear,attempts);
-        }, 20 );
-      } else {
-        alert("geotable.getRows not available after " + attempts + " attempts.")
-      }
-	}
+    	if (typeof geotable.getRows === "function") {
+        	//geotable.selectRow(geotable.getRows().filter(row => row.getData().name.includes('Ba')));
+        	if (clear) {
+                geotable.deselectRow(); // All
+        	}
+        	if (geo) {
+    			$.each(geo.split(','), function(index, value) {
+    				geotable.selectRow(geotable.getRows().filter(row => row.getData().id == value));
+    			});
+    		}
+    		// Row Display Test - scroll down to see which rows were not initially in DOM.
+        	//$('.tabulator-row input:checkbox').css('display', 'none');
+
+        	//var selectedRows = ; //get array of currently selected row components.
+        	let county_names = []
+        	$.each(geotable.getSelectedRows(), function(index, value) {
+        		// TODO - Group by state
+        		county_names.push(value._row.data.name.split(",")[0].replace(" County",""));
+        	});
+        	console.log("county_names " + county_names.toString());
+        	$(".counties_title").text(county_names.toString().replaceAll(",",", "));
+        } else {
+    	  attempts = attempts + 1;
+          if (attempts < 200) {
+          	// To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
+            setTimeout( function() {
+              updateSelectedTableRows(geo,clear,attempts);
+            }, 20 );
+          } else {
+            alert("geotable.getRows not available after " + attempts + " attempts.")
+          }
+    	}
+    }
 }
 
 // To remove, or use as fallback
@@ -1332,7 +1454,7 @@ function hideLocationsMenu() {
     $('.listHolder').hide();
 }
 function populateCityList(callback) {
-    //$(".menuPanel").hide(); // Also called from showCountiesOrStates
+    //$(".menuPanel").hide(); // Also called from loadStateCounties
     $(".countyList").hide();
 
     if ($('.cityList').length > 0) { // Already populated
@@ -2241,10 +2363,12 @@ function hashChanged() {
 	    hash.state = "GA";
 	    hiddenhash.state = "GA";
 	}
-
+    if (hash.mapview == "state" && hash.state == undefined) {
+        // To Do: Pull the states from the geo values
+        hash.mapview = "country"
+    }
 	populateFieldsFromHash();
 	productList("01","99","All Harmonized System Categories"); // Sets title for new HS hash.
-
 
 	if (hash.state) {
 		var stateAbbrev = hash.state.split(",")[0].toUpperCase();
@@ -2456,10 +2580,18 @@ function hashChanged() {
 		}
 		//'geo':'', 
 		//updateHash({'regiontitle':'', 'lat':'', 'lon':''});
-		showCountiesOrStates(0);
-	} else if (hash.mapview != priorHash.mapview && (hash.mapview == "state" || hash.mapview == "country")) {
-        showCountiesOrStates(0);
+        loadStateCounties(0);
+    } else if (hash.mapview != priorHash.mapview && hash.mapview == "state") {
+        loadStateCounties(0);
+	} else if (hash.mapview != priorHash.mapview && hash.mapview == "country") {
+        loadCountryStates(0);
+    } else if (hash.mapview != priorHash.mapview) { // For backing up within apps
+        if (typeof relocatedStateMenu != "undefined") {
+            relocatedStateMenu.appendChild(state_select); // For apps hero
+        }
+        $("#hero_holder").show();
     }
+        
     //Resides before geo
     if (hash.regiontitle != priorHash.regiontitle || hash.state != priorHash.state || hash.show != priorHash.show) {
         let theStateName;
