@@ -218,6 +218,13 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
   if (typeof d3 !== 'undefined') {
     if (!dp.dataset && !dp.googleCSV) {
       console.log('CANCEL loadFromSheet. No dataset selected for top map. May not be one for state.');
+      if (!hash.state) {
+        if (location.host.indexOf('localhost') >= 0) {
+          alert("Localhost message: State may be required for requested data. Appending state GA.");
+        }
+        goHash({'state':'GA'});
+        return;
+      }
       $("#" + whichmap).hide();
       $("#list_main").hide();
       if (param.showsearch == "true") { // For EPD products io/template
@@ -1401,7 +1408,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.editLink = "https://docs.google.com/spreadsheets/d/1yt_saLpiBNPR1g_r2mn9-U5DozqLoVJHVwfR-4f0HTU/edit?usp=sharing";
         dp.googleDocID = "1yt_saLpiBNPR1g_r2mn9-U5DozqLoVJHVwfR-4f0HTU";
         dp.sheetName = "Companies";
-        dp.listInfo = "<br><br>Post comments in our <a href='https://docs.google.com/spreadsheets/d/1yt_saLpiBNPR1g_r2mn9-U5DozqLoVJHVwfR-4f0HTU/edit?usp=sharing'>Google Sheet</a> to submit map updates.<br>View Georgia's <a href='https://www.solarpowerworldonline.com/2020-top-georgia-contractors/'>top solar contractors by KW installed</a>.";
+        dp.listInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1yt_saLpiBNPR1g_r2mn9-U5DozqLoVJHVwfR-4f0HTU/edit?usp=sharing'>Google Sheet</a> to submit map updates.<br>View Georgia's <a href='https://www.solarpowerworldonline.com/2020-top-georgia-contractors/'>top solar contractors by KW installed</a>.";
         dp.valueColumn = "firm type";
         dp.valueColumnLabel = "Firm Type";
         dp.markerType = "google";
@@ -1414,7 +1421,8 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.markerType = "google"; // BUGBUG doesn't seem to work with county boundary background (showShapeMap)
         // , "In Address": "address", "In County Name": "county", "In Website URL": "website"
         dp.search = {"In Location Name": "name"};
-
+        dp.valueColumn = "type";
+        dp.valueColumnLabel = "Type";
         dp.zoom = 4;
   } else if (show == "openepd") {
         dp.listTitle = "Environmental Product Declarations";
@@ -1473,15 +1481,14 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.addressColumn = "address";
 
         dp.valueColumn = "category";
-        dp.valueColumnLabel = "Materials Category";
+        dp.valueColumnLabel = "Category";
 
-        //dp.itemsColumn = "materials accepted"; // Equivalent to PPE items column, checkboxes
-        dp.itemsColumn = "Category"; // Needs to remain capitalized
+        dp.itemsColumn = "Materials Accepted"; // Needs to remain capitalized. Equivalent to PPE items column, checkboxes
 
         // https://map.georgia.org/recycling/
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.listInfo = "<br><br>Submit updates using our <a href='https://map.georgia.org/recycling/'>Google Form</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google Sheet</a>.<br>View additional <a href='../map/recycling/ga/'>recycling datasets</a>.";
-        dp.search = {"In Type": "Materials Accepted Old", "In Type2": "Materials Accepted", "In Type3": "Category", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
+        dp.listInfo = "Submit updates using our <a href='https://map.georgia.org/recycling/'>Google Form</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.&nbsp; View additional <a href='../map/recycling/ga/'>recycling datasets</a>.";
+        dp.search = {"In Main Category": "Category", "In Materials Accepted": "Materials Accepted", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
 
       } else if (1==2 && (show == "recycling" || show == "transfer" || show == "recyclers" || show == "inert" || show == "landfills")) { // recycling-processors
         if (!hash.state || hash.state == "GA") {
@@ -1518,7 +1525,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
           //dp.nameColumn = "organizationname";
           //dp.titleColumn = "organizationname";
 
-          dp.listInfo = "<br><br>View additional <a href='../map/recycling/ga/'>recycling datasets</a>.<br>Submit updates by posting comments in our 5 <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing'>Google Sheet Tabs</a>.";
+          dp.listInfo = "View additional <a href='../map/recycling/ga/'>recycling datasets</a>.<br>Submit updates by posting comments in our 5 <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing'>Google Sheet Tabs</a>.";
           
           //dp.latColumn = "latitude";
           //dp.lonColumn = "longitude";
@@ -1552,7 +1559,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.valueColumn = "ev industry";
         dp.valueColumnLabel = "EV Industry";
         dp.markerType = "google";
-        dp.search = {"EV Industry": "ev industry", "In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
+        dp.search = {"EV Industry": "EV Industry", "In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
       } else if (show == "vax" || show == "vac") { // Phase out vac
         dp.listTitle = "Vaccine Locations";
         //dp.dataset = "https://docs.google.com/spreadsheets/d/1odIH33Y71QGplQhjJpkYhZCfN5gYCA6zXALTctSavwE/gviz/tq?tqx=out:csv&sheet=Sheet1"; // MapBox sample
@@ -1586,6 +1593,9 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.longitude = -83.4;
         dp.zoom = 7;
         dp.colorColumn = "name"; // Invokes color as alternative to valueColumn
+
+        dp.valueColumn = "city";
+        dp.valueColumnLabel = "City";
       } else if (show == "logistics") { // "http://" + param["domain"]
 
         dp.listTitle = "Logistics";
@@ -1630,7 +1640,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.itemsColumn = "items";
         dp.valueColumn = "type";
         dp.valueColumnLabel = "Type";
-        dp.color = "#ff9819"; // orange - Since there is no type column. An item column is filtered.
+        dp.color = "#ff9819"; // orange - Since there is no type column. An item column is filtered. To do: Pull types from a tab and relate to the first type in each column.
         dp.markerType = "google";
         dp.search = {"In Company Name": "company", "In Items": "items", "In Website URL": "website", "In City Name": "city", "In Zip Code" : "zip"};
         dp.nameColumn = "company";
@@ -2159,10 +2169,10 @@ function showList(dp,map) {
               }
             }
           } else {
-            productMatchFound = 1; // Matches all products
+            //productMatchFound = 1; // Matches all products
           }
 
-          console.log('Begin foundMatch');
+          //console.log('Begin foundMatch');
           if (dataObject.geos && elementRaw[dp.countyColumn]) { // Use name of county pre-loaded into dataObject.
             //console.log('Use name of county pre-loaded');
             for(var g = 0; g < dataObject.geos.length; g++) {
@@ -2179,7 +2189,7 @@ function showList(dp,map) {
             }
           } else if (keyword.length > 0) {
 
-            console.log('Search for "' + keyword.toLowerCase().replace(/\_/g," ") + '" - Fields to search: ' + JSON.stringify(dp.search));
+            //console.log('Search for "' + keyword.toLowerCase().replace(/\_/g," ") + '" - Fields to search: ' + JSON.stringify(dp.search));
             
             if (typeof dp.search != "undefined") { // An object containing interface labels and names of columns to search.
 
@@ -2187,7 +2197,7 @@ function showList(dp,map) {
             //console.log(selected_col)
 
               $.each(dp.search, function( key, value ) { // Works for arrays and objects. key is the index value for arrays.
-                console.log(value + " " + elementRaw[value]);
+                //console.log(value + " " + elementRaw[value]);
                 //selected_columns_object[key] = 0;
                 if (elementRaw[value]) {
                   if (elementRaw[value].toString().toLowerCase().indexOf(keyword.toLowerCase().replace(/\_/g," ")) >= 0) {
@@ -2200,11 +2210,11 @@ function showList(dp,map) {
             } else { // dp.search is not defined, so try titlecolumn
               //console.log("no dp.search, try: " + elementRaw[dp.titleColumn]);
               if (elementRaw[dp.titleColumn] && elementRaw[dp.titleColumn].toLowerCase().indexOf(keyword) >= 0) {
-                console.log("foundMatch in title");
+                //console.log("foundMatch in title");
                 foundMatch++;
               }
               if (elementRaw[dp.valueColumn] && elementRaw[dp.valueColumn].toLowerCase().indexOf(keyword) >= 0) {
-                console.log("foundMatch in value");
+                //console.log("foundMatch in value");
                 foundMatch++;
               }
 
@@ -2249,7 +2259,7 @@ function showList(dp,map) {
           }
 
           //console.log("foundMatch " + foundMatch)
-          if (1==2) { // Not yet tested here
+          //if (1==2) { // Not yet tested here
             console.log("Check if listing's product HS codes match.");
             for(var pc = 0; pc < productcode_array.length; pc++) { 
               if (productcode_array[pc].length > 0) {
@@ -2262,8 +2272,8 @@ function showList(dp,map) {
                         console.log("codesArray " + j + " " + codesArray[j] + " starts with " + productcode_array[pc]);
                       
                         console.log("foundMatch D");
-                        productMatchFound++; // Might not be needed here
-                        foundMatch++;
+                        productMatchFound++;
+                        //foundMatch++;
                         //$(this).show();
                       }
                     }
@@ -2277,7 +2287,7 @@ function showList(dp,map) {
                 }
               }
             }
-          }
+          //}
 
     //} else {
     //  // Automatically find match since there are no filters
@@ -2285,7 +2295,7 @@ function showList(dp,map) {
     //  foundMatch++;
     //}
 
-    console.log("foundMatch: " + foundMatch + ", productMatchFound: " + productMatchFound);
+    //console.log("foundMatch: " + foundMatch + ", productMatchFound: " + productMatchFound);
 
     var key, keys = Object.keys(elementRaw);
     var n = keys.length;
@@ -2315,7 +2325,7 @@ function showList(dp,map) {
     // BUGBUG - Is it valid to search above before making key lowercase? Should elementRaw key be made lowercase?
 
     //if (foundMatch > 0 && productMatchFound > 0) {
-    if (foundMatch > 0) {
+    if (foundMatch > 0 || productMatchFound > 0) {
       dataMatchCount++;
     //if (count <= 500) {
 
@@ -2600,20 +2610,19 @@ function showList(dp,map) {
   });
   console.log("Total " + dp.dataTitle + " " + countDisplay + " of " + count);
 
-  console.log("catList:");
-  console.log(catList);
-  //alert(hash.show + " + " + showprevious)
+  //console.log("catList:");
+  //console.log(catList);
   if (hash.show != showprevious || $("#tableSide > .catList").text().length == 0) { // Prevents selected category from being overwritten.
     if (hash.show != "ppe") { // PPE cats are still hardcoded in localsite/map/index.html
       if (catList && Object.keys(catList).length > 0) {
-        let catNavSide = "<div>All Categories</div>";
+        let catNavSide = "<div class='all_categories'>All Categories</div>";
 
         Object.keys(catList).forEach(key => {
           if (key != "") {
-            catNavSide += "<div style='background:" + catList[key].color + ";padding:0px;width:13px;height:13px;border:1px solid #ccc;margin-top:12px;margin-left:12px;margin-right:5px;float:left'></div><div title='" + key + "' style='min-height:38px'>" + key + " (" + catList[key].count + ")</div>";
+            catNavSide += "<div style='background:" + catList[key].color + ";padding:0px;width:13px;height:13px;border:1px solid #ccc;margin-top:12px;margin-left:12px;margin-right:5px;float:left'></div><div title='" + key + "' style='min-height:38px'>" + key + "<span class='local'>&nbsp;(" + catList[key].count + ")</span></div>";
           }
         });
-        console.log(catNavSide)
+        //console.log(catNavSide)
         $("#tableSide").html(""); // Clear
         $("#tableSide").append("<div class='catList' style='white-space:nowrap; margin:15px; margin-left:10px;'>" + catNavSide + "</div>");
       }
@@ -2665,13 +2674,21 @@ function showList(dp,map) {
         searchFor = "<b>" + $("#catSearch").val() + "</b> - "; // was twice BUGBUG
       }
       if (countDisplay == validRowCount) {
-        searchFor += countDisplay + " active records. ";
+        if (countDisplay == 1) {
+          searchFor += countDisplay + " active record. ";
+        } else {
+          searchFor += countDisplay + " active records. ";
+        }
         console.log("Active records: ") + countDisplay;
         console.log("Rows: ") + count;
       } else if (count==1) {
         searchFor += countDisplay + " displayed from " + validRowCount + " active record. ";
       } else if (validRowCount > 0) { // Hide when status row is not in use.
         searchFor += countDisplay+ " displayed from " + validRowCount  + " active records. ";
+      } else if (countDisplay == 1) {
+        searchFor += countDisplay + " record. ";
+      } else {
+        searchFor += countDisplay + " records. ";
       }
       // alert("showCount " + showCount); // 0 unless filtering for a profile
       //if (showCount == 1 && count - dataMatchCount > 1) {
@@ -2688,6 +2705,9 @@ function showList(dp,map) {
       searchFor += " <div id='viewAllLink' style='float:right;display:none;'><a onclick='goHash({},[\"name\",\"loc\"]); return false;' href='#show=" + param["show"] + "'>View All</a></div>";
 
       if (dp.listInfo) {
+        if (searchFor) {
+          searchFor += "<br>"
+        }
         searchFor += dp.listInfo;
       }
       $("#dataList").html(searchFor);
@@ -2697,9 +2717,9 @@ function showList(dp,map) {
       //console.log(selected_col);
       //alert(selected_columns_object[2].value)
   } else {
-      $("#dataList").html("No match found in " + count + " records. <a href='#' onclick='clickClearButton();return false;'>Clear Filters</a><br>");
+      $("#dataList").html("No match found in " + count + " records. <a href='' onclick='return clearButtonClick();'>Clear Filters</a><br>");
           
-    var noMatch = "<div>No match found in " + (dataSet.length - 1) + " records. <a href='#' onclick='clickClearButton();return false;'>Clear filters</a>.</div>"
+    var noMatch = "<div>No match found in " + (dataSet.length - 1) + " records. <a href='' onclick='return clearButtonClick();'>Clear filters</a>.</div>"
     $("#nomatchText").html(noMatch);
     $("#nomatchPanel").show();
   }

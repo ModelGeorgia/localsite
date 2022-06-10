@@ -53,6 +53,11 @@
       param.titleArray = ["code","for","america"]
       param.startTitle = "Code for America"
     }
+    $(document).ready(function () {
+      if (location.host.indexOf('localhost') >= 0) {
+        $("#filterClickLocation").show(); // Seems to need Tabulator
+      }
+    });
 </script>
 
 <!-- Activate to include site navigation-->
@@ -266,7 +271,7 @@ class="headerbarheight"
                 </div>
               </div>
 
-              <div class="filterClick showApps" style="position:relative; overflow:auto; margin-right:10px">
+              <div class="filterClick showApps" style="position:relative; overflow:auto">
 
                 <div class="select-menu-arrow-holder">
                     <i class="material-icons show-on-load" style="font-size:24px;cursor:pointer;">&#xE409;</i>
@@ -284,7 +289,7 @@ class="headerbarheight"
       </div>
 
       <div style="display:none;" class="local filterField layerclass mock-up suppliers exporter products">
-        <div id="catSearchHolder">
+        <div id="catSearchHolder2">
           <div class="filterLabel">
             <div class="filterLabelMain">
             Supply Categories<!--Goods & Services-->
@@ -318,7 +323,6 @@ class="headerbarheight"
       <!-- KEYWORD SEARCH -->
       <div>
         <div class="local filterField keywordField" style="display:none">
-          
 
           <!-- Search Companies -->
           <div class="filterLabel">
@@ -350,7 +354,9 @@ class="headerbarheight"
                       <div id="goSearch" class="detailbutton" href="#" style="float:left;"><span style="font-size:14pt;padding-left:2px">&#128269;</span></div>
 
                       <!-- showAll showAllResults searchHeight -->
+                      <!--
                       <div id="clearButton" class="detailbutton" style="float:left;margin:0px 0px 0px 0px">Clear</div>
+                      -->
                       
                   </div>
 
@@ -747,8 +753,7 @@ class="headerbarheight"
 
   <div class="user-5" style="display:none">
     <hr>Staff only - 
-    <a href="/maps/leaflet/providers/preview/" target="basemaps">View Basemaps</a> | 
-    <a href="/community-data/us/state/GA/ga-layers.json">View JSON</a><br>
+    <a href="/maps/leaflet/providers/preview/" target="basemaps">View Basemaps</a><br>
     <div class="settingAdminNotes"></div>
   </div>
 
