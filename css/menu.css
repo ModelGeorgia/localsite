@@ -6,6 +6,7 @@
 @media (max-width: 800px) {
   .table-cell {
     display: block;
+    float: left;
   }
 }
 .moduleJS {
@@ -19,10 +20,10 @@
 	clear: both;
 }
 .layerSection:last-child {
-	margin-bottom: 12px;
+	min-height: 42px;
 }
 .layerSectionClick {
-    padding: 6px 8px 3px 18px;
+    padding: 6px 8px 0px 12px;
     font-size: 16px;
     font-family: 'Open Sans Condensed', sans-serif;
     cursor: pointer;
@@ -57,15 +58,20 @@
 .layerCbRow {
 	display:none;
 	padding: 1px 0px 0px 27px;
+	margin-left: 2px;
 	color: #888;
 	clear: both;
-	overflow: auto;
+}
+.sideMenuColumnNarrow	.layerCbRow {
+	background-color: #fff;
+	border-left: 1px solid #ccc;
+	border-right: 1px solid #ccc;
+	border-bottom: 1px solid #333;
+	width: 179px; /* To overlap sideMenuColumnNarrow */
 }
 .layerCbTitle {
 	white-space:nowrap;
-	margin-top: 6px;
-	margin-left: 22px;
-	margin-right: 25px;
+	margin: 4px 25px 4px 12px;
 	font-size: 15px;
 	pointer-events: none; /* Allow pass through */
 	font-family: 'Open Sans Condensed', sans-serif;
@@ -73,10 +79,6 @@
 .layerCbRow:hover {
 	background: #ececec;
 	color: #555;
-}
-.menuBuddy {
-	paddingX: 20px 0 20px 40px;
-	padding-top: 20px;
 }
 .sectionArrowHolder {
     float: right;
@@ -108,34 +110,54 @@
 #partnerMenuHolder {
 	min-width: 185px;
 }
-.absoluteWhenNarrow {
+.sideMenuColumn {
 		z-index: 1;
 		min-width: 160px;
 }
 @media (min-width: 1401px) {
 	.layerSectionTitle {
-		display: block !important;
+		display: block;
 	}
+}
+@media (max-width: 600px) {
+	#partnerMenuHolder {
+		max-widthX: 100px; /* Less than 120px to trigger clicks without opening submenu */
+	}
+}
+
+/* Narrow using class */
+.sideMenuColumnNarrow { /* Applied with script. Also applied by scaling below. */
+	min-width: 38px;
+	max-width: 38px; 
+}
+.sideMenuColumnNarrow	.layerSection {
+	white-space: nowrap;
+	overflow: visible;
+}
+.sideMenuColumnNarrow	.layerSectionTitle {
+	display: none;
+}
+.sideMenuColumnNarrow .layerSectionTitle {
+	width: 180px; /* required for background color to be visible */
+	color: #fff;
+	background-color: #333;
+	margin-top: -8px;
+	margin-left:  -10px;
+	padding-top: 8px;
+	padding-bottom: 8px;
+	padding-right: 8px;
+	border-bottom: 1px solid #fff;
 }
 @media (max-width: 1400px) {
 	#partnerMenuHolder {
 		min-width: 32px;
-		max-width: 100px; /* Less than 120px to trigger clicks without opening submenu */
 	}
-	.layerSectionTitle {
-		width: 180px; /* required for background color to be visible */
-		color: #fff;
-		background-color: #333;
-		margin-top: -8px;
-		margin-left:  -10px;
-		padding-top: 8px;
-		padding-bottom: 8px;
-		padding-right: 8px;
-	}
-	.absoluteWhenNarrow {
+
+	.sideMenuColumn {
 		z-index: 1;
 		min-width: 38px;
-		max-width: 38px;
+		/* max-width: 38px; Avoiding since page's .sidechildlist is injected. */
+		max-width: 38px; 
 		top: 0;
 		bottom: 0;
 		overflow: visible;
@@ -167,7 +189,28 @@
 		display:none;
 	}
 }
-
+.sideListCell {
+	border-right: 1px solid #ddd;
+}
+.sideList {
+	margin: 20px;
+	min-width: 200px;
+	max-width: 300px;
+}
+.leftCell {
+	padding-top: 20px;
+}
+@media (max-width: 800px) {
+	.sideListCell {
+		border-right: none;
+	}
+	.leftCell {
+		max-width: 90%; /* Allows partnerAdmin menu to reside to the left on mobile */
+	}
+	.rightCell {
+		width: 100%;
+	}
+}
 .layerSectionOpenX {
 	max-width: auto;
 	overflow: visible;
@@ -184,7 +227,7 @@
 	float:right;
 	width: 100%;
 	z-index: 9999;
-	min-height: 34px;
+	/* min-height: 34px; */
 	/* border: 1px solid red; */
 	cursor: pointer;
 }
@@ -257,4 +300,5 @@
 .navClone .layerCbRow {
 	display: block;
 }
+
 

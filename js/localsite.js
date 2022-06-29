@@ -45,10 +45,12 @@ var local_app = local_app || (function(module){
             let theroot = location.protocol + '//' + location.host + '/localsite/';
 
             if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map, and ga-layers.json
-              ////theroot = "https://map.georgia.org/localsite/";
+              // Might readd (hopefully not) for https://www.georgia.org/center-of-innovation/energy/smart-mobility  needed occasionally for js/jquery.min.js below, not needed when hitting reload.
+              //theroot = "https://map.georgia.org/localsite/";
               
               // This could be breaking top links to Location and Good & Services.
-              //theroot = hostnameAndPort + "/localsite/";
+              // But reactivating after smart-mobility page tried to get js/jquery.min.js from geogia.org
+              theroot = hostnameAndPort + "/localsite/";
             }
             
             if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
@@ -516,8 +518,56 @@ function consoleLog(text,value) {
   }
   
 }
+function loadLocalTemplate() {
+  let bodyFile = theroot + "map/index.html #insertedText";
+  //console.log("Before template Loaded: " + bodyFile);
 
+  $("#bodyFile").load(bodyFile, function( response, status, xhr ) {
+    //console.log("Template Loaded: " + bodyFile);
+    if (typeof relocatedStateMenu != "undefined") {
+      relocatedStateMenu.appendChild(state_select); // For apps hero
+      $(".stateFilters").hide();
+    }
+    if (param.showstates != "false") {
+      $("#filterClickLocation").show();
+    }
+    $("#mapFilters").prependTo("#fullcolumn");
+    $("#local-header").prependTo("body"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
 
+    /// Coming soon. Trigger with localObject
+    // $("#nullschoolHeader").show();
+    // $("#globalMapHolder").html('<iframe src="https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037" class="iframe" name="mainframe" id="mainframe"></iframe>');
+    
+    if (location.host.indexOf('model') >= 0) {
+      $(".showSearch").show();
+      $(".showSearch").removeClass("local");
+    }
+  });
+}
+function loadSearchFilterIncludes() {
+  includeCSS3(theroot + 'css/base.css',theroot);
+  includeCSS3(theroot + 'css/search-filters.css',theroot);
+  if (param.preloadmap != "false") {
+    includeCSS3(theroot + 'css/map-display.css',theroot);
+  }
+}
+function loadLeafletAndMapFilters() {
+  loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
+    includeCSS3(theroot + 'css/leaflet.css',theroot);
+    loadScript(theroot + 'js/leaflet.js', function(results) {
+      loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Could skip when map does not use material icon colors
+        loadScript(theroot + 'js/map.js', function(results) {
+          // Loads map-filters.js
+          loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
+        });
+      });
+    });
+
+    //if (param.shownav) {
+      loadScript(theroot + 'js/navigation.js', function(results) {});
+    //}
+  });
+}
 // WAIT FOR JQuery
 loadScript(theroot + 'js/jquery.min.js', function(results) {
 
@@ -542,7 +592,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         });
         if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
           var div = $("<div />", {
-              html: '<style>.local{display:inline-block !important}.localonly{display:block !important}</style>'
+              html: '<style>.local{display:inline !important}.localonly{display:block !important}</style>'
             }).appendTo("body");
         } else {
           // Inject style rule
@@ -555,27 +605,15 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         // View html source: https://model.earth/localsite/map
         // Consider pulling in HTML before DOM is loaded, then send to page once #bodyFile is available.
 
-        if ($("#" + param.insertafter).length) {
+        if (param.insertafter && $("#" + param.insertafter).length) {
           $("#" + param.insertafter).append("<div id='bodyFile'></div>");
-        } else if (!$("#bodyFile").length) {
+        //} else if (!$("#bodyFile").length) {
+        } else if(document.getElementById("bodyFile") == null) {
           $('body').prepend("<div id='bodyFile'></div>");
         }
         console.log("param.display " + param.display)
         if (param.display == "everything" || param.display == "locfilters" || param.display == "map") {
-          let bodyFile = theroot + "map/index.html #insertedText";
-
-          //console.log("Before template Loaded: " + bodyFile);
-
-          $("#bodyFile").load(bodyFile, function( response, status, xhr ) {
-            consoleLog("Template Loaded: " + bodyFile);
-            if (typeof relocatedStateMenu != "undefined") {
-              relocatedStateMenu.appendChild(state_select); // For apps hero
-              $(".stateFilters").hide();
-            }
-            if (param.showstates != "false") {
-              $("#filterClickLocation").show();
-            }
-          });
+          loadLocalTemplate();
         }
 
         // LOAD INFO TEMPLATE - Holds input-output widgets
@@ -627,6 +665,13 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       document.head.insertAdjacentHTML("beforeend", strVarCss);
 
 
+      $(document).on("click", ".expandToFullscreen, .reduceFromFullscreen", function(event) {
+        toggleFullScreen();  
+      });
+      $(document).on("click", ".showSearch", function(event) {
+          //loadLeafletAndMapFilters();
+        showSearchFilter();
+      });
 
       clearInterval(waitForJQuery); // Escape the loop
 
@@ -706,21 +751,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
     includeCSS3(theroot + 'css/naics.css',theroot);
     // customD3loaded
     if (param.preloadmap != "false") {
-      loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
-          includeCSS3(theroot + 'css/leaflet.css',theroot);
-          loadScript(theroot + 'js/leaflet.js', function(results) {
-            loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Could skip when map does not use material icon colors
-              loadScript(theroot + 'js/map.js', function(results) {
-                // Loads map-filters.js
-                loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
-              });
-            });
-          });
-
-          //if (param.shownav) {
-            loadScript(theroot + 'js/navigation.js', function(results) {});
-          //}
-        });
+      loadLeafletAndMapFilters();
       
     }
 
@@ -742,25 +773,15 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       });
     }
 
-    // Tabulator
-    includeCSS3('https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css',theroot);
-    includeCSS3(theroot + '../localsite/css/base-tabulator.css',theroot);
-    // Latest: https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js
-    loadScript('https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.min.js', function(results) {
-
-    });
+    loadTabulator();
     
     if (param.display == "everything") {
       includeCSS3(theroot + '../io/build/widgets.css',theroot);
       includeCSS3(theroot + '../io/build/iochart.css',theroot);
     }
     
-    includeCSS3(theroot + 'css/base.css',theroot);
-    includeCSS3(theroot + 'css/search-filters.css',theroot);
-    if (param.preloadmap != "false") {
-      includeCSS3(theroot + 'css/map-display.css',theroot);
-    }
-    
+    loadSearchFilterIncludes();
+
     includeCSS3(theroot + 'css/leaflet.icon-material.css',theroot);
     
     //loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
@@ -788,6 +809,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
   } // end everything or map
 
+  if (param.material_icons != "false") {
+    param.material_icons = "true"; // Could lazy load if showMenu changed to graphic.
+  }
   if (fullsite || param.material_icons == "true") {
     // This was inside FULL SITE above, but it is needed for menus embedded in external sites.
     !function() {
@@ -878,8 +902,9 @@ function getUrlID3(url,theroot) {
 
   // AVOID using theroot parameter. It can be eliminated.
 
-  // TODO: .NET compatible id will use underscores.  Also lowercasing iand removing starter slash:
+  // TODO: .NET compatible id will use underscores.  Also lowercase it and removing starter slash:
   // id="icon_family_material_icons"
+  // Already added to go, walker
 
   let startingUrl = url;
   // Remove hash since it has no effect when on an include tag.
@@ -974,6 +999,10 @@ function loadMapFiltersJS(theroot, count) {
     //alert("localsite_map " + localsite_map)
     //loadScript(theroot + 'https://cdn.jsdelivr.net/npm/vue', function(results) { // Need to check if function loaded
       loadScript(theroot + 'js/map-filters.js', function(results) {});
+
+      if (document.getElementById("/icon?family=Material+Icons")) {
+          $(".show-on-load").removeClass("show-on-load");
+      }
     //});
   } else if (count<100) { // Wait a milisecond and try again
     setTimeout( function() {
@@ -1026,6 +1055,15 @@ function extend () {
   return extended;
 };
 
+function loadTabulator() {
+  // Tabulator
+  if (typeof Tabulator === 'undefined') {
+    includeCSS3('https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css',theroot);
+    includeCSS3(theroot + '../localsite/css/base-tabulator.css',theroot);
+    // Latest: https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js
+    loadScript('https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.min.js', function(results) {});
+  }
+}
 
 // Serialize a key/value object.
 //var params = { width:1680, height:1050 };
@@ -1533,5 +1571,99 @@ function getState(stateCode) {
 
       case "WY":
           return "Wyoming";
+  }
+}
+
+
+function showSearchFilter() {
+  if (!$("#filterFieldsHolder").length) { // If doesn't exist yet.
+
+    if (!$("#bodyFile").length) {
+      $('body').prepend("<div id='bodyFile'></div>");
+    }
+
+    loadLocalTemplate();
+    loadSearchFilterIncludes();
+    loadLeafletAndMapFilters();
+  } else {
+    console.log("showSearchFilter");
+    if ($("#filterFieldsHolder").is(':visible')) {
+      $("#filterFieldsHolder").hide();
+      //$("#filterbaroffset").hide();
+      ////$("#pageLinksHolder").hide();
+    } else {
+
+      $("#filterFieldsHolder").show();
+      //$("#filterbaroffset").show();
+      $(".hideWhenPop").show();
+    }
+    return;
+
+
+
+
+      // NOT CURRENTLY USED
+
+
+      //$(".filterFields").hide();
+    
+
+      //$(".moduleBackgroundImage").addClass("moduleBackgroundImageDarken"); // Not needed since filters are not over image.
+      //$(".siteHeaderImage").addClass("siteHeaderImageDarken"); // Not needed since filters are not over image.
+
+      //$('.topButtons').show(); // Avoid showing bar when no layer.
+      $(".layerContent").show(); // For main page, over video.
+
+      //$(".showFilters").hide(); // Avoid hiding because title jumps.
+      //$(".hideFilters").show();
+
+      // Coming soon - Select if searching Georgia.org or Georgia.gov
+      //$(".searchModuleIconLinks").show();
+      $(".hideWhenFilters").hide();
+
+      $(".filterPanelHolder").show();
+      //$(".filterPanelWidget").show();
+      $("#filterPanel").show(); // Don't use "normal", causes overflow:hidden.
+      $(".searchHeader").show();
+      $("#panelHolder").show();
+
+
+      $(".showFiltersClick").hide();
+      $(".hideFiltersClick").show();
+
+      // Would remove active from Overview Map
+      $(".horizontalButtons .layoutTab").removeClass("active");
+      $(".showFiltersButton").addClass("active");
+
+      $(".hideSearch").show();
+      //$(".hideFilters").show(); // X not needed since magnifying glass remains visible now.
+      //$("#hideSearch").show();
+      if ($(".settingsPanel").is(':visible')) {
+          hideSettings();
+      }
+      if ($("#menuHolder").is(':visible')) {
+          $('.hideMetaMenu').trigger("click");
+      }
+      //updateOffsets();
+
+      // Hide because map is displayed, causing overlap.
+      // Could be adjusted to reside left of search filters.
+      //$(".quickMenu").hide();
+  }
+}
+function showGlobalMap() { // Used by community/index.html
+  $("#nullschoolHeader").show();
+
+  if($("#globalMapHolder").length <= 1) {
+    //$("#globalMapHolder").html('<iframe src="https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
+    
+    // Two steps prevent loading error
+    $("#globalMapHolder").html('<iframe src="" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
+    
+    loadIframe("mainframe","https://earth.nullschool.net/#current/wind/surface/level/orthographic=-73.52,34.52,532");
+
+    // Chem Currents NO2 - Since Wind makes NO2 clouds hard to see
+    //loadIframe("mainframe","https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
+
   }
 }

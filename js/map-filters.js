@@ -19,7 +19,6 @@ if(typeof localObject == 'undefined') {
 }
 let us_stateIDs = {AL:1,AK:2,AZ:4,AR:5,CA:6,CO:8,CT:9,DE:10,FL:12,GA:13,HI:15,ID:16,IL:17,IN:18,IA:19,KS:20,KY:21,LA:22,ME:23,MD:24,MA:25,MI:26,MN:27,MS:28,MO:29,MT:30,NE:31,NV:32,NH:33,NJ:34,NM:35,NY:36,NC:37,ND:38,OH:39,OK:40,OR:41,PA:42,RI:44,SC:45,SD:46,TN:47,TX:48,UT:49,VT:50,VA:51,WA:53,WV:54,WI:55,WY:56,AS:60,GU:66,MP:69,PR:72,VI:78,}
 
-
 if(typeof localObject.stateCountiesLoaded == 'undefined') {
     localObject.stateCountiesLoaded = []; // Holds a geo code for each state and province loaded. (but not actual counties)
     // Later: localObject.stateZipsLoaded
@@ -27,16 +26,17 @@ if(typeof localObject.stateCountiesLoaded == 'undefined') {
 if(typeof localObject.geo == 'undefined') {
     localObject.geo = []; // Holds counties. Should this also be {} ?
 }
-if(typeof localObject.state == 'undefined') {
-    localObject.state = {}; // Holds states.
+if(typeof localObject.layers == 'undefined') {
+    localObject.layers = {}; // Holds layers.
 }
 
 function populateFieldsFromHash() {
-	$("#keywordsTB").val(param["q"]);
+    let hash = getHash();
+	$("#keywordsTB").val(hash.q);
 
 	$('.catList > div').removeClass('catListSelected');
-	if (param["cat"]) {
-		var catString = param["cat"].replace(/_/g, ' ');
+	if (hash.cat) {
+		var catString = hash.cat.replace(/_/g, ' ');
 		$("#catSearch").val(catString);
 	    $('.catList > div').filter(function(){
 	        return $(this).text() === catString
@@ -57,12 +57,12 @@ function populateFieldsFromHash() {
 		}
 	}
 	*/
-	$("#productCodes").val(param["hs"]);
-	if (param["region"]) {
+	$("#productCodes").val(hash.hs);
+	if (hash.region) {
 		if (hash.show) {
-			$(".regiontitle").val(param["region"] + " - " + hash.show.toTitleCase());
+			$(".regiontitle").val(hash.region + " - " + hash.show.toTitleCase());
 		} else {
-			$(".regiontitle").val(param["region"]);
+			$(".regiontitle").val(hash.region);
 		}
 	}
 }
@@ -294,7 +294,24 @@ $(document).ready(function () {
     	event.stopPropagation();
     });
 	
- 	$('#state_select').on('change', function() {
+    $(document).on("change", "#country_select", function(event) {
+        //alert("this.value " + this.value);
+
+        goHash({'mapview':this.value,'state':''});
+        /*
+        if (this.value) {
+            //$('#state_select').val("");
+            //$("#region_select").val("");
+            goHash({'state':'','geo':'','name':'','regiontitle':'','mapview':this.value}); // Triggers map changes
+        } else { // US selected
+            goHash({'mapview':'country','state':''});
+            //clearHash("state")
+            //$("#geoPicker").hide();
+            //$("#industryListHolder").hide();
+        }
+        */
+    });
+ 	$(document).on("change", "#state_select", function(event) {
  		if (this.value) {
 	    	$("#geoPicker").show();
 	    	$("#region_select").val("");
@@ -353,8 +370,6 @@ $(document).ready(function () {
     'lon':'-81.4979'
     }); $('.fieldSelector').hide(); return false;" href="#regiontitle=Southeast+Coastal+Georgia&geo=US13001,US13005,US13127,US13161,US13229,US13305&lat=31.1891&lon=-81.4980">Southeast Coastal</a></li>
  	*/
-
-    // REACTIVE - Temp to test why Goods & Services is not clickable on some domains.
     
     $(document).click(function(event) { // Hide open menus
     	console.log("document click -  Hide open menus")
@@ -368,16 +383,25 @@ $(document).ready(function () {
 	
 
 	function hideNonListPanels() {
+        updateHash({"mapview":""});
 		$(".fieldSelector").hide(); // Avoid since this occurs when typing text in search field.
     	$('#topPanel').hide();
     	$("#introText").hide();
-    	$("#mapPanel").hide();
+    	$("#mapPanel").hide(); $("#filterClickLocation").removeClass("filterClickActive");
     	if(location.host.indexOf('localhost') >= 0) {
     		$('#mapButton').show();
     	}
     }
-	$("#goSearch").click(function() {
-	    //hideNonListPanels(); // Omitted this instead, remove comment above.
+    $("#goSearch").click(function(event) {
+        let searchQuery = $('#keywordsTB').val();
+        let search = $('.selected_col:checked').map(function() {return this.id;}).get().join(',');
+        // To do: set search to empty array if all search boxes are checked.
+        updateHash({"q":searchQuery,"search":search});
+        if(!hash.show) {
+            window.location = "/localsite/info/" + location.hash;
+            return;
+        }
+	    hideNonListPanels(); // Omitted this instead, remove comment above.
 
 	    if ($('#catListHolder').css('display') == 'none' && $('#catListHolderShow').css('display') == 'none') {
 	    	// In case user has resized from mobile to full and industry list is not available.
@@ -385,10 +409,9 @@ $(document).ready(function () {
 			$('#catListHolderShow').show();
 			$('#catListHolderShow').text('Product Categories');
 		}
-		let searchQuery = $('#keywordsTB').val();
-		let search = $('.selected_col:checked').map(function() {return this.id;}).get().join(',');
-		// To do: set search to empty array if all search boxes are checked.
-		updateHash({"q":searchQuery,"search":search});
+		
+		
+		
 		loadMap1("map-filters.js");
 	    event.stopPropagation();
    	});
@@ -399,7 +422,9 @@ $(document).ready(function () {
 			$("#keywordFields").hide();
 		} else {
 			$("#filterLocations").hide();
-			$("#keywordFields").show();
+            if (!$("#selected_col_checkboxes").is(':empty')) {
+			 $("#keywordFields").show();
+            }
 		}
 	    event.stopPropagation();
 	
@@ -650,7 +675,6 @@ function filterClickLocation(loadGeoTable) {
 	//$('.hideMetaMenuClick').trigger("click"); // Otherwise covers location popup. Problem: hides hideLayers/hideLocationsMenu.
 	//alert("1")
 	if ($("#filterLocations").is(':visible') && (distanceFilterFromTop < 300 || distanceFilterFromTop > 300)) {
-		//alert("2")
 		$(".locationTabText").text($(".locationTabText").attr("title"));
         $("#showLocations").hide();
 		$("#hideLocations").show();
@@ -666,8 +690,12 @@ function filterClickLocation(loadGeoTable) {
         }
         $("#hero_holder").show();
 
-
-        updateHash({"mapview":""});
+        if(location.host.indexOf("localhost") >= 0 || location.host.indexOf("georgia") >= 0) { // TEMP until state is enforced while international map is still avalable. Applied when clicking "Top Industires" here: /localsite/map/#show=trade&mapview=countries
+            console.log("Populate with state based on domain.")
+            goHash({"mapview":"","state":"GA"});
+        } else {
+            updateHash({"mapview":""});
+        }
 	} else { // OPEN MAP FILTER
 		let hash = getHash();
 		if (hash.mapview == "country") {
@@ -697,8 +725,7 @@ function filterClickLocation(loadGeoTable) {
         if (typeof state_select_holder != "undefined") {
             state_select_holder.appendChild(state_select); // For apps hero
         }
-
-		locationFilterChange("counties");
+        locationFilterChange("counties");
 
 		if (hash.geo) {
 			let clearall = false;
@@ -743,7 +770,7 @@ function locationFilterChange(selectedValue,selectedGeo) {
     //$(".geoListHolder > div").hide();
     $(".geoListCounties").show();
 
-    //showSearchClick(); // Display filters
+    //showSearchFilter(); // Display filters
     hideLocationFilters();
 
     //$(".hideLocationsMenu").trigger("click");
@@ -885,6 +912,9 @@ function loadStateCounties(attempts) { // To avoid broken tiles, this won't be e
 	console.log("loadStateCounties " + attempts);
 	if (typeof d3 !== 'undefined') {
 
+        let element = {};
+        element.scope = "geo";
+
 		let hash = getHash();
 		let theState = $("#state_select").find(":selected").val();
 		if (hash.state) {
@@ -994,10 +1024,10 @@ function loadStateCounties(attempts) { // To avoid broken tiles, this won't be e
                 }
                 console.log("myData");
                 console.log(myData);
-				showTabulatorList(0);
+				showTabulatorList(element, 0);
 
 			});
-		} 
+		}
 	} else {
 		attempts = attempts + 1;
 	      if (attempts < 2000) {
@@ -1010,115 +1040,141 @@ function loadStateCounties(attempts) { // To avoid broken tiles, this won't be e
 	}
 }
 
-function loadCountryStates(attempts) {
-    console.log("loadCountryStates " + attempts);
+function loadObjectData(element, attempts) {
+    console.log("loadObjectData " + attempts);
     if (typeof d3 !== 'undefined') {
+        if(typeof localObject[element.scope] == 'undefined') {
+            localObject[element.scope] = {}; // Holds states, countries.
+        }
 
-        //if (localObject.state && localObject.state.length <= 0) { // Just add first time
-        if (Object.keys(localObject.state).length <= 0) {
-            let stateDataUrl = "https://model.earth/beyond-carbon-scraper/fused/result.json"; // Also resides in app/js/bc.js
+        // Just load from file the first time
+        if (Object.keys(localObject[element.scope]).length <= 0) { // state, countries
 
-            d3.json(stateDataUrl).then(function(json,error) {
+            if (element.datasource.toLowerCase().endsWith(".csv")) {
+                d3.csv(element.datasource).then(function(data) { // One row per line
+                    // element.scope = countries
+                    if (element.key) {
 
+                        data.forEach(function(d, i) {
+                          // TO DO - might remove the key from the data
+                          localObject[element.scope][d[element.key]] = data[i];
+                        });
 
-              stateImpact = $.extend(true, {}, json); // Clone/copy object without entanglement
-              if (param.state) {
-                //theStateName = $("#state_select").find(":selected").text();
-                //let theStateName = getState(param.state);
+                    } else {
+                        localObject[element.scope] = makeRowValuesNumeric(data, element.numColumns, element.valueColumn);
+                    }
+                    console.log("localObject.countries")
+                    console.log(localObject[element.scope])
+                    showTabulatorList(element, 0);
+                })
+            } else {
+                d3.json(element.datasource).then(function(json,error) {
 
-                  $(document).ready(function () {
-                    //displaystateImpact(theStateName, stateImpact);
-                  });
+                    stateImpact = $.extend(true, {}, json); // Clone/copy object without entanglement
 
-              }
+                      /*
+                      if (Array.isArray(json)) { // Other than DifBot - NASA when count included
+                        for (a in json) {
+                          fullHtml += "<div class='level1'><b>Product ID:</b> " + json[a].id + "</div>\n";
+                          for (b in json[a]) {
+                            fullHtml += formatRow(b,json[a][b],1); // Resides in localsite.js
+                          }
+                        }
+                      } else {
+                        alert("not array")
+                        if (!json.data) {
+                          //json.data = json; // For NASA
+                        }
+                      }
+                      alert(fullHtml);
+                      */
 
-              /*
-              if (Array.isArray(json)) { // Other than DifBot - NASA when count included
-                for (a in json) {
-                  fullHtml += "<div class='level1'><b>Product ID:</b> " + json[a].id + "</div>\n";
-                  for (b in json[a]) {
-                    fullHtml += formatRow(b,json[a][b],1); // Resides in localsite.js
-                  }
-                }
-              } else {
-                alert("not array")
-                if (!json.data) {
-                  //json.data = json; // For NASA
-                }
-              }
-              alert(fullHtml);
-              */
+                      if (error) throw error;
+                      //console.log("stateImpact");
+                      //return(stateImpact);
+                      
+                      /*
+                      let rowcount = 0;
+                      //stateImpactArray = [];
+                      $.each(stateImpact, function(key,val) {             
+                          //alert(key+val);
+                          if (val["jurisdiction"]) {
+                            //stateImpactArray.push(val)
 
-              if (error) throw error;
-              //console.log("stateImpact");
-              //return(stateImpact);
-              
-              /*
-              let rowcount = 0;
-              //stateImpactArray = [];
-              $.each(stateImpact, function(key,val) {             
-                  //alert(key+val);
-                  if (val["jurisdiction"]) {
-                    //stateImpactArray.push(val)
+                            localObject.state.push(val)
+                            rowcount++;
+                          }
+                      });
+                      console.log("Loaded set of states. rowcount: " + rowcount)
+                      */
 
-                    localObject.state.push(val)
-                    rowcount++;
-                  }
-              });
-              console.log("Loaded set of states. rowcount: " + rowcount)
-              */
+                        // To Do: Remove from json:
+                        // jurisdiction: "Alabama"
+                        // juristiction: "Alabama"
 
-              localObject.state = $.extend(true, {}, json); // Clone/copy object without entanglement
-
-              showTabulatorList(0);
-            });
+                        localObject[element.scope] = $.extend(true, {}, json); // Clone/copy object without entanglement
+                        console.log("localObject.state")
+                        console.log(localObject[element.scope])
+                        showTabulatorList(element, 0);
+                });
+            }
 
         } else {
-            showTabulatorList(0);
+            showTabulatorList(element, 0);
         }
 
     } else {
         attempts = attempts + 1;
           if (attempts < 2000) {
             setTimeout( function() {
-              lloadCountryStates(attempts);
+              loadObjectData(element, attempts);
             }, 20 );
           } else {
-            alert("D3 javascript not available for loadCountryStates csv.")
+            alert("D3 javascript not available for loadObjectData csv.")
           }
     }
 }
 var statetable = {};
 var geotable = {};
-function showTabulatorList(attempts) {
+function showTabulatorList(element, attempts) {
     //alert("showTabulatorList " + attempts);
 	let hash = getHash();
 	if (typeof Tabulator !== 'undefined') {
+        
 		console.log("showTabulatorList " + attempts)
 		// Try this with 5.0. Currently prevents row click from checking box.
 		// selectable:true,
 
-        // Since localObject.state is an array of objects (for each state), convert to a flat array (like a spreadsheet)
-        let stateImpactArray = [];
-        $.each(localObject.state , function(key,val) {             
-          //alert(key+val);
-          if (val["jurisdiction"]) {
-            stateImpactArray.push(val)
-
-            //localObject.state.push(val)
+        // Convert key-value object to a flat array (like a spreadsheet)
+        let dataForTabulator = [];
+        $.each(localObject[element.scope] , function(key,val) { // val is an object     
+          if (element.scope == "state") {
+            if (val["jurisdiction"]) { // 3 in the state json file don't have a jurisdiction value.
+                dataForTabulator.push(val);
+            }
+            //localObject[element.scope].push(val)
             //rowcount++;
+            console.log("1 " + element.scope);
+          } else { // countries
+            dataForTabulator.push(val);
+            console.log("2 " + element.scope);
           }
         });
+
+        console.log("dataForTabulator")
+        //console.log(dataForTabulator)
 
 		// For fixed header, also allows only visible rows to be loaded. See "Row Display Test" below.
 		// maxHeight:"100%",
 
         // COUNTRY
-        if (!hash.state && typeof stateImpact != 'undefined') {
+        //if (!hash.state && typeof stateImpact != 'undefined') {
+        if (!hash.state) {
+         console.log("load countries OR USA states list");
          $("#tabulator-geotable").hide();
          $("#tabulator-statetable").show();
          statetable = new Tabulator("#tabulator-statetable", {
-            data:stateImpactArray,    //load row data from array of objects
+            data:dataForTabulator,    //load row data from array of objects
             layout:"fitColumns",      //fit columns to width of table
             responsiveLayout:"hide",  //hide columns that dont fit on the table
             tooltips:true,            //show tool tips on cells
@@ -1128,13 +1184,7 @@ function showTabulatorList(attempts) {
             resizableRows:true,       //allow row order to be changed
             
             paginationSize:10000,
-            columns:[
-                {formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
-                {title:"State", field:"jurisdiction"},
-                {title:"Population", field:"population", hozAlign:"right", headerSortStartingDir:"desc", formatter:"money", formatterParams:{precision:false}},
-                {title:"CO<sub>2</sub> per capita", field:"CO2_per_capita", hozAlign:"right", formatter:"money", formatterParams:{precision:false}},
-            ],
-
+            columns:element.columns,
             rowClick:function(e, row){
                 row.toggleSelect(); //toggle row selected state on row click
 
@@ -1208,6 +1258,7 @@ function showTabulatorList(attempts) {
 		// Might modify to load multiple states
 
         if (hash.state) {
+            console.log("load county list")
             $("#tabulator-statetable").hide();
             $("#tabulator-geotable").show();
 
@@ -1325,13 +1376,14 @@ function showTabulatorList(attempts) {
 
 	} else {
 	  attempts = attempts + 1;
-      if (attempts < 2000) {
+      loadTabulator();
+      if (attempts < 4000) {
       	// To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
         setTimeout( function() {
-          showTabulatorList(attempts);
-        }, 20 );
+          showTabulatorList(element, attempts);
+        }, 100 );
       } else {
-        alert("Tabulator JS not available for displaying list.")
+        alert("Tabulator JS not available for displaying list1. (map-filters.js)")
       }
 	}
 }
@@ -1519,10 +1571,13 @@ function SearchFormTextCheck(t, dirn) {
 
 function SearchEnter(event1) {
 	var kCode = String.fromCharCode(event1.keyCode);
-	//if (kCode == "\n" || kCode == "\r") {
-        $("#goSearch").click();
-	//	return false;
-	//}
+	////if (kCode == "\n" || kCode == "\r") {
+
+        // Reactivate on pages where auto-update appropriate.
+        //$("#goSearch").click();
+
+	////	return false;
+	////}
 }
 function isInt(value) {
   var x;
@@ -1629,16 +1684,15 @@ function SearchProductCodes(event1) {
 	event.stopPropagation();
 }
 
-
-
 function changeCat(catTitle) {
     if (catTitle) {
         //alert("changeCat catTitle: " + catTitle);
     	catTitle = catTitle.replace(/_/g, ' ');
         //alert("changeCat catTitle: " + catTitle);
     }
-    $('#catSearch').val(catTitle);
-
+    //$('#catSearch').val(catTitle);
+    //alert("catTitle1 " + catTitle)
+    $('#catSearchText').text(catTitle);
 	$('#items').prop("checked", true); // Add front to parameter name.
 
 	$('#industryCatList > div').removeClass('catListSelected');
@@ -1712,10 +1766,12 @@ $(document).ready(function () {
     var catString = catTitle.replace(/ /g, '_').replace(/&/g, '%26');
     $("#bigThumbPanelHolder").hide();
     console.log("catList triggers update");
+    //$("#catSearch").val(catString);
+    //$("#dataList").html(""); // Clear
     if (catString == "All_Categories") {
         catString = "";
     }
-    goHash({"cat":catString}); // Let the hash change trigger updates
+    goHash({"cat":catString,"subcat":"","name":""}); // Let the hash change trigger updates
     event.stopPropagation();
   });
 
@@ -1892,6 +1948,9 @@ function thumbClick(show,path) {
 }
 function displayBigThumbnails(attempts, activeLayer, layerName) {
 	if (!$('.bigThumbUl').length) {
+        if (!activeLayer) {
+            activeLayer = "industries"; // Since Tab defaults to "Top Industries". Will change to site-wide search later.
+        }
         if (attempts > 100) {
             alert("EXIT load localObject.layers");
             return;
@@ -2121,9 +2180,7 @@ function localJsonpCallback(json) {
     alert(json.Message);
   }
 }
-
 function initSiteObject(layerName) {
-//alert("initSiteObject"); // Gave more time for app icon to load.
 	let hash = getHash();
 	//if(location.host.indexOf('localhost') >= 0) {
 	    // Greenville:
@@ -2133,86 +2190,95 @@ function initSiteObject(layerName) {
 	    //var layerJson = local_app.community_data_root() + "us/state/GA/ga-layers.json"; // CORS prevents live
 	    // The URL above is outdated. Now resides here:
 	    let layerJson = local_app.localsite_root() + "info/data/ga-layers-array.json";
-        //alert("layerJson " + layerJson)
-	    if(location.host.indexOf("georgia") >= 0) {
-	    	// For PPE, since localhost folder does not reside on same server
+        if(location.host.indexOf("georgia") >= 0) {
+	    	// For B2B Recyclers, since localsite folder does not reside on same server.
 	    	layerJson = "https://model.earth/localsite/info/data/ga-layers-array.json";
 	    	console.log("Set layerJson: " + layerJson);
 		}
         //alert(layerJson)
-	    console.log(layerJson);
+	    //console.log(layerJson);
+
+        if (localObject.layers.length >= 0) {
+            return;
+            //return localObject.layers;
+        }
 	    let layerObject = (function() {
 
-            $.getJSON(layerJson, function (layerObject) {
+            $.getJSON(layerJson, function (layers) {
 
-            /*
-	        let json = null;
-	        $.ajax({
-	            'type': 'GET',
-	            'async': true,
-	            'global': false,
-	            'url': layerJson,
-                'dataType': "jsonp",
-	            'jsonpCallback': 'localJsonpCallback',
-	            'success': function (layerObject) {
-	                consoleLog("Menu layers json loaded within initSiteObject. location.hash: " + location.hash);
-	       */
+                console.log("The localObject.layers");
+                console.log(localObject.layers);
 
-	                // siteObjectFunctions(layerObject); // could add to keep simple here
-                    localObject.layers = layerObject;
-                    console.log("2 localObject.layers");
-                    console.log(localObject.layers);
+                // Create an object of objects so show.hash is the layers key
+                $.each(layers, function (i) {
 
-	                $(document).on("click", ".showApps, .hideApps", function(event) {
-	          			console.log('.showApps click');
+                    // To Do, avoid including "item" in object since it is already the key.
+                    localObject.layers[layers[i].item] = layers[i];
 
-                        if ($("#bigThumbPanelHolder").is(':visible')) {
-	          			//if($("#bigThumbPanelHolder").is(':visible') && isElementInViewport($("#bigThumbPanelHolder"))) { // Prevented tab click from closing app menu
-	          				$("#appSelectHolder .select-menu-arrow-holder .material-icons").hide();
-	          				$("#appSelectHolder .select-menu-arrow-holder .material-icons:first-of-type").show();
+                    //$.each(layerObject[i], function (key, val) {
+                    //    alert(key + val);
+                    //});
+                });
 
-	          				$("#appSelectHolder .showApps").removeClass("filterClickActive");
-	          				$("#showAppsText").text($("#showAppsText").attr("title"));
-	          				$(".hideWhenPop").show();
-	          				// To do: Only up scroll AND SHOW if not visible
-	          				$('html,body').animate({
-								scrollTop: 0
-							});
+                console.log("The localObject");
+                console.log(localObject);
 
-	          				$("#bigThumbPanelHolder").hide();
-	          				$('.showApps').removeClass("active");
+                //console.log("The localObject.layers");
+                //console.log(localObject.layers);
 
-	          			} else {
-	          				console.log("call showThumbMenu")
-                            if ($("#filterLocations").is(':visible')) {
-                                filterClickLocation(); // Toggle county-select closed
-                            }
-	          				$("#appSelectHolder .select-menu-arrow-holder .material-icons:first-of-type").hide();
-	          				$("#appSelectHolder .select-menu-arrow-holder .material-icons:nth-of-type(2)").show();
+                let layer = hash.show;
+                //alert(hash.show)
+                //alert(localObject.layers[layer].state)
+                $(document).on("click", ".showApps, .hideApps", function(event) {
+          			console.log('.showApps click');
 
-	          				$("#showAppsText").text("Goods & Services");
-	          				$("#appSelectHolder .showApps").addClass("filterClickActive");
-							showThumbMenu(hash.show);
-                            $('html,body').animate({
-                            	//- $("#filterFieldsHolder").height()  
-                                scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
-                            });
-	          			}
-	          			
-					  	event.stopPropagation();
-					});
-	          		// These should be lazy loaded when clicking menu
-	                //displayBigThumbnails(0, hash.show, "main");
-	                //displayHexagonMenu("", layerObject);
-	                
-	                if (!hash.show && !param.show) { // INITial load
-	                	// alert($("#fullcolumn").width()) = null
-	                	if ($("body").width() >= 800) {
+                    if ($("#bigThumbPanelHolder").is(':visible')) {
+          			//if($("#bigThumbPanelHolder").is(':visible') && isElementInViewport($("#bigThumbPanelHolder"))) { // Prevented tab click from closing app menu
+          				$("#appSelectHolder .select-menu-arrow-holder .material-icons").hide();
+          				$("#appSelectHolder .select-menu-arrow-holder .material-icons:first-of-type").show();
 
-	                		//showThumbMenu(hash.show);
-	                	}
-	            	}
-	                return layerObject;
+          				$("#appSelectHolder .showApps").removeClass("filterClickActive");
+          				$("#showAppsText").text($("#showAppsText").attr("title"));
+          				$(".hideWhenPop").show();
+          				// To do: Only up scroll AND SHOW if not visible
+          				$('html,body').animate({
+							scrollTop: 0
+						});
+
+          				$("#bigThumbPanelHolder").hide();
+          				$('.showApps').removeClass("active");
+
+          			} else {
+          				console.log("call showThumbMenu")
+                        if ($("#filterLocations").is(':visible')) {
+                            filterClickLocation(); // Toggle county-select closed
+                        }
+          				$("#appSelectHolder .select-menu-arrow-holder .material-icons:first-of-type").hide();
+          				$("#appSelectHolder .select-menu-arrow-holder .material-icons:nth-of-type(2)").show();
+
+          				$("#showAppsText").text("Industries");
+          				$("#appSelectHolder .showApps").addClass("filterClickActive");
+						showThumbMenu(hash.show);
+                        $('html,body').animate({
+                        	//- $("#filterFieldsHolder").height()  
+                            scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
+                        });
+          			}
+          			
+				  	event.stopPropagation();
+				});
+          		// These should be lazy loaded when clicking menu
+                //displayBigThumbnails(0, hash.show, "main");
+                //displayHexagonMenu("", layerObject);
+                
+                if (!hash.show && !param.show) { // INITial load
+                	// alert($("#fullcolumn").width()) = null
+                	if ($("body").width() >= 800) {
+
+                		//showThumbMenu(hash.show);
+                	}
+            	}
+                //return layerObject;
 	            
 	        });
 	    })(); // end layerObject
@@ -2231,12 +2297,12 @@ function showThumbMenu(activeLayer) {
 }
 function callInitSiteObject(attempt) { 
     //alert("callInitSiteObject")
-    if (localObject.layers) {
+    if (localObject.layers.length >= 0) {
         //alert("done return")
         return;
     }
 	if (typeof local_app !== 'undefined') { // wait for local_app
-		localObject.layers = initSiteObject("");
+		initSiteObject("");
         console.log("localObject.layers");
         console.log(localObject.layers);
 		// Not available here since async in initSiteObject()
@@ -2247,7 +2313,7 @@ function callInitSiteObject(attempt) {
 		setTimeout( function() {
    			console.log("callInitSiteObject again")
 			callInitSiteObject(attempt+1);
-   		}, 10 );
+   		}, 100 );
 	} else {
 		console.log("ERROR: Too many search-filters local_app attempts.");
 	}
@@ -2388,7 +2454,10 @@ document.addEventListener('hiddenhashChangeEvent', function (elem) {
 if(typeof hiddenhash == 'undefined') {
     var hiddenhash = {};
 }
-callInitSiteObject(1); // Loads localObject.layers for later use when showApps clicked
+
+// Load localObject.layers for later use when showApps clicked
+// Also adds state hash for layers requiring a state.
+callInitSiteObject(1);
 
 
 function hashChanged() {
@@ -2400,7 +2469,7 @@ function hashChanged() {
 		//updateHash({'show':''}); // Remove from URL hash without invoking hashChanged event.
 	}
 	// Temp for PPE
-	if (!hash.state && location.host.indexOf("georgia") >= 0) {
+	if (!hash.state && location.host.indexOf("georgia") >= 0 && (hash.mapview == "" || hash.mapview == "state" || hash.mapview == "counties")) {
 	    hash.state = "GA";
 	    hiddenhash.state = "GA";
 	}
@@ -2441,7 +2510,7 @@ function hashChanged() {
             if (hash.show != "vehicles") {
                 $("#introframe").hide();
             }
-            if (hash.show != "ppe") {
+            if (hash.show != "ppe" || hash.show != "suppliers") {
                 $(".layerclass.ppe").hide();
             }
             if (hash.show != "opendata") {
@@ -2577,6 +2646,10 @@ function hashChanged() {
 		}
 	}
 
+    if (hash.mapview != priorHash.mapview) {
+        $("#country_select").val(hash.mapview);
+    }
+
 	if (hash.state != priorHash.state) {
 		loadGeomap = true;
 		if(location.host.indexOf('model.georgia') >= 0) {
@@ -2630,7 +2703,28 @@ function hashChanged() {
     } else if (hash.mapview != priorHash.mapview && hash.mapview == "state") {
         loadStateCounties(0);
 	} else if (hash.mapview != priorHash.mapview && hash.mapview == "country") {
-        loadCountryStates(0);
+        let element = {};
+        element.scope = "state";
+        element.datasource = "https://model.earth/beyond-carbon-scraper/fused/result.json"; // Also resides in app/js/bc.js
+        element.columns = [
+                {formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
+                {title:"State", field:"jurisdiction"},
+                {title:"Population", field:"population", hozAlign:"right", headerSortStartingDir:"desc", formatter:"money", formatterParams:{precision:false}},
+                {title:"CO<sub>2</sub> per capita", field:"CO2_per_capita", hozAlign:"right", formatter:"money", formatterParams:{precision:false}},
+            ];
+        loadObjectData(element, 0);
+    } else if (hash.mapview != priorHash.mapview && (hash.mapview == "earth" || hash.mapview == "countries")) {
+        let element = {};
+        element.scope = "countries";
+        element.key = "Country Code";
+        element.datasource = "https://model.earth/country-data/population/population-total.csv";
+        element.columns = [
+                {formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerHozAlign:"center", width:10, headerSort:false},
+                {title:"Country Name", field:"Country Name"},
+                {title:"2010", field:"2010", hozAlign:"right", headerSortStartingDir:"desc", formatter:"money", formatterParams:{precision:false}},
+                {title:"2020", field:"2020", hozAlign:"right", headerSortStartingDir:"desc", formatter:"money", formatterParams:{precision:false}}
+            ];
+        loadObjectData(element, 0);
     } else if (hash.mapview != priorHash.mapview) { // For backing up within apps
         if (typeof relocatedStateMenu != "undefined") {
             relocatedStateMenu.appendChild(state_select); // For apps hero

@@ -42,16 +42,36 @@
     color:#fff !important;
     bottom:0;
     right:0;
-    paddingX:10px 30px 10px 30px;
     font-size: 14px;
     z-index: 1000;
-    heightX:230px;
     z-index: 500; /* allows credits to cover bottom */
     overflow: scroll;
   }
   #allLegends div svg {
     overflow: visible;
     
+  }
+
+  .leaflet-control-container > div:first-child.leaflet-left {
+    left: auto;
+    right: 20px;
+  }
+  .leaflet-control-container > div:first-child.leaflet-top {
+    top: auto;
+    bottom: 40px;
+    z-index: auto;
+  }
+  /* Layers */
+  .leaflet-control-container > div:nth-child(2).leaflet-right {
+    right: 10px;
+    left: auto;
+  }
+  .leaflet-control-container > div:nth-child(2).leaflet-top {
+    top: 10px;
+    bottom: auto;
+  }
+  .leaflet-control-container > div:nth-child(4) {
+    display: none;
   }
 
   #map1 .leaflet-popup {
@@ -138,9 +158,14 @@
   .mapHolderFixed {
     position: fixed;
     z-index: 1;
-    top: 80px;
+    top: 95px;
     bottom: auto;
     widthX: 480px; /* Reset in dual-map.js */
+  }
+  @media (min-width: 1400px) {
+    .mapHolderFixed {
+      min-width: 600px;
+    }
   }
   @media (max-width: 1300px) {
     .mapHolderFixed {
@@ -177,7 +202,6 @@
     }
     #hublist {
       width:auto;
-      
     }
     .padding-left {
       padding-left: 30px;
@@ -238,6 +262,9 @@
 }
 #hublist, #tableSide {
   max-height: 750px;
+}
+.hublistFull {
+  max-height: none !important;
 }
 #tableSide {
   overflow: auto;

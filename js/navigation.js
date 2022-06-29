@@ -6,7 +6,6 @@ const slash_count = (current_code_path.match(/\//g) || []).length; // To set pat
 if (window.location.protocol != 'https:' && location.host.indexOf('localhost') < 0) {
 	location.href = location.href.replace("http://", "https://");
 }
-var imageUrl;
 
 // Get the levels below root
 var foldercount = (location.pathname.split('/').length - 1); // - (location.pathname[location.pathname.length - 1] == '/' ? 1 : 0) // Removed because ending with slash or filename does not effect levels. Increased -1 to -2.
@@ -31,7 +30,7 @@ const changeFavicon = link => {
   // change its href to the given link.
   if ($favicon !== null) {
     $favicon.href = link
-  // Otherwise, create a new element and append it to <head>.
+  	// Otherwise, create a new element and append it to <head>.
   } else {
     $favicon = document.createElement("link")
     $favicon.rel = "icon"
@@ -53,14 +52,7 @@ $(document).ready(function(){
  		modelpath = "https://model.earth/" + modelpath; // Avoid - gets applied to #headerSiteTitle and hamburger menu
  		modelroot = "https://model.earth";
  	}
- 	if (param.showhero != "false") {
- 		if(location.host.indexOf("georgia") >= 0) { 
-	 		//$("body").prepend( "<div class='headerImage'><img src='" + modelpath + "../io/img/hero/sustainable-communities.jpg' style='width:100%'></div>");
-	 	}
-	}
 
-
-	// Moved here
 
 	// Set here so path works at all levels.
 
@@ -85,39 +77,39 @@ $(document).ready(function(){
 	} else if (location.host.indexOf("lifecycle.tools") >= 0) {
 		param.titleArray = ["lifecycle","tools"];
 		param.headerLogoSmall = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
-		$('.lifecycle').css('display', 'inline');
-		$('.lifecycle-hide').css('display', 'none');
+		showClassInline(".lifecycle");
 		earthFooter = true;
-	} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0
-	// Show locally for Brave Browser only
-	|| (((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false) && !param.headerLogo)
-	) {
+	} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0 || (((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false) && !param.headerLogo)) {
+		// Show locally for Brave Browser only
 		showLeftIcon = true;
 		$(".siteTitleShort").text("Model Georgia");
 		param.titleArray = [];
 		param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA.png' style='width:130px;padding-top:4px'></a>";
 		param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA-notext.png' style='width:40px;padding-top:0px;margin-top:-4px'></a>";
 		if (document.title) {
- 		document.title = "Georgia.org - " + document.title;
- 	} else {
- 		document.title = "Georgia.org";
- 	}
+	 		document.title = "Georgia.org - " + document.title;
+	 	} else {
+	 		document.title = "Georgia.org";
+	 	}
+		
 		changeFavicon("/localsite/img/logo/states/GA-favicon.png");
 
 		// BUGBUG - This needs to be css insert rather than being applied before README loads
-		$('.georgia').css('display', 'inline');
-		$('.georgia-hide').css('display', 'none');
-		$('.georgiaorg-hide').css('display', 'none');
+		showClassInline(".georgia");
 		$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
 
 		// TEMP
 		setTimeout( function() {
-		$('.georgia').css('display', 'inline');
-			$('.georgia-hide').css('display', 'none');
-			$('.georgiaorg-hide').css('display', 'none');
-			$('#headerOffset').css('display', 'block');
-	}, 1500);
+			showClassInline(".georgia");
+			$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
+		}, 1500);
+		setTimeout( function() {
+			showClassInline(".georgia");
+			$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
+		}, 3500);
+
 		earthFooter = true;
+
 	} else if (!Array.isArray(param.titleArray) && (param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
 		showLeftIcon = true;
 		$(".siteTitleShort").text("Neighborhood Modeling");
@@ -125,7 +117,7 @@ $(document).ready(function(){
 		param.headerLogoSmall = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
 		document.title = "Neighborhood.org - " + document.title
 		changeFavicon("/localsite/img/logo/partners/neighborhood-icon.png")
-		$('.neighborhood').css('display', 'inline');
+		showClassInline(".neighborhood");
 		earthFooter = true;
 	// location.host.indexOf('localhost') >= 0 || 
 	} else if (!Array.isArray(param.titleArray) && (location.host.indexOf("democracy.lab") >= 0)) {
@@ -134,7 +126,7 @@ $(document).ready(function(){
 
 		param.headerLogo = "<img src='/localsite/img/logo/partners/democracy-lab.png' style='width:190px;margin-top:15px'>";
 		param.headerLogoSmall = "<img src='/localsite/img/logo/partners/democracy-lab-icon.jpg' style='width:32px;margin:4px 8px 0 0'>";
-		$('.dlab').css('display', 'inline'); 
+		showClassInline(".dlab'");
 		earthFooter = true;
 	} else if (!Array.isArray(param.titleArray) && !param.headerLogo) {
 	//} else if (location.host.indexOf('model.earth') >= 0) {
@@ -150,7 +142,7 @@ $(document).ready(function(){
 		}
 		param.headerLogoSmall = "<img src='/localsite/img/logo/partners/model-earth.png' style='width:34px; margin-right:2px'>";
 		changeFavicon(modelpath + "../localsite/img/logo/partners/model-earth.png")
-		$('.earth').css('display', 'inline'); 
+		showClassInline(".earth");
 		console.log(".earth display");
 		earthFooter = true;
 	}
@@ -186,27 +178,34 @@ $(document).ready(function(){
  	}
  	
  	$("body").addClass("flexbody"); // For footer to stick at bottom on short pages
- 	$("body").wrapInner( "<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
+ 	$("body").wrapInner("<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
  	// min-height allows header to serve as #filterbaroffset when header.html not loaded
- 	$("body").prepend( "<div id='local-header' class='flexheader hideprint' style='pointer-events:none;min-height:56px'></div>\r");
-		
+ 	$("body").prepend("<div id='local-header' class='flexheader hideprint' style='pointer-events:none;min-height:56px'></div>\r");
+	
+	if(document.getElementById("bodyFile") == null) {
+		$("#fullcolumn").prepend("<div id='bodyFile'></div>\r");
+	}
+
  	$(document).on("click", "#showSide", function(event) {
 		//$("#showSide").hide();
 		if ($("#sidecolumn").is(':visible')) {
 			$("#showSide").css("opacity","1");
 			$("#sidecolumn").hide();
 			$("#showSide").show();
+			//$("#filterFieldsHolder").addClass("leftOffset");
 		} else {
 			$("#showSide").hide();
+			//$("#filterFieldsHolder").removeClass("leftOffset");
 			$("#sidecolumn").show();
-			let headerFixedHeight = $("#headerFixed").height();
-			$('#sidecolumnContent').css("top",headerFixedHeight + "px");
 		}
+		let headerFixedHeight = $("#headerLarge").height();
+		$('#sidecolumnContent').css("top",headerFixedHeight + "px");
 	});
  	$(document).on("click", ".hideSide", function(event) {
  		$("#showSide").css("opacity","1");
 		$("#sidecolumn").hide();
 		$("#showSide").show();
+		//$("#filterFieldsHolder").addClass("leftOffset");
 	});
  	if (param["showapps"] && param["showapps"] == "false") {
  		$(".showApps").hide();
@@ -263,7 +262,7 @@ $(document).ready(function(){
 			 		$("#filterEmbedHolder").insertAfter("#headeroffset");
 			 		////$(".filterbarOffset").insertAfter("#headeroffset");
 			 		
-			 		//$(".filterbarOffset").insertAfter("#headerFixed");
+			 		//$(".filterbarOffset").insertAfter("#headerLarge");
 
 			 		// Not needed since moved into header.html
 			 		//$(".filterbarOffset").insertAfter("#headeroffset");
@@ -322,22 +321,12 @@ $(document).ready(function(){
 				 	}
 					// WAS LIMITED TO HEADER
 
-					/*
-					if (param.favicon) {
-				 		imageUrl = climbpath + ".." + param.favicon;
-				 		//$('#headerlogoside').css('width', '40px');
-				 		//$('#headerlogoside').css('height', '40px');
-				 		$('.logoholder-modelearth').css('width', '40px');
-				 		$('.logoholder-modelearth').css('height', '40px');
-				 		$('.logoholder-modelearth').css('margin-top', '7px');
-				 		$('.logoholder-modelearth').css('margin-right', '20px');
-				 	}
-				 	*/
 				 	if (!param.headerLogo && param.headerLogoSmall) {
 				 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
 				 	} else if (param.headerLogo) {
 				 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
-				 	} else {
+				 	} else if (param.favicon) {
+				 		let imageUrl = climbpath + ".." + param.favicon;
 					 	$('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
 						$('#headerLogo').css('background-repeat', 'no-repeat');
 					}
@@ -358,29 +347,29 @@ $(document).ready(function(){
 			 		$('#headerLogo').css('background-position', 'center');
 					*/
 
-			 		$('.showMenu').click(function () {
-						//$(".showMenu").hide();
-						$("#menuHolder").show();
-						$("#menuHolder").css('margin-right','0px')
-						//$("#listingMenu").appendTo($(this).parent().parent());
+					$(document).on("click", ".showMenu", function(event) {
+
+						if (location.host.indexOf('localhost') >= 0) {
+							$("#rightTopMenuVisibility").show(); // Temp
+						}
+			 			if ($("#rightTopMenuVisibility").is(':visible')) {
+			 				loadScript('/localsite/js/settings.js', function(results) { // For "Settings" popup
+          		});
+			 				$("#rightTopMenu").show();
+			 			} else {
+							$("#menuHolder").show();
+							$("#menuHolder").css('margin-right','0px')
+						}
 						event.stopPropagation();
 					});
-					$('.hideMenu').click(function () {
+					$(document).on("click", ".hideMenu", function(event) {
 						$("#menuHolder").show();
 						$("#menuHolder").css('margin-right','-250px');
 						//$("#listingMenu").appendTo($(this).parent().parent());
 						event.stopPropagation();
 					});
 					$(document).on("click", ".hideAdvanced", function(event) {
-						updateHash({"mapview":""});
-						$(".fieldSelector").hide();
-						$("#filterLocations").hide();
-						$("#filterClickLocation").removeClass("filterClickActive");
-
-						if (typeof relocatedStateMenu != "undefined") {
-				            relocatedStateMenu.appendChild(state_select); // For apps hero
-				        }
-				        $("#hero_holder").show();
+						hideAdvanced();
 					});
 
 
@@ -401,7 +390,7 @@ $(document).ready(function(){
 				
 				// END WAS LIMITED TO HEADER
 				$(".headerOffset").show();
-				$("#local-header").append( "<div id='filterbaroffset' style='display:none;height:56px; pointer-events:none'></div>");
+				//$("#local-header").append( "<div id='filterbaroffset' style='display:none;height:56px; pointer-events:none; display:none'></div>"); // Might stop using now that search filters are in main.
 				if ($("#filterFieldsHolder").length) {
 					//$("#filterbaroffset").css('display','block');
 				}
@@ -424,7 +413,11 @@ $(document).ready(function(){
 					showLeftIcon = true;
 				}
 				if (showLeftIcon) {
-					$("body").prepend( "<div id='sidecolumn-closed' class='hideprint' style='position:relative'><div id='showSide' class='showSide' style='top:109px; opacity:.8'><img src='" + modelroot + "/localsite/img/icon/sidemenu.png' style='width:13px'></div></div>\r" );
+					// Move to header
+
+
+						// /localsite/img/icon/sidemenu.png  // width:15px;height:14px
+		 					//<div class="showMenu" style="displayX:none; float:left;font-size:24px; color:#999;">
 		 		}
 
 		 		// Only apply if id="/icon?family=Material+Icons" is already in DOM.
@@ -442,7 +435,7 @@ $(document).ready(function(){
 			//$('body').prepend($("#local-header"));
 			$('.headerOffsetOne').prepend($("#local-header"));
 
-			//$("#headerFixed").hide();
+			//$("#headerLarge").hide();
 		}, 1000);
 		//});
 	}
@@ -524,11 +517,38 @@ $(document).ready(function(){
 	// END SIDE NAV WITH HIGHLIGHT ON SCROLL
 });
 
+function showClassInline(theclass) {
 
+	$(theclass).css('display', 'inline');
+
+	setTimeout( function() {
+		$(theclass).css('display', 'inline');
+	}, 1000);
+	setTimeout( function() {
+		$(theclass).css('display', 'inline');
+	}, 2000);
+	setTimeout( function() {
+		$(theclass).css('display', 'inline');
+	}, 5000);
+		setTimeout( function() {
+		$(theclass).css('display', 'inline');
+	}, 10000);
+		setTimeout( function() {
+		$(theclass).css('display', 'inline');
+	}, 30000);
+}
+function hideAdvanced() {
+	updateHash({"mapview":""});
+	$(".fieldSelector").hide();
+	$("#filterLocations").hide();
+	$("#filterClickLocation").removeClass("filterClickActive");
+
+	if (typeof relocatedStateMenu != "undefined") {
+  	relocatedStateMenu.appendChild(state_select); // For apps hero
+  }
+  $("#hero_holder").show();
+}
 function activateSideColumn() {
-
-			//return;
-
 			// Make paths relative to current page
 	 		$("#sidecolumn a[href]").each(function() {
 	 			if($(this).attr("href").toLowerCase().indexOf("http") < 0) {
