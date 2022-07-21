@@ -15,12 +15,15 @@
 }
 .layerSection {
 	min-width:  32px;
-	min-height: 32px;
+	min-height: 40px;
 	color: #333;
 	clear: both;
 }
-.layerSection:last-child {
-	min-height: 42px;
+.layerSection.openMenu {
+	min-width: 200px; /* So hideMenuNav() is not triggered too often by a narrow div */
+}
+.layerSection.openMenu:last-child {
+	/* margin-bottom: 15px; */
 }
 .layerSectionClick {
     padding: 6px 8px 0px 12px;
@@ -57,8 +60,8 @@
 }
 .layerCbRow {
 	display:none;
-	padding: 1px 0px 0px 27px;
-	margin-left: 2px;
+	padding: 1px 0px 0px 0px;
+	margin-left: 35px;
 	color: #888;
 	clear: both;
 }
@@ -68,6 +71,7 @@
 	border-right: 1px solid #ccc;
 	border-bottom: 1px solid #333;
 	width: 179px; /* To overlap sideMenuColumnNarrow */
+	margin-left: 0px;
 }
 .layerCbTitle {
 	white-space:nowrap;
@@ -79,6 +83,7 @@
 .layerCbRow:hover {
 	background: #ececec;
 	color: #555;
+	cursor: pointer;
 }
 .sectionArrowHolder {
     float: right;
@@ -133,10 +138,12 @@
 .sideMenuColumnNarrow	.layerSection {
 	white-space: nowrap;
 	overflow: visible;
+	float: left; /* For ideMenuNav(id) */
 }
 .sideMenuColumnNarrow	.layerSectionTitle {
 	display: none;
 }
+
 .sideMenuColumnNarrow .layerSectionTitle {
 	width: 180px; /* required for background color to be visible */
 	color: #fff;
@@ -149,6 +156,9 @@
 	border-bottom: 1px solid #fff;
 }
 @media (max-width: 1400px) {
+	.sideMenuColumnWide .layerCbRow { /* Allow submenu to be hidden on resize without using javascript */
+		display: none !important;
+	}
 	#partnerMenuHolder {
 		min-width: 32px;
 	}
@@ -161,6 +171,7 @@
 		top: 0;
 		bottom: 0;
 		overflow: visible;
+		background: rgb(238, 238, 238);
 	}
 	.layerSection {
 		/* max-width: 38px; Avoid, else background is not visible. */
@@ -169,6 +180,9 @@
 	}
 	.layerSectionTitle {
 		display: none;
+	}
+	.layerCbRow {
+		display: none; /* hides on resize from wide to narrow */
 	}
 	.layerSection:last-child {
 		margin-bottom: 0px;
@@ -180,9 +194,8 @@
 	.layerSectionClick {
 		min-width: auto;
 		padding-left: 8px;
-		min-height: 42px;
 	}
-	.layerCbRow {
+	.layerCbRowXXX {
 		display:none !important;
 	}
 	.sectionArrowHolder {

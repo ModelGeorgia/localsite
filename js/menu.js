@@ -249,33 +249,47 @@ function clearAll(siteObject) {
 
 
 function showSubmenu(id) { //onmouseclick
-    if($("#" + id).hasClass("openMenu")) {
+    if ($("#" + id).hasClass("openMenu")) {
+        console.log("hide showSubmenu for id: " + id);
         $("#" + id).removeClass("openMenu");
         $("#" + id + ' .layerCbRow').hide();
+        if ($(".sideMenuColumn").width() < 50) { 
+            $("#" + id + " .layerSectionTitle").hide();
+        }
     } else {
+        console.log("showSubmenu for id: " + id);
         $("#" + id).addClass("openMenu");
         $("#" + id + ' .layerCbRow').show();
-    }
-    //alert(id)
-}
-// For narrow nav
-function showMenuNav(id) { //onmouseenter
-    if ($(".sideMenuColumn").width() < 50) {
-        $(".sideMenuColumn").addClass("sideMenuColumnNarrow"); // Adds black background
-    }
-
-    if ($(".sideMenuColumn").width() < 50) { // Only do rollover popout when side column is narrow.
         $("#" + id + " .layerSectionTitle").show();
     }
 }
-function hideMenuNav(id) { //onmouseout
+// For narrow nav
+function showMenuNav(id) { //onmouseenter
+    if ($(".sideMenuColumn").width() < 50) { // Only do rollover popout when side column is narrow.
+        //console.log("showMenuNav " + id);
+        $(".sideMenuColumn").addClass("sideMenuColumnNarrow"); // Adds black background
+        $(".sideMenuColumn").removeClass("sideMenuColumnWide");
+        //return; // TEMP
+        $("#" + id + " .layerSectionTitle").show();
+    } else {
+        $(".sideMenuColumn").addClass("sideMenuColumnWide");
+        $(".sideMenuColumn").removeClass("sideMenuColumnNarrow");
+    }
+}
+function hideMenuNav(id) { //onmouseleave
+    
     //return; // TEMP
-    if ($(".sideMenuColumn").width() < 50) { // Only hide when side is narrow.
+    //console.log(".sideMenuColumn " + $(".sideMenuColumn").width());
 
+    // BUGBUG - Need to check parent .sideMenuColumn since multiple instances may reside on page.
+    // http://localhost:8887/localsite/partner-menu.html
+    if ($(".sideMenuColumn").width() < 50) { // Only hide when side is narrow.
+        //console.log("hideMenuNav " + id);
         // Check parent has narrow class
         const sideMenuColumnNarrow = $("#" + id + " .layerSectionTitle").closest(".sideMenuColumnNarrow");  
         if(sideMenuColumnNarrow.length > 0) { // Only hide when in .sideMenuColumnNarrow
-            $(".layerSection-" + id).removeClass("openMenu");
+            $("#" + id).removeClass("openMenu");
+            //$(".layerSection-" + id).removeClass("openMenu");
             $("#" + id + " .layerSectionTitle").hide();
             $("#" + id + " .layerCbRow").hide();
         }
@@ -391,8 +405,8 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                     if (directlink)  { 
                         linktext = ' link="' + directlink + '"';
                     }
-                    partnerCheckboxes += '<div class="layerSectionAccess user-' + menuaccess + '" id="' + formatLinkId(item.section,item.title + "_parent") + '" style="display:none" onmouseleave="hideMenuNav(this.id)">';
-                    partnerCheckboxes += '<div ' + layerSectionDisplay + ' id="' + formatLinkId(item.section,item.title) + '" class="dontsplit layerSection layerSectionOpen layerSection-' + item.section.toLowerCase().replace(/ /g,"-") + '" menulevel="' + menulevel + '" onmouseenter="showMenuNav(this.id)" onclick="showSubmenu(this.id)"><div style="clearX:both; pointer-events: auto;" data-layer-section="' + item.section + '"' + linktext + '" class="layerSectionClick">';
+                    partnerCheckboxes += '<div class="layerSectionAccess user-' + menuaccess + '" id="' + formatLinkId(item.section,item.title + "_parent") + '" style="display:none">'; //  onmouseleave="hideMenuNav(this.id)"
+                    partnerCheckboxes += '<div ' + layerSectionDisplay + ' id="' + formatLinkId(item.section,item.title) + '" class="dontsplit layerSection layerSectionOpen layerSection-' + item.section.toLowerCase().replace(/ /g,"-") + '" menulevel="' + menulevel + '" onmouseenter="showMenuNav(this.id)" onmouseleave="hideMenuNav(this.id)"><div style="clearX:both; pointer-events: auto;" data-layer-section="' + item.section + '"' + linktext + '" class="layerSectionClick" onclick="showSubmenu(this.parentElement.id)">';
                     if (partnerMenu.showArrows) {
                         partnerCheckboxes += '<div class="sectionArrowHolder"><div class="leftArrow"></div></div>';
                     }
@@ -410,7 +424,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                 
                 // Link is applied dynamically using [itemid] in attr data-link
                 if (showSublevel) {
-                    partnerCheckboxes += '<div class="user-' + menuaccess + '"><div class="layerCbRow row-' + item.item + '"><div><a data-link="' + directlink + '" href="' + directlink + '" class="layerAction">';
+                    partnerCheckboxes += '<div class="user-' + menuaccess + '"><div class="layerCbRow row-' + item.item + '" data-link="' + directlink + '"><div><a data-link="' + directlink + '" href="' + directlink + '" class="layerAction">';
                     /*
                     if (item.feed) {
                         partnerCheckboxes += '<div class="layerActionIcon" data-link="' + directlink + '"></div>';
@@ -507,8 +521,9 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
 
         event.stopPropagation();
     });
-    $(document).on("click", partnerMenu.menuDiv + ' .layerAction', function(event) { // Second level menus
-        // Clear all layers
+    //$(document).on("click", partnerMenu.menuDiv + ' .layerAction', function(event) { // Second level menus
+    $(document).on("click", '.layerCbRow', function(event) { // Second level menus
+         // Clear all layers
         clearAll(menuDataset);
         console.log('.layerAction');
 
@@ -583,6 +598,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
         $('.showAllLayers').hide();
         event.stopPropagation();
     });
+
     $(document).on("click", partnerMenu.menuDiv + ' .layerSectionClick', function(event) { // Top level
         //alert("parent width: " + $(this).parent().parent().parent().parent().width()); // Same as the following, 38px when narrow:
         
@@ -592,21 +608,24 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
         //let menuColumnWidth = $(partnerMenu.menuDiv + '.layerSectionClick').parent().width();
         console.log("This partnerMenu.menuDiv width: " + menuColumnWidth);
 
-        if (menuColumnWidth < 120) { // Only use section as link when side is narrow
+        if (1==2 && menuColumnWidth < 120) { // Only use section as link when side is narrow
+            console.log("Click narrow - " + partnerMenu.menuDiv);
             let link = $(this).attr("link");
             if (typeof link !== 'undefined' && link !== false) { // For diff browsers
 
-                window.location = link;
+                //window.location = link;
+                console.log("Click link disabled: " + link);
             } else {
                 console.log("Clicked " + $(this).attr("data-layer-section") + ", but no link provided in json")
             }
             event.stopPropagation();
             return;
         } else {
-            /*
+            console.log(partnerMenu.menuDiv + " .layerSectionClick");
+            
             if ($(this).attr("data-layer-section")) {
-                alert("layerSectionOpen");
-                layerSectionOpen($(this).attr("data-layer-section").toLowerCase().replace(/ /g,"-"));
+                console.log("data-layer-section parent, so no action if subnav");
+                //layerSectionOpen($(this).attr("data-layer-section").toLowerCase().replace(/ /g,"-"));
             } else {
                 alert("layerSectionClick click, no data-layer-section attr");
                 //$('.layerSection').hide();
@@ -634,7 +653,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                     $(this).find('.downArrow').addClass('leftArrow').removeClass('downArrow');
                 }
             }
-            */
+            
         }
         event.stopPropagation();
         
