@@ -836,7 +836,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       link.type = 'text/css';
       link.rel = 'stylesheet';
       //link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
-      link.href = '/localsite/css/fonts/materialicons/icon.css';
+      link.href = theroot + '../localsite/css/fonts/materialicons/icon.css';
       link.id = getUrlID3(link.href,"");
       head.appendChild(link);
     }();
@@ -1059,10 +1059,11 @@ function extend () {
 function loadTabulator() {
   // Tabulator
   if (typeof Tabulator === 'undefined') {
-    includeCSS3('https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css',theroot);
+    //includeCSS3('https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css',theroot);
+    // Also loads tabulator.min.css.map originally from https://unpkg.com/tabulator-tables@5.3.0/dist/css/tabulator.min.css.map
+    includeCSS3(theroot + '../localsite/css/tabulator.min.css',theroot);
     includeCSS3(theroot + '../localsite/css/base-tabulator.css',theroot);
-    // Latest: https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js
-    loadScript('https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.min.js', function(results) {});
+    loadScript(theroot + 'js/tabulator.min.js', function(results) {});
   }
 }
 

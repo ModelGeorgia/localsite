@@ -105,6 +105,13 @@ function hashChangedMap() {
     hiddenhash.state = "GA";
   }
 
+  if (hash.cat || hash.name) {
+    $(".viewAllLink").show();
+  } else {
+    $(".viewAllLink").hide();
+  }
+  $("#changeHublistHeight").show();
+
   if (hash.name !== priorHashMap.name) {
     loadMap1("hashChanged() in map.js new name for View Details " + hash.name, hash.show);
     let offTop = $("#list_main").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height();
@@ -146,7 +153,9 @@ function hashChangedMap() {
     loadMap1("hashChanged() in map.js new cat " + hash.cat, hash.show);
   } else if (hash.subcat !== priorHashMap.subcat) {
     loadMap1("hashChanged() in map.js new subcat " + hash.subcat, hash.show);
-  } 
+  } else if (hash.details !== priorHashMap.details) {
+    loadMap1("hashChanged() in map.js new details = " + hash.details, hash.show);
+  }
   priorHashMap = getHash();
 }
 $(document).ready(function () {
@@ -221,6 +230,10 @@ function zoomEarth(zoomAmount) {
   //loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
 }
 function getEarthObject(url) {
+  if (url == undefined) {
+    console.log("BUG - getEarthObject url undefined");
+    return;
+  }
   let urlPart = url.split('/');
   let params = {};
   if (urlPart.length > 6) { // URL contains date and time
@@ -350,7 +363,9 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
     } else {
       console.log('loadFromSheet into #' + whichmap);
       $(".keywordField").show();
-      $("#" + whichmap).show();
+      if (dp.mapable != "false") {
+        $("#" + whichmap).show();
+      }
     }
 
     dp = mix(dp,defaults); // Gives priority to dp
@@ -510,6 +525,51 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
     // We are currently loading dp.dataset from a CSV file.
     // Later we will check if the filename ends with .csv
 
+    if (dp.googleCategories && !dp.googleCSV) {            
+      d3.csv(dp.googleCategories).then(function(data) {
+        // LOAD CATEGORIES TAB - Category, SubCategory, SubCategoryLong
+        //localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+        localObject.layerCategories[dp.show] = data;
+        preCatList = localObject.layerCategories[hash.show];
+
+        console.log("preCatList");
+        console.log(preCatList);
+
+        let catList = {};
+        // Build catList object with category name as the key.
+        let catColName = "Category"; // TO DO, apply this below.
+        for (var i = 0, l = preCatList.length; i < l; i++) {
+
+          let key = Object.keys(preCatList[i]);
+
+          //iconColor = colorScale(element[dp.valueColumn]);
+          //if (dp.color) { 
+          //  iconColor = dp.color;
+          //}
+          iconColor = "blue";
+
+          //console.log("element[dp.valueColumn] " + element[dp.valueColumn]);
+          //if (dp.valueColumn) {
+            // Requires only ONE category value in the valueColumn.
+            if(!catList.Category) {
+              catList[preCatList[i].Category] = {};
+              catList[preCatList[i].Category].count = 1;
+            } else {
+              catList[preCatList[i].Category].count++;
+            }
+            catList[preCatList[i].Category].color = iconColor;
+          //}
+        }
+        console.log("catList");
+        console.log(catList);
+
+        localObject.layerCategories[dp.show] = catList;
+
+        renderCatList(catList);
+        //processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
+      });
+    }
+
     let stateAllowed = true;
     if (dp.datastates && hash.state) {
       if (dp.datastates.split(",").indexOf(hash.state.split(",")[0].toUpperCase()) == -1) {
@@ -539,8 +599,8 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
       d3.csv(dp.dataset).then(function(data) { // One row per line
           //console.log("To do: store data in browser to avoid repeat loading from CSV.");
 
-          dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
-
+          //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+          dp.data = data;
         
           // Make element key always lowercase
           //dp.data_lowercase_key;
@@ -571,19 +631,19 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
     } else if (dp.googleCSV) {
       d3.csv(dp.googleCSV).then(function(data) { // One row per line
         // LOAD GOOGLE SHEET
-          dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+          //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+          dp.data = data;
           if (dp.googleCategories) {            
             d3.csv(dp.googleCategories).then(function(data) {
               // LOAD CATEGORIES TAB - Category, SubCategory, SubCategoryLong
-              localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+              //localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+              localObject.layerCategories[dp.show] = data;
               processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
             });
           } else {
             processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
           }
       });
-
-
     }
     
     //.catch(function(error){ 
@@ -1220,10 +1280,15 @@ function addIcons(dp,map,map2) {
       //$(this).css("background-color","rgb(250, 250, 250)");
       //$(this).css("padding","15px");
       $(this).addClass("detailActive");
+      if ($(".detailActive").height() < 250) {
+        $("#changeHublistHeight").hide();
+      }
+      
       var listingsVisible = $('#detaillist .detail:visible').length;
-      if (listingsVisible == 1) {
+      if (listingsVisible == 1 || hash.cat) {
         $(".viewAllLink").show();
       }
+
       if ($(this).attr("latitude") && $(this).attr("longitude")) {
         popMapPoint(dp, map2, $(this).attr("latitude"), $(this).attr("longitude"), $(this).attr("name"));
       } else {
@@ -1551,24 +1616,31 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.latColumn = "plant_or_group.latitude";
         dp.lonColumn = "plant_or_group.longitude";
   } else if (show == "trade") {
-        dp.listTitle = "Georgia Commercial Recyclers";
-        dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=1924677788&single=true&output=csv";
-        dp.googleCategories = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=381237740&single=true&output=csv";
-        dp.nameColumn = "organization name";
-        dp.titleColumn = "organization name";
-        dp.searchFields = "organization name";
-        dp.addressColumn = "address";
+        dp.listTitle = "Georgia Exporters";
+        dp.googleCategories = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQjvrzFMi_5ZPpcHj4uzjyA9aHyrlo6eJpdlLB6Mo5Fxtp9dfajgLKOfa16-HlZOPTKNQLbSWbkL6SR/pub?gid=0&single=true&output=csv";
+        
+        //dp.valueColumn = "category";
+        //dp.valueColumnLabel = "Category";
 
-        dp.valueColumn = "category";
-        dp.valueColumnLabel = "Category";
         dp.catColumn = "Category";
-        dp.subcatColumn = "Materials Accepted";
-        dp.itemsColumn = "Materials Accepted"; // Needs to remain capitalized. Equivalent to PPE items column, checkboxes
+        //dp.subcatColumn = "Materials Accepted";
+        dp.dataset = "https://georgiadata.github.io/display/products/exporters/export.csv";
+        dp.nameColumn = "account name"; // Lowercase even though capitalized in CSV.
+        dp.titleColumn = "Account Name";
+        dp.searchFields = "Account Name";
+        //dp.addressColumn = "address";
+
+        //dp.valueColumn = "category"; // Avoid because we have multiple categories in value column.
+        //dp.valueColumnLabel = "Category";
+        dp.catColumn = "Industries Trade";
+        dp.mapable = "false";
+        //dp.subcatColumn = "Materials Accepted";
+        //dp.itemsColumn = "Materials Accepted"; // Needs to remain capitalized. Equivalent to PPE items column, checkboxes
 
         // https://map.georgia.org/recycling/
-        dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.listInfo = "Submit updates using our <a href='https://map.georgia.org/recycling/'>Google Form</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.&nbsp; View&nbsp;additional <a href='../map/recycling/ga/'>recycling datasets</a>.";
-        dp.search = {"In Main Category": "Category", "In Materials Accepted": "Materials Accepted", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
+        dp.editLink = "";
+        dp.listInfo = "<a href='https://map.georgia.org/display/products/'>View active version</a>";
+        dp.search = {"In Company Name": "Account Name", "In Industries": "Industries Trade"};
 
   } else if (theState == "GA") {
 
@@ -1608,7 +1680,8 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.itemsColumn = "NAICS Description"; // The column being search
 
       } else if (show == "recyclers") {
-        dp.listTitle = "Georgia Commercial Recyclers";
+        dp.listTitle = "Georgia B2B Recyclers";
+        dp.adminNote = "maps.g";
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=1924677788&single=true&output=csv";
         dp.googleCategories = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=381237740&single=true&output=csv";
         dp.nameColumn = "organization name";
@@ -1624,7 +1697,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
         // https://map.georgia.org/recycling/
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.listInfo = "Submit updates using our <a href='https://map.georgia.org/recycling/'>Google Form</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.&nbsp; View&nbsp;additional <a href='../map/recycling/ga/'>recycling datasets</a>.";
+        dp.listInfo = "<a href='https://map.georgia.org/recycling/'>Add Recycler Listings</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.&nbsp; View&nbsp;<a href='../map/recycling/ga/'>Recycling&nbsp;Datasets</a>.";
         dp.search = {"In Main Category": "Category", "In Materials Accepted": "Materials Accepted", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
 
       } else if (1==2 && (show == "recycling" || show == "transfer" || show == "recyclers" || show == "inert" || show == "landfills")) { // recycling-processors
@@ -1662,7 +1735,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
           //dp.nameColumn = "organizationname";
           //dp.titleColumn = "organizationname";
 
-          dp.listInfo = "View additional <a href='../map/recycling/ga/'>recycling datasets</a>.<br>Submit updates by posting comments in our 5 <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing'>Google Sheet Tabs</a>.";
+          dp.listInfo = "<span>View <a href='../map/recycling/ga/'>Recycling Datasets</a>.</span><br>Submit updates by posting comments in our 5 <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing'>Google Sheet Tabs</a>.";
           
           //dp.latColumn = "latitude";
           //dp.lonColumn = "longitude";
@@ -2227,7 +2300,7 @@ function showList(dp,map) {
       $.each(localObject.layerCategories[dp.show], function(index,value) {
         if (value.Category == hash.cat || !hash.cat) {
           let subcatTitle = value.SubCategoryLong || value.SubCategory;
-          subcatList += "<li><a href='#' onClick='goHash({\"cat\":\"" + value.Category + "\", \"subcat\":\"" + value.SubCategory + "\"}); return false;'>" + subcatTitle + "</a></li>";
+          subcatList += "<li><a href='#' onClick='goHash({\"cat\":\"" + value.Category + "\", \"subcat\":\"" + value.SubCategory.replace("&","%26") + "\"}); return false;'>" + subcatTitle + "</a></li>";
           subcatArray.push(value.SubCategory);
           if (value.SubCategory.length > 0) {
             //console.log("value.SubCategory " + value.SubCategory)
@@ -2533,10 +2606,20 @@ function showList(dp,map) {
     var key, keys = Object.keys(elementRaw);
     var n = keys.length;
     var element={};
+    let output = "";
+    let output_details = "";
+    let avoidRepeating = ["description","address","website","phone","email","email address","county","admin note","your name","organization name","cognito_id"];
     while (n--) {
       key = keys[n];
       //element[key] = elementRaw[key]; // Also keep uppercase for element["Prepared"]
       element[key.toLowerCase()] = elementRaw[key];
+      if (hash.details == "true") {
+        if (key && elementRaw[key]) {
+          if (avoidRepeating.indexOf(key.toLowerCase()) < 0) {
+            output_details += "<b>" + key + "</b>: " + elementRaw[key] + "<br>";
+          }
+        }
+      }
     }
 
     iconColor = colorScale(element[dp.valueColumn]);
@@ -2547,14 +2630,16 @@ function showList(dp,map) {
     //console.log("element state2 " + element.state + " iconColor: " + iconColor)
 
     //console.log("element[dp.valueColumn] " + element[dp.valueColumn]);
-    if(!catList[element[dp.valueColumn]]) {
-      catList[element[dp.valueColumn]] = {};
-      catList[element[dp.valueColumn]].count = 1;
-    } else {
-      catList[element[dp.valueColumn]].count++;
+    if (dp.valueColumn) {
+      // Requires only ONE category value in the valueColumn.
+      if(!catList[element[dp.valueColumn]]) {
+        catList[element[dp.valueColumn]] = {};
+        catList[element[dp.valueColumn]].count = 1;
+      } else {
+        catList[element[dp.valueColumn]].count++;
+      }
+      catList[element[dp.valueColumn]].color = iconColor;
     }
-    catList[element[dp.valueColumn]].color = iconColor;
-
     // BUGBUG - Is it valid to search above before making key lowercase? Should elementRaw key be made lowercase?
 
     //if (foundMatch > 0 && productMatchFound > 0) {
@@ -2613,8 +2698,6 @@ function showList(dp,map) {
       // Bug, this overwrote element.latitude and element.longitude
       //element = mix(dp,element); // Adds existing column names, giving priority to dp assignments made within calling page.
       
-      var theTitleLink = 'https://www.google.com/maps/search/' + (name + ', ' + element.address + ', ' + element.county + ' County, ' + hash.state).replace(/ /g,"+");
-
       if (element.website && !element.website.toLowerCase().includes("http")) {
         element.website = "http://" + element.website;
       }
@@ -2642,9 +2725,9 @@ function showList(dp,map) {
 
         // Hide all until displayed after adding to dom
         if (element[dp.latColumn] && element[dp.lonColumn]) {
-          output = "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "'>";
+          output += "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "'>";
         } else {
-          output = "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "'>";
+          output += "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "'>";
         }
 
         output += "<div class='showItemMenu' style='float:right'>&mldr;</div>"; 
@@ -2764,23 +2847,54 @@ function showList(dp,map) {
           output += "<b>" + dp.showLabels + ":</b> " + element[dp.showKeys] + "<br>";
         }
 
+        if(output_details) {
+          //output += "<br>Details:<br>" + output_details;
+          output += output_details;
+        }
+
+        output += "<div style='height:10px'></div>";
         if (element.mapframe) {
             output += "<a href='#show=360&m=" + element.mapframe + "'>Birdseye View<br>";
         }
         if (element.property_link) {
             output += "<a href='" + element.property_link + "'>Property Details</a><br>";
         }
-        if (element.county) {
-            output += '<a href="' + theTitleLink + '" target="_blank">Google Map</a> ';
+
+        var googleMapLink;
+        if (name.length || element.address || element.county) {
+          googleMapLink = name;
+          if (element.address) {
+            googleMapLink += ', ' + element.address;
+          }
+          if (element.county) {
+            googleMapLink += ', ' + element.county + ' County';
+          }
+          if (hash.state) {
+            googleMapLink += ', ' + hash.state;
+          }
+        }
+        if (googleMapLink) {
+          googleMapLink = 'https://www.google.com/maps/search/' + (googleMapLink).replace(/ /g,"+");
+        }
+        if (googleMapLink) {
+            output += '<a href="' + googleMapLink + '" target="_blank">Google Map</a>';
         }
         
+        if (hash.details != "true") {
+          if (hash.name) {
+            output += "&nbsp; | &nbsp;<a href='" + window.location + "&details=true'>Details</a>";
+          } else {
+            output += "&nbsp; | &nbsp;<a href='" + window.location + "&name=" + name.replace(/ /g,"+") + "&details=true'>Details</a>";
+          }
+        }
         if (dp.editLink) {
-          if (element.county) {
-            output += "&nbsp;| &nbsp;"
+          if (googleMapLink) {
+            output += "&nbsp; | &nbsp;"
           }
           output += "<a href='" + dp.editLink + "' target='edit" + param["show"] + "'>Make Updates</a><br>";
         }
-        if (!element.county && !(element[dp.latColumn] && element[dp.lonColumn])) {
+        
+        if (!element.mapable == "false" && !element.county && !(element[dp.latColumn] && element[dp.lonColumn])) {
           if (!element[dp.lonColumn]) {
             output += "<span>Add latitude and longitude</span><br>";
           } else {
@@ -2837,16 +2951,12 @@ function showList(dp,map) {
         output += "</div>"; // End Lower
         output += "</div>"; // End detail
         
-        
+        // Here display:none is used when listings are excluded. Do we use script to show these, or simply re-run the list?
         $("#detaillist").append(output);
       }
     }
   });
-
-  // We're not using "loc" yet, but it seems better than using id to avoid conflicts.
-  // Remove name from hash to trigger refresh
-  let viewAllButton = " <div class='viewAllLink btn btn-white' style='float:right;display:none;'><a onclick='goHash({},[\"name\",\"loc\"]); return false;' href='#show=" + param["show"] + "'>View All</a></div>";
-  $("#detaillist").append(viewAllButton);
+  $("#detaillist").append("<div style='height:60px'></div>"); // For space behind absolute buttons at bottom.
 
   /*
   if (localObject.layerCategories[dp.show].length >= 0) {
@@ -2859,28 +2969,14 @@ function showList(dp,map) {
     $("#detaillist").prepend(subcatList);
   }
   */
+  $("#detaillist").prepend("<hr>");
   if (subcatObject["null"].count > 0) {
     $("#detaillist").prepend(hash.cat + " rows needing subcategory: " + subcatObject["null"].count);
   }
   console.log("Total " + dp.dataTitle + " " + countDisplay + " of " + count);
 
-  //console.log("catList:");
-  //console.log(catList);
   if (hash.show != showprevious || $("#tableSide > .catList").text().length == 0) { // Prevents selected category from being overwritten.
-    if (hash.show != "ppe" && hash.show != "suppliers") { // PPE cats are still hardcoded in localsite/map/index.html. "suppliers" is used in site embed
-      if (catList && Object.keys(catList).length > 0) {
-        let catNavSide = "<div class='all_categories'>All Categories</div>";
-
-        Object.keys(catList).forEach(key => {
-          if (key != "") {
-            catNavSide += "<div style='background:" + catList[key].color + ";padding:0px;width:13px;height:13px;border:1px solid #ccc;margin-top:12px;margin-left:12px;margin-right:5px;float:left'></div><div title='" + key + "' style='min-height:38px'>" + key + "<span class='local'>&nbsp;(" + catList[key].count + ")</span></div>";
-          }
-        });
-        //console.log(catNavSide)
-        $("#tableSide").html(""); // Clear
-        $("#tableSide").append("<div class='catList' style='white-space:nowrap; margin:15px; margin-left:10px;'>" + catNavSide + "</div>");
-      }
-    }
+    renderCatList(catList);
   }
   if (hash.name && $("#detaillist > [name='"+ hash.name.replace(/_/g,' ') +"']").length) {
     let listingName = hash.name.replace(/_/g,' ');
@@ -2922,10 +3018,23 @@ function showList(dp,map) {
   locmenu += "</div>";
   //$("#sidemapbar").prepend(locmenu);
 
+  let searchFor = "";
+  if (dp.listInfo) {
+    searchFor += dp.listInfo;
+    searchFor += "<hr styleX='margin-bottom:16px'>";
+  }
   if (dataMatchCount > 0) {
-      let searchFor = "";
-      if ($("#catSearch").val()) {
-        searchFor = "<b>" + $("#catSearch").val() + "</b> - "; // was twice BUGBUG
+      if (searchFor) {
+        //searchFor += "<br>"
+      }
+      if ($("#catSearch").val() && hash.cat) {
+        searchFor += "<b>" + $("#catSearch").val() + "</b>";
+      }
+      if (hash.subcat) {
+        searchFor += "<b>: " + hash.subcat + "</b>";
+      }
+      if (hash.cat) {
+        searchFor += " - ";
       }
       if (countDisplay == validRowCount) {
         if (countDisplay == 1) {
@@ -2956,14 +3065,8 @@ function showList(dp,map) {
       }
       // We're not using "loc" yet, but it seems better than using id to avoid conflicts.
       // Remove name from hash to trigger refresh
-      searchFor += " <div class='viewAllLink' style='float:right;display:none;'><a onclick='goHash({},[\"name\",\"loc\"]); return false;' href='#show=" + param["show"] + "'>View All</a></div>";
+      searchFor += " <span class='viewAllLink' style='display:none;'><a onclick='goHash({},[\"name\",\"loc\",\"cat\",\"subcat\"]); return false;' href='#show=" + param["show"] + "'>View All</a></span>";
 
-      if (dp.listInfo) {
-        if (searchFor) {
-          searchFor += "<br>"
-        }
-        searchFor += dp.listInfo;
-      }
       $("#dataList").html(searchFor);
       $("#resultsPanel").show();
       $("#dataList").show();
@@ -2985,6 +3088,26 @@ function showList(dp,map) {
 
   dp.data = data_out;
   return dp;
+}
+function renderCatList(catList) {
+  console.log("catList");
+  console.log(catList);
+  // Using param since hash.show is not available when passed in on localsite.js embed link.
+  if (param.show != "ppe" && param.show != "suppliers") { // PPE cats are still hardcoded in localsite/map/index.html. "suppliers" is used in site embed
+      if (catList && Object.keys(catList).length > 0) {
+        let catNavSide = "<div class='all_categories'>All Categories</div>";
+
+        Object.keys(catList).forEach(key => {
+          if (key != "") {
+            catNavSide += "<div style='background:" + catList[key].color + ";padding:0px;width:13px;height:13px;border:1px solid #ccc;margin-top:12px;margin-left:12px;margin-right:5px;float:left'></div><div title='" + key + "' style='min-height:38px'>" + key + "<span class='local'>&nbsp;(" + catList[key].count + ")</span></div>";
+          }
+        });
+        //console.log(catNavSide)
+        $("#tableSide").html(""); // Clear
+        $("#tableSide").append("<div class='catList' style='white-space:nowrap; margin:15px; margin-left:10px;'>" + catNavSide + "</div>");
+        //alert("did it 3")
+      }
+    }
 }
 function capitalizeFirstLetter(str, locale=navigator.language) {
   if (!str) return "";
@@ -3179,8 +3302,10 @@ function isNumeric(str) {
   return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
          !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
+/*
 function makeRowValuesNumeric(_data, columnsNum, valueCol) {
-  //console.log(_data);
+  console.log("makeRowValuesNumeric");
+  console.log(_data);
   
   // 'for of' loop is more efficient than forEach. 
   // Also works on objects. You can call it like this 'for let d of Object.entries(data){ }'
@@ -3196,6 +3321,7 @@ function makeRowValuesNumeric(_data, columnsNum, valueCol) {
   //console.log(_data); // Careful, this can overwhelm browser
   return _data;
 }
+*/
 function convertToNumber(d, _columnsNum) {
   for (var perm in d) {
     if (_columnsNum.indexOf(perm) > -1)
