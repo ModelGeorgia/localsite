@@ -18,18 +18,16 @@ var local_app = local_app || (function(module){
             alert(Object.keys(_args)[0]);
         },
         localsite_root : function() {
-            //alert("call localsite_repo");
             if (localsite_repo) { // Intensive, so allows to only run once
-              //alert(localsite_repo);
               return(localsite_repo);
             }
+            //alert("get localsite_repo");
 
             let scripts = document.getElementsByTagName('script'); 
             let myScript; // = scripts[ scripts.length - 1 ]; // Last script on page, typically the current script localsite.js
             // Now try to find localsite.js
             //alert(myScript.length)
             for (var i = 0; i < scripts.length; ++i) {
-                //alert(scripts[i].src)
                 if(scripts[i].src && scripts[i].src.indexOf('localsite.js') !== -1){
                   myScript = scripts[i];
                 }
@@ -41,16 +39,33 @@ var local_app = local_app || (function(module){
                 }
               }
             }
+            if (!myScript) {
+              console.log('%cALERT: the current script localsite.js was not yet recognized in the DOM. Hit refresh.', 'color: red; background: yellow; font-size: 14px');
+              
+              // If this setTimeout works, we'll add it before extractHostnameAndPort is called.
+              setTimeout( function() {
+                for (var i = 0; i < scripts.length; ++i) {
+                    if(scripts[i].src && scripts[i].src.indexOf('localsite.js') !== -1){
+                      myScript = scripts[i];
+                    }
+                    console.log('%cGot script from DOM after delay! We need to modify code here to add additional attempts. ', 'color: green; background: yellow; font-size: 14px');
+              
+                }
+              }, 1000 );
+
+            }
+
             let hostnameAndPort = extractHostnameAndPort(myScript.src);
             let theroot = location.protocol + '//' + location.host + '/localsite/';
 
             if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map, and ga-layers.json
-              // Might readd (hopefully not) for https://www.georgia.org/center-of-innovation/energy/smart-mobility  needed occasionally for js/jquery.min.js below, not needed when hitting reload.
+              // Might need (hopefully not) for https://www.georgia.org/center-of-innovation/energy/smart-mobility - needed occasionally for js/jquery.min.js below, not needed when hitting reload.
               //theroot = "https://map.georgia.org/localsite/";
               
               // This could be breaking top links to Location and Good & Services.
               // But reactivating after smart-mobility page tried to get js/jquery.min.js from geogia.org
-              theroot = hostnameAndPort + "/localsite/";
+              // Re-omitting because js/jquery.min.js still used geogia.org on first load, once. (not 100% sure if old page was cachec)
+              //theroot = hostnameAndPort + "/localsite/";
             }
             
             if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
@@ -1009,7 +1024,7 @@ function loadMapFiltersJS(theroot, count) {
     setTimeout( function() {
       consoleLog("try loadMapFiltersJS again")
       loadMapFiltersJS(theroot,count+1);
-      }, 10 );
+    }, 10 );
   } else {
     consoleLog("ERROR: loadMapFiltersJS exceeded 100 attempts.");
   }
@@ -1092,47 +1107,22 @@ function updateHiddenhash(hashObject) {
   return;
 }
 
-function extractHostnameAndPortDELETE(url) {
-    let hostname;
-    //find & remove protocol (http, ftp, etc.) and get hostname
-
-    if (url.indexOf("//") > -1) {
-        hostname = url.split('/')[2];
-    }
-    else {
-        hostname = url.split('/')[0];
-    }
-
-    //find & remove port number
-    //hostname = hostname.split(':')[0];
-    //find & remove "?"
-    hostname = hostname.split('?')[0];
-
-    return hostname;
-}
-
-function extractHostnameAndPort(url) { // TEMP HERE
+function extractHostnameAndPort(url) {
     console.log("hostname from: " + url);
     let hostname;
     let protocol = "";
-    //find & remove protocol (http, ftp, etc.) and get hostname
-
+    // find & remove protocol (http, ftp, etc.) and get hostname
     if (url.indexOf("//") > -1) {
         protocol = url.split('//')[0] + "//"; // Retain http or https
         hostname = protocol + url.split('/')[2];
     } else {
         hostname = url.split('/')[0];
     }
-
-    //find & remove port number
-    //hostname = hostname.split(':')[0];
-    //find & remove "?"
+    //find & remove "?" and parameters
     hostname = hostname.split('?')[0];
-
-    console.log("hostname: " + hostname);
+    console.log("extractHostnameAndPort hostname: " + hostname);
     return hostname;
 }
-
 
 // Convert json to html
 var selected_array=[];

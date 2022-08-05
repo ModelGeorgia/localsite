@@ -1,7 +1,11 @@
 // DISPLAYS LEAFLET MAPS FOR SEARCH FILTERS, DIRECTORY POINTS AND SIDE CLOSEUP
 
 // INIT
-var dataParameters = [];
+var dataParameters = []; // Probably can be removed, along with instances below.
+
+let styleObject = {}; // https://docs.mapbox.com/mapbox-gl-js/style-spec/root/
+styleObject.layers = [];
+
 var layerControl = {}; // Object containing one control for each map on page.
 if(typeof hash === 'undefined') {
   // Need to figure out where already declared.
@@ -580,6 +584,8 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
         return;
       }
     }
+
+    console.log("TO DO - place prior dataset in object within processOutput() to avoid reloading")
     if (dp.dataset && stateAllowed && (dp.dataset.toLowerCase().includes(".json") || dp.datatype === "json")) { // To Do: only check that it ends with .json
       if (dp.headerAuth) {
         //dp.headerAuth = $.parseJSON(dp.headerAuth); // TO DO: Add object below
@@ -672,21 +678,19 @@ function processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,callba
   dp.iconName = 'star';
   //dataParameters.push(dp);
 
-  // Remove - clear the markers from the map for the layer
-   if (map.hasLayer(overlays1[dp.dataTitle])){
-      overlays1[dp.dataTitle].remove();
-   }
-   if (map2.hasLayer(overlays2[dp.dataTitle])){
-      overlays2[dp.dataTitle].remove();
-   }
-
    // Prevents dups of layer from appearing
    // Each dup shows a data subset when filter is being applied.
    if (overlays1[dp.dataTitle]) {
+      if (map.hasLayer(overlays1[dp.dataTitle])){
+        overlays1[dp.dataTitle].remove(); // clear the markers from the map for the layer
+      }
       layerControl[whichmap].removeLayer(overlays1[dp.dataTitle]);
    }
    if (overlays2[dp.dataTitle]) {
-      // Not working, multiple checkboxes appear
+      if (map2.hasLayer(overlays2[dp.dataTitle])){
+        overlays2[dp.dataTitle].remove();
+     }
+      // Not working, multiple checkboxes appear ...might be fixed now, haven't seen multiple lately.
       layerControl[whichmap2].removeLayer(overlays2[dp.dataTitle]);
       //controlLayers.removeLayer(overlays2[dp.dataTitle]);
    }
@@ -795,6 +799,9 @@ var mapCenter = [33.7490,-84.3880]; // [latitude, longitude]
 var overlays1 = {};
 var overlays2 = {};
 dataParameters.forEach(function(ele) {
+  if (location.host.indexOf('localhost') >= 0) {
+    alert("dataParameters in use")
+  }
   overlays1[ele.name] = ele.group; // Add to layer menu
   overlays2[ele.name] = ele.group2; // Add to layer menu
 })
@@ -1699,7 +1706,10 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
         dp.listInfo = "<a href='https://map.georgia.org/recycling/'>Add Recycler Listings</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.&nbsp; View&nbsp;<a href='../map/recycling/ga/'>Recycling&nbsp;Datasets</a>.";
         dp.search = {"In Main Category": "Category", "In Materials Accepted": "Materials Accepted", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
-
+      } else if (show == "cameraready") {
+        dp.listTitle = "Cameraready";
+        dp.datatype = "json";
+        dp.dataset = "https://raw.githubusercontent.com/GeorgiaFilm/cameraready_locations_curl/main/cameraready.json";
       } else if (1==2 && (show == "recycling" || show == "transfer" || show == "recyclers" || show == "inert" || show == "landfills")) { // recycling-processors
         if (hash.state == "GA") {
           dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
@@ -2369,7 +2379,7 @@ function showList(dp,map) {
     dp.data = data_sorted;
   }
 
-  console.log("VIEW DATA (dp.data) ")
+  console.log("showlist() VIEW DATA (dp.data) ")
   console.log(dp.data)
 
   dp.data.forEach(function(elementRaw) {
