@@ -79,8 +79,9 @@ $(document).ready(function(){
 		param.headerLogoSmall = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
 		showClassInline(".lifecycle");
 		earthFooter = true;
-	} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0 || (((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || false) && !param.headerLogo)) {
-		// Show locally for Brave Browser only
+	} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0 || (((location.host.indexOf('localhost') >= 0) || false) && !param.headerLogo)) {
+		// Show locally for Brave Browser only - insert before:  ) || false
+		// && navigator && navigator.brave
 		showLeftIcon = true;
 		$(".siteTitleShort").text("Model Georgia");
 		param.titleArray = [];
@@ -260,6 +261,16 @@ $(document).ready(function(){
 			 		if (earthFooter && param.showMenu != "false") { // Sites includieng modelearth and neighborhood
 			 			$(".showMenu").show();
 			 		}
+			 		if (location.host.indexOf('localhost') >= 0) {
+			 			console.log("LOCAL ONLY - Show menu icon for localhost")
+			 			$(".showMenu").show();
+			 			$(".upperIcons .earth").show();
+			 			setTimeout( function() {
+							$(".showMenu").show();
+			 				$(".upperIcons .earth").show();
+			 				$(".earth").show();
+						}, 1000);
+			 		}
 			 		$("#filterEmbedHolder").insertAfter("#headeroffset");
 			 		////$(".filterbarOffset").insertAfter("#headeroffset");
 			 		
@@ -351,12 +362,14 @@ $(document).ready(function(){
 					$(document).on("click", ".showMenu", function(event) {
 
 						if (location.host.indexOf('localhost') >= 0) {
-							$("#rightTopMenuVisibility").show(); // Temp
-						}
-			 			if ($("#rightTopMenuVisibility").is(':visible')) {
-			 				loadScript('/localsite/js/settings.js', function(results) { // For "Settings" popup
-          		});
-			 				$("#rightTopMenu").show();
+			 				if ($("#rightTopMenuVisibility").is(':visible') && $("#rightTopMenu").is(':visible')) {
+			 					$("#rightTopMenuVisibility").hide();
+			 					$("#rightTopMenu").hide();
+          		} else {
+          			loadScript('/localsite/js/settings.js', function(results) {}); // For "Settings" popup
+          			$("#rightTopMenuVisibility").show();
+			 					$("#rightTopMenu").show();
+			 				}
 			 			} else {
 							$("#menuHolder").show();
 							$("#menuHolder").css('margin-right','0px')

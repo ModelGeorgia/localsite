@@ -200,43 +200,55 @@ function addSValueToLinks(partnerMenu) {
     if (typeof (BrowserUtil) != "undefined") {
         if (BrowserUtil.host.indexOf("localhost") >= 0) {
             // Update any of the navigation links that don't already have an s value
-            queryStringParams = $.extend({}, BrowserUtil.queryStringParams);
-            var tmpQueryString = {};
-            if (typeof (queryStringParams.s) != "undefined") {
-                tmpQueryString.s = queryStringParams.s;
-            }
-            if (typeof (queryStringParams.db) != "undefined") {
-                tmpQueryString.db = queryStringParams.db;
-            }
             $(partnerMenu.menuDiv + ' a[href]').not('[href^="http"]').not('[href^="javascript"]').not('[href="#"]')
-                .attr('href', function (index, currentValue) {
-                    //console.debug('before: ' + currentValue);
-                    if (currentValue.indexOf('s=') >= 0) {
-                        var urlQueryString = BrowserUtil.parseQueryString(currentValue.substr(currentValue.indexOf('?')));
-                        var sValueArray = urlQueryString.s.split('.');
-
-                        if (sValueArray.length == 1) {
-                            tmpQueryString.s = sValueArray[0] + '.0.0.' + partnerMenu.siteID; // only s value itemid present.
-                        }
-                        else {
-                            tmpQueryString.s = urlQueryString.s; // assume full s value is present
-                        }
-
-                        currentValue = currentValue.replace('s=' + urlQueryString.s, ''); // remove the s value
-
-                        if ((currentValue.indexOf('?') == currentValue.length - 1) || (currentValue.indexOf('&') == currentValue.length - 1)) {
-                            currentValue = currentValue.substr(0, currentValue.length - 1); // remove the trailing '?' character
-                        }
-                        currentValue = currentValue.replace('?&', '?'); // removed s value may be the first of multiple query string values.
-                    }
-                    else {
-                        tmpQueryString.s = '0.0.0.' + partnerMenu.siteID;
-                    }
-                    $(this).attr('href', currentValue + (currentValue.indexOf('?') >= 0 ? '&' : '?') + $.param(tmpQueryString));
-                    //console.debug('after: ' + $(this).attr('href'));
-                });
+                .attr('href', addSValueToLink);
+            $(partnerMenu.menuDiv + ' div[data-link]').not('[data-link^="http"]').not('[data-link^="javascript"]').not('[data-link="#"]')
+                .attr('data-link', addSValueToLink);
         }
     }
+}
+
+function addSValueToLink(index, currentValue) {
+    //console.debug('before: ' + currentValue);
+    var $this = $(this);
+    var queryStringParams = $.extend({}, BrowserUtil.queryStringParams);
+    var tmpQueryString = {};
+    if (typeof (queryStringParams.s) != "undefined") {
+        tmpQueryString.s = queryStringParams.s;
+    }
+    if (typeof (queryStringParams.db) != "undefined") {
+        tmpQueryString.db = queryStringParams.db;
+    }
+
+    if (currentValue.indexOf('s=') >= 0) {
+        var urlQueryString = BrowserUtil.parseQueryString(currentValue.substr(currentValue.indexOf('?')));
+        var sValueArray = urlQueryString.s.split('.');
+
+        if (sValueArray.length == 1) {
+            tmpQueryString.s = sValueArray[0] + '.0.0.' + partnerMenu.siteID; // only s value itemid present.
+        }
+        else {
+            tmpQueryString.s = urlQueryString.s; // assume full s value is present
+        }
+
+        currentValue = currentValue.replace('s=' + urlQueryString.s, ''); // remove the s value
+
+        if ((currentValue.indexOf('?') == currentValue.length - 1) || (currentValue.indexOf('&') == currentValue.length - 1)) {
+            currentValue = currentValue.substr(0, currentValue.length - 1); // remove the trailing '?' character
+        }
+        currentValue = currentValue.replace('?&', '?'); // removed s value may be the first of multiple query string values.
+    }
+    else {
+        tmpQueryString.s = '0.0.0.' + partnerMenu.siteID;
+    }
+
+    if ($this.attr('href') !== undefined) {
+        $this.attr('href', currentValue + (currentValue.indexOf('?') >= 0 ? '&' : '?') + $.param(tmpQueryString));
+    }
+    if ($this.attr('data-link') !== undefined) {
+        $this.attr('data-link', currentValue + (currentValue.indexOf('?') >= 0 ? '&' : '?') + $.param(tmpQueryString));
+    }
+    //console.debug('after: ' + $(this).attr('href'));
 }
 
 function clearAll(siteObject) {
@@ -258,9 +270,13 @@ function showSubmenu(id) { //onmouseclick
         }
     } else {
         console.log("showSubmenu for id: " + id);
-        $("#" + id).addClass("openMenu");
-        $("#" + id + ' .layerCbRow').show();
-        $("#" + id + " .layerSectionTitle").show();
+        if ($("#" + id).find('div.layerCbRow').length !== 0) {
+            $("#" + id).addClass("openMenu");
+            $("#" + id + ' .layerCbRow').show();
+            $("#" + id + " .layerSectionTitle").show();
+        } else {
+            console.log("This section has no sub-menus.")
+        }
     }
 }
 // For narrow nav
@@ -320,7 +336,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
     var menuaccessmax = 11;
     //for(item in menuDataset.items) {
     menuDataset.forEach(function(item) {
-        console.log("displaypartnerCheckboxes section: " + item.section);
+        //console.log("displaypartnerCheckboxes section: " + item.section);
         var menuaccess = 10; // no one
         try { // For IE error
             if (typeof(item.menuaccess) === "undefined") {
@@ -436,7 +452,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                     partnerCheckboxes += '</a></div><div class="layerCbTitle"><input type="checkbox" class="layersCB" name="layersCB" id="go-' + item.item + '" value="' + item.item + '"><a href="' + item.link + '">' + title + '</a></div></div></div>';
                     
                 }
-                partnerCheckboxes += '<div style="clearX:both"></div>';
+                //partnerCheckboxes += '<div style="clearX:both"></div>';
                 previousSet = item.section;
             }
         }
@@ -480,8 +496,8 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
     
 
     // json loaded within initmenuDataset. location.hash:
-    console.log("displaypartnerCheckboxes location.hash: " + location.hash);
-    console.log("displaypartnerCheckboxes - Layer Icon on map, stores active layers without map load");
+    //console.log("displaypartnerCheckboxes location.hash: " + location.hash);
+    //console.log("displaypartnerCheckboxes - Layer Icon on map, stores active layers without map load");
 
     //$('.partnerCheckboxes').columnize({ columns: 2 }); // Also called later since this won't have an effect when not visible.
 
