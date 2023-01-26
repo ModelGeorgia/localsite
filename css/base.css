@@ -13,7 +13,7 @@ Used in localsite, modelearth, io, neighborhood, trees
 .showMobile, .showMobileWide {display:none;}
 .showGit {display:none;}
 .local, .localonly {
-  display:none !important; 
+  displayX:none !important; 
   background-image: linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 95%, rgba(0,0,0,0.1) 75%), linear-gradient(-45deg, transparent 95%, rgba(0,0,0,0.1) 75%);
   background-size: 3px 3px;
 }
@@ -72,16 +72,7 @@ textarea {
     /* border:solid 1px #777; */
     border-color: rgb(238, 238, 238);
 }
-a {
-  text-decoration: none;
-}
-/* conflicts with buttons */
-a:link {
-  color: #0366d6;
-}
-a:visited {
-  color: #0366d6;
-}
+
 /* Lighter: #4091dd */
 p {
   margin-top: 0px;
@@ -95,7 +86,6 @@ p {
 h1,h2,h3,h4 {
   font-family: Raleway;
   line-height: 1.5;
-  overflow: auto;
 }
 h2, h3, h4 {
     font-family: 'PT Sans', sans-serif;
@@ -207,18 +197,33 @@ summary::-webkit-details-marker {
 }
 @media screen {.printonly {display: none; }}
 
+
+.table-cell, .table-cell-mobile {
+  display: table-cell;
+  vertical-align: top;
+  position: relative; /* Allows menu rollover/popups to overlap adjacent cell */
+}
+@media (max-width: 800px) {
+  .table-cell {
+    display: block;
+    float: left;
+  }
+}
+
 .row {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  width: 100%;
 }
-
 .column {
-  display: flex;
+  /* display: flex; */
   flex-direction: column;
   flex-basis: 100%;
   flex: 1;
+  overflow: auto;
+}
+.column-hidden {
+  display: none;
 }
 .flexright {
   max-width: 350px;
@@ -261,6 +266,16 @@ summary::-webkit-details-marker {
   padding-right: 40px;
   padding-bottom: 45px;
 }
+.contentpadding a {
+  text-decoration: none;
+}
+.contentpadding a:link {
+  color: #0366d6;
+}
+.contentpadding a:visited {
+  color: #0366d6;
+}
+
 .contentwide {
   max-width: 1400px;
   padding-left: 10px;
@@ -269,7 +284,7 @@ summary::-webkit-details-marker {
 .contentfull {
   max-width: 2000px;
 }
-.content li {
+.content ul li {
   margin-left: -10px;
 }
 @media (max-width: 1400px) {
@@ -288,6 +303,7 @@ summary::-webkit-details-marker {
   .contentpadding {
     padding-left: 20px;
     padding-right: 20px;
+    min-width: 150px;
   }
 }
 
@@ -364,7 +380,7 @@ summary::-webkit-details-marker {
 .rightside, .floatright {
   float:right;
   max-width:400px;
-  margin-left:30px;
+  margin-left:40px;
   margin-bottom:30px;
   /* font-size: 18px; */
 }
@@ -376,15 +392,27 @@ summary::-webkit-details-marker {
     float:none;
   }
 }
-
+.roundedCorners {
+  border-radius: 20px;
+}
+.floatLeft {
+  float:left;
+  margin-right:40px;
+}
 .floatRight {
   float:right;
   margin-left:40px;
 }
 @media (max-width: 800px) {
+  .floatLeft {
+    float:none !important;
+    width:100% !important;
+    margin-right:0px;
+    margin-bottom:40px;
+  }
   .floatRight {
     float:none !important;
-    width:100%;
+    width:100% !important;
     margin-left:0px;
     margin-bottom:40px;
   }
@@ -405,8 +433,18 @@ summary::-webkit-details-marker {
   }
 }
 .litePanel {
-    background-color: #fff;
+    background-color: #eee; /* also set .litePanelFadeOut 238 */
     overflow:auto;
+}
+.litePanelFadeOut {
+  margin-top:10px;
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:999;
+  background-color:rgba(238, 238, 238, 0.7);
+  background: linear-gradient(to bottom, rgba(238,238,238,0) 0%,rgba(238,238,238,1) 100%);
 }
 .darkPanel {
     background-color: #ddd;
@@ -479,7 +517,15 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   background-color: rgba(255, 255, 255, 0.9);
   background-color: rgba(33, 33, 33, 0.95);
 }
-
+.hero-title {
+  font-size:60px;
+  line-height: 1em;
+  font-weight:800;
+  margin-right:30px;
+  margin-bottom:10px;
+  text-shadow: 2px 2px 6px #333;
+  color: #fff;
+}
 .btn {
     display: inline-block;
     font-weight: 400;
@@ -493,7 +539,7 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
     background-color: transparent;
     border: 1px solid transparent;
     padding: 0.375rem 1rem;
-    font-size: 0.9375rem;
+    /* font-size: 0.9375rem; Made too small on ppe */
     line-height: 1.5;
     border-radius: 2rem;
     -webkit-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
@@ -504,8 +550,9 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
     margin-right:4px;
     margin-bottom:8px;
 }
-.btn:link, .btn:visited {
+.btn:link, .btn:visited, .contentpadding .btn:link, .contentpadding .btn:visited {
   color: #fff;
+  text-decoration: none;
 }
 #hero-rect .btn:link, #hero-rect .btn:visited {
   color: #fff;
@@ -562,11 +609,12 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 .btn-white:hover {
     background-color: #b9da79;
     border-color: #b9da79;
+    color: #fff;
 }
-.btn-white:link {
+.btn-white:link, .contentpadding .btn-white:link {
   color: #333;
 }
-.btn-white:visited {
+.btn-white:visited, .contentpadding .btn-white:visited {
   color: #333;
 }
 @media (max-width: 500px) {
@@ -610,11 +658,6 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   /* margin-top: 40px; */
   /* overflow:hidden; */  /* prevents footer from residing beside columns, but caused menu/accordion to be cut off. */
 }
-/*
-#mainColumn img {
-  width:100%;
-}
-*/
 #rightColumn img {
   /* messed up /account page */
   /*
@@ -626,16 +669,19 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 	cursor: pointer;
 	padding: 9px 12px 2px 10px;
 	height: 37px;
-  opacity: .5;
+  opacity: .3;
 }
 #showSide:hover {
-  opacity: 1;
+  opacity: .7;
 }
 .close-X-sm {
   cursor:pointer;
   margin:6px 6px 11px 22px;
   font-size:18px;
   color:#444;
+  /* If code appear instead of x, check if some other font is being applied. Try activating this line to fix (copied from an x that worked).
+  font-family: 'Nunito Sans', Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  */
 }
 .close-X-sm:hover {
   color:#777;
@@ -880,6 +926,9 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   background:#fff;
   pointer-events: auto;
 }
+.headerbarhide {
+  display: none !important;
+}
 @media (max-width: 600px) {
   .headerbar {
     padding-left: 20px;
@@ -1065,144 +1114,28 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 .level2 div:last-of-type {
   border-bottom: 0px #fff solid !important;
 }
-
-
-
-/* Settings Menu */
-.settingsPanel select {
-    min-width: 215px;
-    padding: 5px;
-    font-size: 16px;
-    line-height: 1;
-    border: 1px solid #d9d9de;
-    
-    border-radius: 6px;
-    /* height: 40px; */
-    /* -webkit-appearance: none; */
-    font-size: 16pt;
-    color: #000;
-    /* pointer-events: auto; */
+.two-wide {
+  overflow: hidden;
+  margin-right: 0px;
 }
-
-.settingsPanel {
-    position:absolute;
-    right:0;
-    z-index: 1001; /* cover Leaflet control */
-    display:none;
-    color: #cfcfcf;
-    background-color: #353535;
-    box-sizing: border-box;
-    /* border: 1px solid #ccc; */
-    padding: 14px 24px 34px 24px;
-    /* padding-right: 40px; */
-    margin: 0 0 17px 0;
-    /* width:45%; */
-    float:right;
+.two-wide div {
+  float:left;
+  width:33.3%;
 }
-.accountPanel {
-    position:absolute;
-    right:0;
-    z-index: 500;
-    display:none;
-    color: #cfcfcf;
-    background-color: #353535;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    padding: 24px;
-    margin:0 0 17px 0;
-    width: 300px;
-    floatX:right;
+.two-wide div img {
+  width: 100%;
+  padding-right:12px;
+  padding-bottom:12px;
 }
-.setLeft {
-    float: left;
-    max-width: 250px;
-    min-width: 100px;
-    font-size: 18px;
+@media (max-width: 1400px) {
+  .two-wide div {
+    width: 50%;
+    max-width: 1000px;
+  }
 }
-.setDiv {
-    clear: both;
-    /* float:left; */
-    width:100%;
-    /* border-bottom: 1px solid #ddd; */
-    margin: 10px 0 10px 0;
-    padding-top:5px;
+@media (max-width: 800px) {
+  .two-wide div {
+    width: 100% !important;
+    clear: none !important;
+  }
 }
-.setOverflow {
-    overflow: auto;
-    min-width: 120px;
-}
-.rightTopItem {
-    padding: 11px 4px 5px 10px;
-}
-
-#rightTopMenu {
-    position: fixed;
-    right: 0px;
-    top: 100px;
-    z-index: 1001; /* To exceed Leaflet */
-    pointer-events: auto; /* Prevents hover from reaching map below */
-}
-.rightTopMenuLeft {
-    /* top: 48px; */
-    float:left;
-}
-/* Avoid adding .moduleJS to three-dot menu, else font-family not applied to left menu  */
-.rightTopMenuInner { /* lives outside .moduleJS when full header displayed */
-    min-width: 150px;
-    font-family: 'Open Sans', 'Helvetica Neue', HelveticaNeue, calibri, arial, sans-serif;
-    floatX:left;
-    float:left;
-}
-.rightTopMenuInner i {
-    color: #ddd !important;
-}
-.rightTopMenuInner {
-    background-color: rgba(33, 33, 33, 0.95);
-}
-@media (max-width: 500px) {
-    .rightTopMenuInner {
-        font-size: 24px;
-    }
-    .rightTopMenuInner i {
-        font-size: 30px;
-        padding-top: 10px;
-    }
-    .rightTopMenuInner .rightTopItem {
-        /* border-bottom: 1px solid #aaa; */
-    }
-}
-.rightTopItem {
-    clear: both;
-    /* border:1px solid #fff; */
-    overflow: auto;
-    padding-left: 20px;
-    padding-right: 25px;
-    cursor: pointer;
-}
-.rightTopItem:hover {
-    background-color: #000;
-}
-.rightTopItem i {
-    width:40px;
-    min-height: 36px;
-    float: left;
-}
-.rightTopItem span {
-    color:#fff;
-    padding: 5px 3px 8px 2px;
-    float:left;
-    color: #fff;
-}
-.rightTopItem .contactIcon {
-    font-size: 30px !important;
-    margin-top:-4px;
-    margin-left:-2px;
-    margin-right: 3px;
-}
-.rightTopItem .enlargeIcon {
-    font-size: 40px !important;
-    margin-top: -8px;
-    margin-left: -7px;
-    margin-right: 5px;
-}
-/* End Settings Menu */

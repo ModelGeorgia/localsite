@@ -24,7 +24,7 @@ function itemtypeBool(partnerMenu, item) {
 function getDirectMenuLink(partnerMenu,item) {
     let directlink = item.directlink;
     let rootfolder = item.rootfolder;
-    let layer = item.item;
+    //let layer = item.item;
 
     //console.log("incoming partnerMenu.itemid: " + partnerMenu.itemid);
     if (item.link) {
@@ -58,6 +58,7 @@ function getDirectMenuLink(partnerMenu,item) {
         directlink = item.link;
     }
 
+    /*
     if (directlink) {
         directlink = removeFrontMenuFolder(directlink);
     } else if (rootfolder) {
@@ -67,6 +68,7 @@ function getDirectMenuLink(partnerMenu,item) {
         directlink = removeFrontMenuFolder(rootfolder + "#" + layer);
         //console.log("directlink rootfolder: " + directlink);
     }
+    */
     //console.log("directlink final: " + directlink);
     return(directlink);
 }
@@ -334,6 +336,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
     var topTabs = "";
     var menulevel = 1;
     var menuaccessmax = 11;
+    var rowCount = 0;
     //for(item in menuDataset.items) {
     menuDataset.forEach(function(item) {
         //console.log("displaypartnerCheckboxes section: " + item.section);
@@ -358,7 +361,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
         }
         // location.host.indexOf('localhost') >= 0 || 
         
-        // && item.section.toLowerCase() != item.item
+        // && item.section.toLowerCase() != rowCount
         if (itemtypeBool(partnerMenu, item) && accessBool(currentAccess,menuaccess) && currentAccess <= menuaccessmax) {
             var title = "";
             try { // For IE error
@@ -386,9 +389,9 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                         }
                     }
                     if (showSublevel) {
-                        overlayList += '<div class="user-' + menuaccess + '"><div class="layerCbRow" data-trigger="go-' + item.item + '">';
+                        overlayList += '<div class="user-' + menuaccess + '"><div class="layerCbRow" data-trigger="go-' + rowCount + '">';
                         // data-link="' + directlink + '"
-                        overlayList += '<div class="overlayAction"><i class="material-icons active-' + item.item + '" style="float:right;color:#ccc;display:none">&#xE86C;</i></div><div class="layerCbTitle">' + title + '</div>';
+                        overlayList += '<div class="overlayAction"><i class="material-icons active-' + rowCount + '" style="float:right;color:#ccc;display:none">&#xE86C;</i></div><div class="layerCbTitle">' + title + '</div>';
                     }
                     
                     overlayList += '</div></div><div style="clearX:both"></div>';
@@ -399,7 +402,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                 // MENU
                 if (item.section && item.section != previousSet) {
                     //console.log("TITLE: " + title);
-                    // item.item ==  || 
+                    // rowCount ==  || 
                     layerSectionDisplay = '';
                     menulevel = 1;
                     if (item.menulevel) {
@@ -418,8 +421,10 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                         //sectionIcon = item.sectionicon;
                     }
                     let linktext = "";
-                    if (directlink)  { 
-                        linktext = ' link="' + directlink + '"';
+                    if (directlink)  {
+                        if (!showSublevel) {
+                            linktext = ' link="' + directlink + '"';
+                        }
                     }
                     partnerCheckboxes += '<div class="layerSectionAccess user-' + menuaccess + '" id="' + formatLinkId(item.section,item.title + "_parent") + '" style="display:none">'; //  onmouseleave="hideMenuNav(this.id)"
                     partnerCheckboxes += '<div ' + layerSectionDisplay + ' id="' + formatLinkId(item.section,item.title) + '" class="dontsplit layerSection layerSectionOpen layerSection-' + item.section.toLowerCase().replace(/ /g,"-") + '" menulevel="' + menulevel + '" onmouseenter="showMenuNav(this.id)" onmouseleave="hideMenuNav(this.id)"><div style="clearX:both; pointer-events: auto;" data-layer-section="' + item.section + '"' + linktext + '" class="layerSectionClick" onclick="showSubmenu(this.parentElement.id)">';
@@ -428,19 +433,19 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                     }
                     if (item.icon) {
                         if (item.icon.includes("<")) {
-                            partnerCheckboxes += '<div style="float:left;padding-right:10px;color:#bbb">' + item.icon + '</div>';
+                            partnerCheckboxes += '<div style="float:left;padding-right:10px;color:#4F4F4F">' + item.icon + '</div>';
                         } else {
                             partnerCheckboxes += '<img class="layerSectionIcon" src="' + item.icon + '" style="float:left; height:18px; padding-right:12px">';  
                         }
                     }
                     partnerCheckboxes += '<div class="layerSectionTitle">' + item.section + '</div></div>';
-                } // Check circle // Was around title: <label for="go-' + item.item + '" style="width:100%; overflow:auto">
+                } // Check circle // Was around title: <label for="go-' + rowCount + '" style="width:100%; overflow:auto">
                 // <i class="material-icons" style="float:right;color:#ccc">&#xE86C;</i>
                 
                 
                 // Link is applied dynamically using [itemid] in attr data-link
                 if (showSublevel) {
-                    partnerCheckboxes += '<div class="user-' + menuaccess + '"><div class="layerCbRow row-' + item.item + '" data-link="' + directlink + '"><div><a data-link="' + directlink + '" href="' + directlink + '" class="layerAction">';
+                    partnerCheckboxes += '<div class="user-' + menuaccess + '"><div class="layerCbRow row-' + rowCount + '" data-link="' + directlink + '"><div><a data-link="' + directlink + '" href="' + directlink + '" class="layerAction">';
                     /*
                     if (item.feed) {
                         partnerCheckboxes += '<div class="layerActionIcon" data-link="' + directlink + '"></div>';
@@ -449,7 +454,8 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                     }
                     */
 
-                    partnerCheckboxes += '</a></div><div class="layerCbTitle"><input type="checkbox" class="layersCB" name="layersCB" id="go-' + item.item + '" value="' + item.item + '"><a href="' + item.link + '">' + title + '</a></div></div></div>';
+                    //partnerCheckboxes += '</a></div><div class="layerCbTitle"><input type="checkbox" class="layersCB" name="layersCB" id="go-' + rowCount + '" value="' + rowCount + '"><a href="' + item.link + '">' + title + '</a></div></div></div>';
+                    partnerCheckboxes += '</a></div><div class="layerCbTitle"><a href="' + item.link + '">' + title + '</a></div></div></div>';
                     
                 }
                 //partnerCheckboxes += '<div style="clearX:both"></div>';
@@ -459,6 +465,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
         if (item.directoryframe) {
             topTabs += '<div>' + item.title + '</div>';
         }
+        rowCount++;
     //}
 	});
     if (closeLayerSet) {
@@ -538,7 +545,7 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
         event.stopPropagation();
     });
     //$(document).on("click", partnerMenu.menuDiv + ' .layerAction', function(event) { // Second level menus
-    $(document).on("click", '.layerCbRow', function(event) { // Second level menus
+    $(document).on("click", ".layerCbRow", function(event) { // Second level menus
          // Clear all layers
         clearAll(menuDataset);
         console.log('.layerAction');
@@ -640,8 +647,13 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
             console.log(partnerMenu.menuDiv + " .layerSectionClick");
             
             if ($(this).attr("data-layer-section")) {
-                console.log("data-layer-section parent, so no action if subnav");
                 //layerSectionOpen($(this).attr("data-layer-section").toLowerCase().replace(/ /g,"-"));
+                let pageLink = $(this).attr("link");
+                if (pageLink) {
+                    window.location = pageLink;
+                } else {
+                    console.log("CLICKED - But no link attr on data-layer-section for a section with no subnav");
+                }
             } else {
                 alert("layerSectionClick click, no data-layer-section attr");
                 //$('.layerSection').hide();

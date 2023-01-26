@@ -6,13 +6,13 @@
 <script type="text/javascript" src="../../js/d3.v5.min.js"></script>
 <script type="text/javascript" src="../../js/showdown.min.js"></script>
 <script type="text/javascript" src="../../js/jquery.min.js"></script>
-<script type="text/javascript" src="../../js/localsite.js"></script>
-<script type="text/javascript" src="../../js/navigation.js"></script>
+<script type="text/javascript" src="../../js/localsite.js?showheader=true&showsearch=true"></script>
 <link type="text/css" href="../../css/base.css" rel="stylesheet" />
 
 <!--
 <link rel="stylesheet" href="../../css/search-filters.css" />
 -->
+
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Auto complete sample</title>
@@ -59,6 +59,9 @@
       style="width: 60vw; margin: 0 auto; padding-top: 2rem;"
       >
       <h1>Autocomplete Sample</h1>
+
+      Current error to investigate (worked previously):<br>
+      TypeError: Vue is not a constructor, line 93<br><br><br>
 
       <!--
       Sometimes inactive on localhost to prevent overuse of API key.<br><br>

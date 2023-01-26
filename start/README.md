@@ -1,10 +1,9 @@
 # Getting Started  
 
-[View Community Pages](../../apps/)  
+[View Community Pages](https://model.earth/apps/)  
 You can use these steps to create a website with free GitHub hosting  
 
 <!--
-
 	Not using curretnly, made a physcial copy instead
 	https://github.com/ModelGeorgia/io/compare/master...modelearth:master
 
@@ -180,7 +179,7 @@ You can point a domain at all the repos in your Github account with the steps be
 
 ## Additional Resources
 
-<a href="https://neighborhood.org/localsite/">The Localsite Framework</a> is designed to allow multiple Github repos to communicate using hash values.  
+<a href="/localsite/">The Localsite Framework</a> is designed to allow multiple Github repos to communicate using hash values.  
 
 <a href="../../community/start/">View Starter Samples</a> - maps, charts, widgets.  <a href="../../io/coders/">Join us on Slack</a> for pointers.  
 

@@ -531,14 +531,26 @@ function consoleLog(text,value) {
       consoleLogHolder += (text + "\n");
     }
   }
-  
 }
+//alert("test")
 function loadLocalTemplate() {
   let bodyFile = theroot + "map/index.html #insertedText";
-  //console.log("Before template Loaded: " + bodyFile);
+  //alert("Before template Loaded: " + bodyFile);
 
-  $("#bodyFile").load(bodyFile, function( response, status, xhr ) {
-    //console.log("Template Loaded: " + bodyFile);
+  let bodyFileDiv = "#bodyFile";
+  //bodyFileDiv = "body";
+
+  $(bodyFileDiv).load(bodyFile, function( response, status, xhr ) {
+    $("#insertedTextSource").remove(); // For map/index.html. Avoids dup header.
+
+    let elemDiv = document.createElement('div');
+    elemDiv.id = "localsiteDetails";
+    elemDiv.style.cssText = "display:none";
+    elemDiv.innerHTML = "testing";
+    document.body.appendChild(elemDiv);
+    $("#headerbar").prependTo("body"); // Move back up to top.
+
+    console.log("Template Loaded: " + bodyFile);
     if (typeof relocatedStateMenu != "undefined") {
       relocatedStateMenu.appendChild(state_select); // For apps hero
       $(".stateFilters").hide();
@@ -548,25 +560,66 @@ function loadLocalTemplate() {
     }
     $("#mapFilters").prependTo("#fullcolumn");
     $("#local-header").prependTo("body"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
-
-    /// Coming soon. Trigger with localObject
-    // $("#nullschoolHeader").show();
-    // $("#globalMapHolder").html('<iframe src="https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037" class="iframe" name="mainframe" id="mainframe"></iframe>');
-    
+    $("#headerbar").prependTo("body"); // Move back up to top.
+    if (param.showheader == "true") {
+      setTimeout( function() { // Delay needed for /info page.
+        $("#headerbar").prependTo("body");
+        //$("#headerbar").show(); // Avoid here, might not be moved yet.
+      }, 200 );
+      setTimeout( function() {
+        //$("#headerbar").show();
+        showHeaderBar();
+      }, 300 );
+      setTimeout( function() {
+        $("#headerbar").prependTo("body");
+        //$("#headerbar").show();
+        showHeaderBar();
+      }, 1500 );
+    }
     if (location.host.indexOf('model') >= 0) {
       $(".showSearch").show();
       $(".showSearch").removeClass("local");
     }
   });
 }
+function showHeaderBar() {
+  //$('.headerOffset').show();
+  $('#headerbar').show();
+  $('#headerbar').removeClass("headerbarhide");
+  $('#local-header').show();
+}
+
 function loadSearchFilterIncludes() {
   includeCSS3(theroot + 'css/base.css',theroot);
+  includeCSS3(theroot + 'css/menu.css',theroot);
   includeCSS3(theroot + 'css/search-filters.css',theroot);
   if (param.preloadmap != "false") {
     includeCSS3(theroot + 'css/map-display.css',theroot);
   }
 }
 function loadLeafletAndMapFilters() {
+  //if (param.shownav) {
+  if (param.showheader != "false") {
+    loadScript(theroot + 'js/navigation.js', function(results) {
+      // Might need to add a check here. Occasional:
+      // Uncaught ReferenceError: applyNavigation is not defined
+
+      // if #local-header already exists, abort
+
+
+      // To Do: wait for div from navigation.js
+      //waitForElm('body').then((elm) => {
+
+      //});
+
+      setTimeout( function() {
+
+        console.log("applyNavigation() after 200 ms delay"); // 10 ms returned error on CloudFlare, but fine locally.
+        applyNavigation();
+      }, 200 ); // Bugbug - better to wait for a div to be available. Try inserting from within navigation.js before DOM ready.
+    });
+  }
+
   loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
     includeCSS3(theroot + 'css/leaflet.css',theroot);
     loadScript(theroot + 'js/leaflet.js', function(results) {
@@ -578,9 +631,6 @@ function loadLeafletAndMapFilters() {
       });
     });
 
-    //if (param.shownav) {
-      loadScript(theroot + 'js/navigation.js', function(results) {});
-    //}
   });
 }
 // WAIT FOR JQuery
@@ -590,13 +640,68 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
     if (typeof $ != 'undefined') {
 
-      $(document).ready(function () {
+      //Doc ready was here, now further down
 
         console.log("Ready DOM Loaded (But not template yet). Using theroot: " + theroot)
 
         $(document).click(function(event) { // Hide open menus in core
           $('.hideOnDocClick').hide();
         });
+        
+
+        // Load when body div becomes available, faster than waiting for all DOM .js files to load.
+        waitForElm('body').then((elm) => {
+         console.log("body becomes available")
+          if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
+            var div = $("<div />", {
+                html: '<style>.local{display:inline !important}.localonly{display:block !important}</style>'
+              }).appendTo("body");
+          } else {
+            // Inject style rule
+              var div = $("<div />", {
+                html: '<style>.local{display:none}.localonly{display:none}</style>'
+              }).appendTo("body");
+          }
+
+          // LOAD HTML TEMPLATE - Holds search filters and maps
+          // View html source: https://model.earth/localsite/map
+          // Consider pulling in HTML before DOM is loaded, then send to page once #bodyFile is available.
+
+         if (param.insertafter && $("#" + param.insertafter).length) {
+            $("#" + param.insertafter).append("<div id='bodyFile'></div>");
+          //} else if (!$("#bodyFile").length) {
+          } else if(document.getElementById("bodyFile") == null) {
+            $('body').prepend("<div id='bodyFile'></div>");
+          }
+          if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
+            if (param.templatepage != "true") { // Prevents dup header on map/index.html
+              loadLocalTemplate();
+            }
+            //else {
+            //  $("#headerbar").prependTo("body"); // For map/index.html
+          }
+        
+
+          // LOAD INFO TEMPLATE - Holds input-output widgets
+          // View html source: https://model.earth/localsite/info/info-template.html
+          if (!$("#infoFile").length) {
+            $('body').append("<div id='infoFile'></div>");
+          }
+          if (param.display == "everything") {
+            let infoFile = theroot + "info/info-template.html #info-template"; // Including #info-template limits to div within page, prevents other includes in page from being loaded.
+            //console.log("Before template Loaded infoFile: " + infoFile);
+            //alert("Before template Loaded: " + bodyFile);
+            $("#infoFile").load(infoFile, function( response, status, xhr ) {
+              console.log("Info Template Loaded: " + infoFile);
+              $("#industryFilters").appendTo("#append_industryFilters");
+            });
+          }
+
+          // Move local-footer to the end of body
+          $("#local-footer").appendTo("body");
+        }); // End body ready
+
+      $(document).ready(function () {
         /*! jQuery & Zepto Lazy v1.7.6 - http://jquery.eisbehr.de/lazy - MIT&GPL-2.0 license - Copyright 2012-2017 Daniel 'Eisbehr' Kern */
         //!function(t,e){"use strict";function r(r,a,i,u,l){function f(){L=t.devicePixelRatio>1,i=c(i),a.delay>=0&&setTimeout(function(){s(!0)},a.delay),(a.delay<0||a.combined)&&(u.e=v(a.throttle,function(t){"resize"===t.type&&(w=B=-1),s(t.all)}),u.a=function(t){t=c(t),i.push.apply(i,t)},u.g=function(){return i=n(i).filter(function(){return!n(this).data(a.loadedName)})},u.f=function(t){for(var e=0;e<t.length;e++){var r=i.filter(function(){return this===t[e]});r.length&&s(!1,r)}},s(),n(a.appendScroll).on("scroll."+l+" resize."+l,u.e))}function c(t){var i=a.defaultImage,o=a.placeholder,u=a.imageBase,l=a.srcsetAttribute,f=a.loaderAttribute,c=a._f||{};t=n(t).filter(function(){var t=n(this),r=m(this);return!t.data(a.handledName)&&(t.attr(a.attribute)||t.attr(l)||t.attr(f)||c[r]!==e)}).data("plugin_"+a.name,r);for(var s=0,d=t.length;s<d;s++){var A=n(t[s]),g=m(t[s]),h=A.attr(a.imageBaseAttribute)||u;g===N&&h&&A.attr(l)&&A.attr(l,b(A.attr(l),h)),c[g]===e||A.attr(f)||A.attr(f,c[g]),g===N&&i&&!A.attr(E)?A.attr(E,i):g===N||!o||A.css(O)&&"none"!==A.css(O)||A.css(O,"url('"+o+"')")}return t}function s(t,e){if(!i.length)return void(a.autoDestroy&&r.destroy());for(var o=e||i,u=!1,l=a.imageBase||"",f=a.srcsetAttribute,c=a.handledName,s=0;s<o.length;s++)if(t||e||A(o[s])){var g=n(o[s]),h=m(o[s]),b=g.attr(a.attribute),v=g.attr(a.imageBaseAttribute)||l,p=g.attr(a.loaderAttribute);g.data(c)||a.visibleOnly&&!g.is(":visible")||!((b||g.attr(f))&&(h===N&&(v+b!==g.attr(E)||g.attr(f)!==g.attr(F))||h!==N&&v+b!==g.css(O))||p)||(u=!0,g.data(c,!0),d(g,h,v,p))}u&&(i=n(i).filter(function(){return!n(this).data(c)}))}function d(t,e,r,i){++z;var o=function(){y("onError",t),p(),o=n.noop};y("beforeLoad",t);var u=a.attribute,l=a.srcsetAttribute,f=a.sizesAttribute,c=a.retinaAttribute,s=a.removeAttribute,d=a.loadedName,A=t.attr(c);if(i){var g=function(){s&&t.removeAttr(a.loaderAttribute),t.data(d,!0),y(T,t),setTimeout(p,1),g=n.noop};t.off(I).one(I,o).one(D,g),y(i,t,function(e){e?(t.off(D),g()):(t.off(I),o())})||t.trigger(I)}else{var h=n(new Image);h.one(I,o).one(D,function(){t.hide(),e===N?t.attr(C,h.attr(C)).attr(F,h.attr(F)).attr(E,h.attr(E)):t.css(O,"url('"+h.attr(E)+"')"),t[a.effect](a.effectTime),s&&(t.removeAttr(u+" "+l+" "+c+" "+a.imageBaseAttribute),f!==C&&t.removeAttr(f)),t.data(d,!0),y(T,t),h.remove(),p()});var m=(L&&A?A:t.attr(u))||"";h.attr(C,t.attr(f)).attr(F,t.attr(l)).attr(E,m?r+m:null),h.complete&&h.trigger(D)}}function A(t){var e=t.getBoundingClientRect(),r=a.scrollDirection,n=a.threshold,i=h()+n>e.top&&-n<e.bottom,o=g()+n>e.left&&-n<e.right;return"vertical"===r?i:"horizontal"===r?o:i&&o}function g(){return w>=0?w:w=n(t).width()}function h(){return B>=0?B:B=n(t).height()}function m(t){return t.tagName.toLowerCase()}function b(t,e){if(e){var r=t.split(",");t="";for(var a=0,n=r.length;a<n;a++)t+=e+r[a].trim()+(a!==n-1?",":"")}return t}function v(t,e){var n,i=0;return function(o,u){function l(){i=+new Date,e.call(r,o)}var f=+new Date-i;n&&clearTimeout(n),f>t||!a.enableThrottle||u?l():n=setTimeout(l,t-f)}}function p(){--z,i.length||z||y("onFinishedAll")}function y(t,e,n){return!!(t=a[t])&&(t.apply(r,[].slice.call(arguments,1)),!0)}var z=0,w=-1,B=-1,L=!1,T="afterLoad",D="load",I="error",N="img",E="src",F="srcset",C="sizes",O="background-image";"event"===a.bind||o?f():n(t).on(D+"."+l,f)}function a(a,o){var u=this,l=n.extend({},u.config,o),f={},c=l.name+"-"+ ++i;return u.config=function(t,r){return r===e?l[t]:(l[t]=r,u)},u.addItems=function(t){return f.a&&f.a("string"===n.type(t)?n(t):t),u},u.getItems=function(){return f.g?f.g():{}},u.update=function(t){return f.e&&f.e({},!t),u},u.force=function(t){return f.f&&f.f("string"===n.type(t)?n(t):t),u},u.loadAll=function(){return f.e&&f.e({all:!0},!0),u},u.destroy=function(){return n(l.appendScroll).off("."+c,f.e),n(t).off("."+c),f={},e},r(u,l,a,f,c),l.chainable?a:u}var n=t.jQuery||t.Zepto,i=0,o=!1;n.fn.Lazy=n.fn.lazy=function(t){return new a(this,t)},n.Lazy=n.lazy=function(t,r,i){if(n.isFunction(r)&&(i=r,r=[]),n.isFunction(i)){t=n.isArray(t)?t:[t],r=n.isArray(r)?r:[r];for(var o=a.prototype.config,u=o._f||(o._f={}),l=0,f=t.length;l<f;l++)(o[t[l]]===e||n.isFunction(o[t[l]]))&&(o[t[l]]=i);for(var c=0,s=r.length;c<s;c++)u[r[c]]=t[0]}},a.prototype.config={name:"lazy",chainable:!0,autoDestroy:!0,bind:"load",threshold:500,visibleOnly:!1,appendScroll:t,scrollDirection:"both",imageBase:null,defaultImage:"data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",placeholder:null,delay:-1,combined:!1,attribute:"data-src",srcsetAttribute:"data-srcset",sizesAttribute:"data-sizes",retinaAttribute:"data-retina",loaderAttribute:"data-loader",imageBaseAttribute:"data-imagebase",removeAttribute:!0,handledName:"handled",loadedName:"loaded",effect:"show",effectTime:0,enableThrottle:!0,throttle:250,beforeLoad:e,afterLoad:e,onError:e,onFinishedAll:e},n(t).on("load",function(){o=!0})}(window);
         
@@ -605,51 +710,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         $(function() {
               $('.lazy').Lazy(); // Lazy load all divs with class .lazy
         });
-        if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
-          var div = $("<div />", {
-              html: '<style>.local{display:inline !important}.localonly{display:block !important}</style>'
-            }).appendTo("body");
-        } else {
-          // Inject style rule
-            var div = $("<div />", {
-              html: '<style>.local{display:none}.localonly{display:none}</style>'
-            }).appendTo("body");
-        }
-
-        // LOAD HTML TEMPLATE - Holds search filters and maps
-        // View html source: https://model.earth/localsite/map
-        // Consider pulling in HTML before DOM is loaded, then send to page once #bodyFile is available.
-
-        if (param.insertafter && $("#" + param.insertafter).length) {
-          $("#" + param.insertafter).append("<div id='bodyFile'></div>");
-        //} else if (!$("#bodyFile").length) {
-        } else if(document.getElementById("bodyFile") == null) {
-          $('body').prepend("<div id='bodyFile'></div>");
-        }
-        console.log("param.display " + param.display)
-        if (param.display == "everything" || param.display == "locfilters" || param.display == "map") {
-          loadLocalTemplate();
-        }
-
-        // LOAD INFO TEMPLATE - Holds input-output widgets
-        // View html source: https://model.earth/localsite/info/info-template.html
-        if (!$("#infoFile").length) {
-          $('body').append("<div id='infoFile'></div>");
-        }
-        if (param.display == "everything") {
-          let infoFile = theroot + "info/info-template.html #info-template"; // Including #info-template limits to div within page, prevents other includes in page from being loaded.
-          //console.log("Before template Loaded infoFile: " + infoFile);
-          //alert("Before template Loaded: " + bodyFile);
-          $("#infoFile").load(infoFile, function( response, status, xhr ) {
-            consoleLog("Info Template Loaded: " + infoFile);
-            $("#industryFilters").appendTo("#append_industryFilters");
-          });
-        }
-
-        // Move local-footer to the end of body
-        $("#local-footer").appendTo("body");
-
-      });
+      }); // End doc ready
 
       $(window).on('hashchange', function() { // Avoid window.onhashchange since overridden by map and widget embeds  
         consoleLog("window hashchange");
@@ -690,6 +751,11 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       clearInterval(waitForJQuery); // Escape the loop
 
+      if (param.showsearch == "true") {
+        waitForElm('#mapFilters').then((elm) => {
+          showSearchFilter();
+        });
+      }
 
   /**
   *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
@@ -760,69 +826,77 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   let fullsite = false;
   // FULL SITE - everything or map
   if (param.showheader == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "navigation" || param.display == "map") {
+    //alert("added param.show above as test " + param.show)
+    if (param.showheader != "false" || param.display == "map") {
 
-    fullsite = true;
-    includeCSS3(theroot + 'css/map.css',theroot); // Before naics.js so #industries can be overwritten.
-    includeCSS3(theroot + 'css/naics.css',theroot);
-    // customD3loaded
-    if (param.preloadmap != "false") {
-      loadLeafletAndMapFilters();
+      fullsite = true;
+      includeCSS3(theroot + 'css/map.css',theroot); // Before naics.js so #industries can be overwritten.
+
+      // TODO - Try limiting to param.display == "everything"
+      includeCSS3(theroot + 'css/naics.css',theroot);
       
-    }
+      // customD3loaded
+      if (param.preloadmap != "false" && (param.showheader == "true" || param.display == "map")) {
+        loadLeafletAndMapFilters();
+      }
 
-    //includeCSS3(theroot + 'css/bootstrap.darkly.min.css',theroot);
+      //includeCSS3(theroot + 'css/bootstrap.darkly.min.css',theroot);
 
-    if (param.display == "everything") {
+      if (param.display == "everything") {
 
-      loadScript(theroot + '../io/build/lib/useeio_widgets.js', function(results) {
-        if (param.omit_old_naics == "true") {
-          loadScript(theroot + 'js/naics2.js', function(results) {
-          });
-        } else {
-          loadScript(theroot + 'js/naics.js', function(results) {
-            //if(!param.state) {
-              //applyIO("");
-            //}
-          });
-        }
-      });
-    }
-
-    loadTabulator();
-    
-    if (param.display == "everything") {
-      includeCSS3(theroot + '../io/build/widgets.css',theroot);
-      includeCSS3(theroot + '../io/build/iochart.css',theroot);
-    }
-    
-    loadSearchFilterIncludes();
-
-    includeCSS3(theroot + 'css/leaflet.icon-material.css',theroot);
-    
-    //loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
-
-
-    if (param.display == "everything") {
-      //if(param.showbubbles) {
-        loadScript(theroot + 'js/d3.v5.min.js', function(results) {
-          loadScript(theroot + '../io/charts/bubble/js/bubble.js', function(results) {
-            // HACK - call twice so rollovers work.
-              //refreshBubbleWidget();
-              //alert("go")
-
-              // Instead, called from naics.js
-              //displayImpactBubbles(1);
-              //setTimeout( function() {
-                
-                // No luck...
-                //displayImpactBubbles(1);
-              //}, 1000 );
-          });
+        loadScript(theroot + '../io/build/lib/useeio_widgets.js', function(results) {
+          if (param.omit_old_naics == "true") {
+            loadScript(theroot + 'js/naics2.js', function(results) {
+            });
+          } else {
+            loadScript(theroot + 'js/d3.v5.min.js', function(results) {
+              loadScript(theroot + 'js/naics.js', function(results) {
+                console.log("everything");
+              });
+            });
+          }
         });
-      //}
-    } // end everything
+      }
 
-  } // end everything or map
+      loadTabulator();
+      
+      if (param.display == "everything") {
+        includeCSS3(theroot + '../io/build/widgets.css',theroot);
+        includeCSS3(theroot + '../io/build/iochart.css',theroot);
+      }
+      
+      loadSearchFilterIncludes();
+
+      includeCSS3(theroot + 'css/leaflet.icon-material.css',theroot);
+      
+      //loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
+
+
+      if (param.display == "everything") {
+        //if(param.showbubbles) {
+          loadScript(theroot + 'js/d3.v5.min.js', function(results) {
+            loadScript(theroot + '../io/charts/bubble/js/bubble.js', function(results) {
+              // HACK - call twice so rollovers work.
+                //refreshBubbleWidget();
+                //alert("go")
+
+                // Instead, called from naics.js
+                //displayImpactBubbles(1);
+                //setTimeout( function() {
+                  
+                  // No luck...
+                  //displayImpactBubbles(1);
+                //}, 1000 );
+            });
+          });
+        //}
+      } // end everything
+    }
+  }
+
+  //} else { // Show map or list without header
+
+  
 
   if (param.material_icons != "false") {
     param.material_icons = "true"; // Could lazy load if showMenu changed to graphic.
@@ -867,9 +941,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   } else { // jQuery not available yet!
 
     if(location.host.indexOf('localhost') >= 0) {
-      alert("Localhost alert: JQUERY NOT YET AVAILABLE!");
+      alert("Localhost alert: JQUERY NOT YET AVAILABLE - JQuery probably needs to be added to calling page.");
     } else {
-      consoleLog("JQUERY NOT YET AVAILABLE! Use this more widely.");
+      console.log('%cALERT: JQUERY NOT YET AVAILABLE! JQuery probably needs to be added to calling page.', 'color: red; background: yellow; font-size: 14px');    
     }
   }
       
@@ -954,7 +1028,7 @@ function getUrlID3(url,theroot) {
     // Remove front folder for each ../
     
       if (100==100) {
-        //alert(url);
+        //alert("url before " + url);
 
         let climbcount = (url.match(/\.\.\//g) || []).length; // Number of ../ instances in url
         // TODO: Adjust for non-consecutive ../
@@ -988,7 +1062,9 @@ function getUrlID3(url,theroot) {
 
               //alert(url.replace(beginning[0],""));
               //alert(url);
-              url = keepfolders + url.replace(beginning[0],"").replace("../","");
+
+              url = url.replace("/localsite/../localsite/","/localsite/"); // hack for /localsite/../localsite/css/tabulator.min.css
+              url = keepfolders + url.replace(beginning[0],"").replace(new RegExp('../', 'g'),""); // All instances of ../
               //alert(url);
               console.log("beginningFolder.length " + beginningFolder.length + " for " + startingUrl  + " leads to urlID " + url);
         }
@@ -1032,6 +1108,12 @@ function loadMapFiltersJS(theroot, count) {
     }, 10 );
   } else {
     consoleLog("ERROR: loadMapFiltersJS exceeded 100 attempts.");
+    if (typeof customD3loaded === 'undefined') {
+      consoleLog("REASON customD3loaded undefined");
+    }
+    if (typeof localsite_map === 'undefined') {
+      consoleLog("REASON localsite_map undefined");
+    }
   }
 
 } 
@@ -1367,6 +1449,7 @@ addEventListener("load", function(){
     return null;
   };
   document.querySelector("body").addEventListener('click', function(e) {
+    $(".hideOnBodyClick").hide();
     //consoleLog('click ' + Date.now())
     var anchor = getParentAnchor(e.target);
     if(anchor !== null) {
@@ -1578,8 +1661,9 @@ function showSearchFilter() {
     if (!$("#bodyFile").length) {
       $('body').prepend("<div id='bodyFile'></div>");
     }
-    loadLocalTemplate();
+    //loadLocalTemplate(); // Loaded a second time on community page
     loadSearchFilterIncludes();
+    console.log('%cloadLeafletAndMapFilters called by showSearchFilter(). Might cause dup', 'color: red; background: yellow; font-size: 14px');
     loadLeafletAndMapFilters();
     $('html,body').scrollTop(0);
   } else {
@@ -1591,14 +1675,21 @@ function showSearchFilter() {
     if ($("#filterFieldsHolder").is(':visible') && (($("#headerbar").is(':visible') && filterTop >= headerHeight) )) { // Might need to allow for coverage by header.
       console.log("#filterFieldsHolder is visible, hide it.");
       $("#filterFieldsHolder").hide();
+      $("#filterFieldsHolder").addClass("filterFieldsHidden");
       //$("#filterbaroffset").hide();
       ////$("#pageLinksHolder").hide();
     } else {
-
-      $("#filterFieldsHolder").show();
-      //$("#filterbaroffset").show();
-      $(".hideWhenPop").show();
-      $('html,body').scrollTop(0);
+      // #bodyFile is needed for map/index.html to apply $("#filterFieldsHolder").show()
+      // Also prevents search filter from flashing briefly in map/index.html before moving into #bodyFile
+      // 
+      waitForElm('#bodyFile #filterFieldsHolder').then((elm) => {
+        console.log("show #filterFieldsHolder");
+        $("#filterFieldsHolder").show();
+        $("#filterFieldsHolder").removeClass("filterFieldsHidden");
+        //$("#filterbaroffset").show();
+        $(".hideWhenPop").show();
+        $('html,body').scrollTop(0);
+      });
     }
     return;
 
@@ -1654,3 +1745,63 @@ function showSearchFilter() {
       //$(".quickMenu").hide();
   }
 }
+function showGlobalMap(globalMap) { // Used by community/index.html, green-sah
+  $("#nullschoolHeader").show();
+
+  if($("#globalMapHolder").length <= 1) {
+    //$("#globalMapHolder").html('<iframe src="https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
+    
+    // Two steps prevent loading error
+    $("#globalMapHolder").html('<iframe src="" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
+    
+    loadIframe("mainframe",globalMap);
+
+    // Chem Currents NO2 - Since Wind makes NO2 clouds hard to see
+    //loadIframe("mainframe","https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
+
+  }
+}
+function loadIframe(iframeName, url) {  
+  var $iframe = $('#' + iframeName);
+  if ($iframe.length) {
+      //alert("loadIframe" + url)
+      $iframe.attr('src',url);
+      $("#nullschoolHeader #mainbucket").show();
+      return false;
+  }
+  return true;
+}
+
+// TO DO: Optimize by checking just the nodes in the mutations
+// https://stackoverflow.com/questions/5525071/how-to-wait-until-an-element-exists
+function waitForElm(selector) {
+    return new Promise(resolve => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector));
+        }
+        if (document.body) {
+          waitForElmKickoff(selector,resolve);
+        } else {
+          // Wait for body to be available, but not stylesheets, images. Prevents error when body not yet available: TypeError: Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'.
+          document.addEventListener("DOMContentLoaded", function(event) {
+            waitForElmKickoff(selector,resolve);
+          });
+        }
+    });
+}
+function waitForElmKickoff(selector, resolve) {
+  const observer = new MutationObserver(mutations => {
+      if (document.querySelector(selector)) {
+          resolve(document.querySelector(selector));
+          observer.disconnect();
+      }
+  });
+
+  observer.observe(document.body, {
+      childList: true, //This is a must have for the observer with subtree
+      subtree: true //Set to true if changes must also be observed in descendants.
+  });
+}
+//waitForElm('#tabulator-geotable').then((elm) => {
+//    alert('Element is ready: ' + elm.textContent);
+//});

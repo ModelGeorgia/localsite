@@ -55,7 +55,8 @@ var mbAttr = '<a href="https://www.mapbox.com/">Mapbox</a>', mbUrl = 'https://ap
 
 // INTERMODAL PORTS - was here
 
-var localsite_map = true; // Used by man-embed.js to detect map.js load.
+console.log("localsite_map defined here");
+var localsite_map = true; // Used by man-embed.js and localsite.js to detect map.js load.
 
 /*
 var localsite_map = localsite_map || (function(){
@@ -84,1336 +85,12 @@ document.addEventListener('hiddenhashChangeEvent', function (elem) {
 }, false);
 
 var priorHashMap = {};
-function hashChangedMap() {
-  let hash = getHash();
-
-  if (hash.show == "undefined") { // To eventually remove
-    delete hash.show; // Fix URL bug from indicator select hamburger menu
-    updateHash({'show':''}); // Remove from URL hash without invoking hashChanged event.
-  }
-
-  // For PPE embed, also in map-filters.js. Will likely change
-  if (!hash.show) {
-    // For embed link
-    hash.show = param.show;
-    hiddenhash.show = param.show;
-  }
-  if (!hash.state && param.state) {
-    // For embed link
-
-    // Reactivate if needed
-    //hash.state = param.state;
-    //hiddenhash.state = param.state;
-  }
-
-  // Temp for PPE
-  if ((hash.show == "ppe" || hash.show == "suppliers") && !hash.state && location.host.indexOf("georgia") >= 0) {
-    hash.state = "GA";
-    hiddenhash.state = "GA";
-  }
-
-  if (hash.cat || hash.name) {
-    $(".viewAllLink").show();
-  } else {
-    $(".viewAllLink").hide();
-  }
-  $("#changeHublistHeight").show();
-
-  if (hash.name !== priorHashMap.name) {
-    loadMap1("hashChanged() in map.js new name for View Details " + hash.name, hash.show);
-    $(document).ready(function () {
-      let offTop = $("#list_main").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height();
-      window.scroll(0, offTop);
-    });
-  } else if (hash.layers !== priorHashMap.layers) {
-    //applyIO(hiddenhash.naics);
-    loadMap1("hashChangedMap() in map.js layers", hash.show);
-  } else if (hash.show !== priorHashMap.show) {
-    //applyIO(hiddenhash.naics);
-    loadMap1("hash.show hashChangedMap() in map.js", hash.show);
-  } else if (hash.state && hash.state !== priorHashMap.state) {
-    // Why are new map points not appearing
-
-    let dp = {};
-    // Copied from map-filters.js
-    if($("#state_select").find(":selected").val()) {
-      let theState = $("#state_select").find(":selected").val();
-        if (theState != "") {
-          let kilometers_wide = $("#state_select").find(":selected").attr("km");
-          //zoom = 1/kilometers_wide * 1800000;
-  
-          if (theState == "HI") { // Hawaii
-              zoom = 6
-          } else if (kilometers_wide > 1000000) { // Alaska
-              zoom = 4
-          } else {
-              zoom = 7; // For Georgia map
-          }
-          dp.latitude = $("#state_select").find(":selected").attr("lat");
-          dp.longitude = $("#state_select").find(":selected").attr("lon");
-        }
-    } else {
-      console.log("ERROR #state_select not available in hashChangedMap()");
-    }    
-
-    loadMap1("hashChanged() in map.js new state(s) " + hash.state, hash.show, dp);
-
-  } else if (hash.cat !== priorHashMap.cat) {
-    loadMap1("hashChanged() in map.js new cat " + hash.cat, hash.show);
-  } else if (hash.subcat !== priorHashMap.subcat) {
-    loadMap1("hashChanged() in map.js new subcat " + hash.subcat, hash.show);
-  } else if (hash.details !== priorHashMap.details) {
-    loadMap1("hashChanged() in map.js new details = " + hash.details, hash.show);
-  }
-  priorHashMap = getHash();
-}
-$(document).ready(function () {
-  // INIT
-  hashChangedMap();
-});
-
-// Allows layers to be fetched using: layerControl[whichmap].getOverlays(); // { Truck 1: true, Truck 2: false, Truck 3: false }
-// the key is the name of the layer. If the layer is showing, it has a value of of true.
-L.Control.Layers.include({
-  getOverlays: function() { // A custom function used for multiple maps
-    // create hash to hold all layers
-    var control, layers;
-    layers = {};
-    control = this;
-
-    // loop thru all layers in control
-    control._layers.forEach(function(obj) {
-      var layerName;
-
-      // check if layer is an overlay
-      if (obj.overlay) {
-        // get name of overlay
-        layerName = obj.name;
-        // store whether it's present on the map or not
-        return layers[layerName] = control._map.hasLayer(obj.layer);
-      }
-    });
-
-    return layers;
-  }
-});
-
-
-// NULLSCHOOL
-$(document).on("click", "#earthZoom .leaflet-control-zoom-in", function(event) { // ZOOM IN
-  zoomEarth(200);
-  event.stopPropagation();
-});
-$(document).on("click", "#earthZoom .leaflet-control-zoom-out", function(event) { // ZOOM IN
-  zoomEarth(-200);
-  event.stopPropagation();
-});
-function zoomEarth(zoomAmount) {
-  if (!localObject.earth) {
-    let earthSrc = document.getElementById("mainframe").src; // Only returns the initial cross-domain uri.
-    localObject.earth = getEarthObject(earthSrc.split('#')[1]);
-  }
-  // Add 100 to orthographic map zoom
-  let orthographic = localObject.earth.orthographic.split(",");
-  localObject.earth.orthographic = orthographic[0] + "," + orthographic[1] + "," + (+orthographic[2] + zoomAmount);
-  
-  /*
-  let theMonth = 6;
-  let theDay = 1;
-  let theHour = 0;
-
-  let monthStr = String(theMonth).padStart(2, '0');
-  let dayStr = String(theDay).padStart(2, '0');
-  let hourStr = String(theHour).padStart(2, '0');
-  $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
-  */
-
-  let earthUrl = "https://earth.nullschool.net/#";
-  if (localObject.earth.date) {
-    earthUrl += localObject.earth.date + "/" + localObject.earth.time + "/";
-  } else {
-    earthUrl += "current/";
-  }
-  earthUrl += localObject.earth.mode + "/overlay=" + localObject.earth.overlay + "/orthographic=" + localObject.earth.orthographic;
-  loadIframe("mainframe", earthUrl);
-  //loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-}
-function getEarthObject(url) {
-  if (url == undefined) {
-    console.log("BUG - getEarthObject url undefined");
-    return;
-  }
-  let urlPart = url.split('/');
-  let params = {};
-  if (urlPart.length > 6) { // URL contains date and time
-    params.date = urlPart[0] + "/" + urlPart[1] + "/" + urlPart[2];
-    params.time = urlPart[3];
-    params.mode = urlPart[4] + "/" + urlPart[5] + "/" + urlPart[6];
-  } else {
-    params.mode = urlPart[1] + "/" + urlPart[2] + "/" + urlPart[3];
-  }
-  for (let i = 4; i < urlPart.length; i++) {
-      if(!urlPart[i])
-          continue;
-      if (i==0 && urlPart[i].indexOf("=") == -1) {
-        params[""] = urlPart[i];  // Allows for initial # params without =.
-        continue;
-      }
-      let hashPair = urlPart[i].split('=');
-      params[decodeURIComponent(hashPair[0]).toLowerCase()] = decodeURIComponent(hashPair[1]);
-   }
-   return params;
-}
-function loadIframe(iframeName, url) {
-  localObject.earth = getEarthObject(url.split('#')[1]);
-  
-  var $iframe = $('#' + iframeName);
-  if ($iframe.length) {
-      //alert("loadIframe" + url)
-      $iframe.attr('src',url);
-      ///localObject.earthSrc = url;
-      $("#nullschoolHeader #mainbucket").show();
-      return false;
-  }
-  return true;
-}
-function showGlobalMap() { // Used by community/index.html
-  $("#nullschoolHeader").show();
-
-  if($("#globalMapHolder").length <= 1) {
-    //$("#globalMapHolder").html('<iframe src="https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
-    
-    // Two steps prevent loading error
-    $("#globalMapHolder").html('<iframe src="" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
-    
-    loadIframe("mainframe","https://earth.nullschool.net/#current/wind/surface/level/orthographic=-73.52,34.52,532");
-
-    // Chem Currents NO2 - Since Wind makes NO2 clouds hard to see
-    //loadIframe("mainframe","https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
-
-  }
-}
-function delay(time) {
-  return new Promise(resolve => setTimeout(resolve, time));
-}
-async function loopMap() {
-  await delay(200);
-  let theMonth = 6;
-  let theDay = 1;
-  let theHour = 0;
-  while (theDay <= 20) {
-    let monthStr = String(theMonth).padStart(2, '0');
-    let dayStr = String(theDay).padStart(2, '0');
-    let hourStr = String(theHour).padStart(2, '0');
-    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
-
-    loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-    await delay(1000);
-
-    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " 12:00 GMT (7 AM EST)");
-    loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/1200Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-    await delay(1000);
-
-    theDay += 1;
-    //theHour += 2;   
-  }
-}
-$(document).ready(function () {
-  // Run animation - add a button for this
-  //loopMap();
-});
-// END NULLSCHOOL
-
-
-function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback) {
-  console.log("loadFromSheet - Might not need to call from Beyond Carbon when state not displayed.")
-  // To Do: Map background could be loaded while waiting for D3 file. 
-  // Move "d3.csv(dp.dataset).then" further down into a new function that starts with the following line.
-
-  // Even without dataset, set titles since NAICS industries are still loaded.
-  let defaults = {};
-  defaults.zoom = 7;
-  defaults.numColumns = ["zip","lat","lon"];
-  defaults.nameColumn = "name";
-  //defaults.valueColumn = "name"; // For color coding - Avoid because this invokes side legend
-  defaults.latColumn = "latitude";
-  defaults.lonColumn = "longitude";
-  //defaults.scaleType = "scaleQuantile";
-  defaults.scaleType = "scaleOrdinal";
-  defaults.dataTitle = "Data Projects"; // Must match "map.addLayer(overlays" below.
-  if (dp.latitude && dp.longitude) {
-      mapCenter = [dp.latitude,dp.longitude];
-  } else {
-    mapCenter = [33.74,-84.38]; // Some center is always needed, else error will occur when first using flyTo.
-  }
-
-  // Make all keys lowercase - add more here, good to loop through array of possible keys
-  if (dp.itemsColumn) {
-    //dp.itemsColumn = dp.itemsColumn.toLowerCase(); // Prevented match with ElementRaw
-  }
-
-  if (dp.dataTitle) {
-    $("#showAppsText").text(dp.dataTitle);
-    $("#showAppsText").attr("title",dp.dataTitle);
-    $(".regiontitle").text(dp.dataTitle);
-  } else {
-    // Handled by getNaics_setHiddenHash()
-    //$("#showAppsText").text(hash.show.charAt(0).toUpperCase() + hash.show.substr(1).replace(/\_/g," "));  
-  }
-  if (dp.listTitle) {
-    dp.dataTitle = dp.listTitle;
-  }
-
-  if (typeof d3 !== 'undefined') {
-    if (!dp.dataset && !dp.googleCSV) {
-      console.log('CANCEL loadFromSheet. No dataset selected for top map. May not be one for state.');
-      /*
-      if (!hash.state) {
-        if (location.host.indexOf('localhost') >= 0) {
-          alert("Localhost message: State may be required for requested data. Appending state GA.");
-        }
-        goHash({'state':'GA'});
-        hash = getHash();
-        return;
-      }
-      */
-      $("#" + whichmap).hide();
-      $("#list_main").hide();
-      if (param.showsearch == "true") { // For EPD products io/template
-        $(".keywordField").show();
-      } else {
-        $("#data-section").hide();
-      }
-      return;
-    } else {
-      console.log('loadFromSheet into #' + whichmap);
-      $(".keywordField").show();
-      if (dp.mapable != "false") {
-        $("#" + whichmap).show();
-      }
-    }
-
-    dp = mix(dp,defaults); // Gives priority to dp
-    if (dp.addLink) {
-      //console.log("Add Link: " + dp.addLink)
-    }
-    if (dp.showShapeMap) {
-      let hash = getHash();
-      renderMapShapes("map1", hash, 1); // County select map
-    }
-    
-    // TRY AGAIN UNTIL #[whichmap] and (whichmap)._leaflet_map are available.
-    //if (typeof document.querySelector('#' + whichmap)._leaflet_map === 'undefined') {
-    if (typeof document.querySelector('#' + whichmap) === 'undefined' || typeof document.querySelector('#' + whichmap) === 'null') {
-      console.log("#" + whichmap + " is undefined. Try again.  Attempt " + attempts);
-      if (attempts <= 100) {
-        setTimeout( function() {
-          loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts+1,callback);
-        }, 20 );
-      } else {
-        console.log("ERROR #" + whichmap + " - exceeded 100 attempts.");
-      }
-      return;
-    } else if (document.querySelector('#' + whichmap) && typeof L.DomUtil != "object") { // Wait for Leaflet library
-      //if (document.querySelector('#' + whichmap) && !document.querySelector'#' + whichmap)._leaflet_map) { // Won't work because ._leaflet_map always equals "undefined"
-        console.log("L.DomUtil not available for #" + whichmap + ".  Try again. Attempt " + attempts);
-        console.log(typeof L.DomUtil);
-        if (attempts <= 100) {
-          setTimeout( function() {
-            loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts+1,callback);
-          }, 20 );
-        } else {
-          console.log("ERROR - _leaflet_map null exceeded 100 attempts.");
-        }
-        return;
-    }
-    /*
-    else {
-        console.log("typeof document.querySelector ._leaflet_map: " + typeof document.querySelector('#' + whichmap)._leaflet_map);
-    }
-    */
-
-    // Pevent error when backing up: map container is already initialized
-    //if (map) {
-    //  map.off();
-    //  map.remove();
-    //}
-
-
-    //map2 = document.querySelector('#' + whichmap2)._leaflet_map; // Recall existing map
-    //  var container2 = L.DomUtil.get(map2);
-    //  if (container2 == null) { // Initialize map
-
-
-
-    let map;
-    //alert(whichmap + " length: " + $('#' + whichmap).length);
-    if( $('#' + whichmap).length >= 1) {
-      console.log("#" + whichmap + " is populated");
-      map = document.querySelector('#'+whichmap)._leaflet_map; // Recall existing map
-    } else {
-      //alert("#" + whichmap + " not found");
-      //var containerExists = L.DomUtil.get(map); // NOT NEEDED
-
-      // https://help.openstreetmap.org/questions/12935/error-map-container-is-already-initialized
-      // if(container != null){ container._leaflet_id = null; }
-
-      //if (containerExists == null) { // NOT NEEDED - need to detect L.map
-        if (location.host.indexOf('localhost') >= 0) {
-          // BUGBUG
-          console.log("Trying again - An errror occured because the #" + whichmap + " div was not yet rendered.");
-          loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback);
-          return;
-        }
-        map = L.map(whichmap, { // var --> Map container is already initialized.
-          center: mapCenter,
-          scrollWheelZoom: false,
-          zoom: dp.zoom,
-          dragging: !L.Browser.mobile, 
-          tap: !L.Browser.mobile
-        });
-      //}
-    }
-
-    console.log("typeof map: " + typeof map);
-    console.log("typeof document.querySelector ._leaflet_map: " + typeof document.querySelector('#' + whichmap)._leaflet_map);
-    
-    // Might be able to rename/reconfig/reuse containerExists above to container and remove this line:
-    var container = L.DomUtil.get(map);
-    //dp.zoom = 18; // TEMP - Causes map to start with extreme close-up, then zooms out to about 5.
-    // Otherwise starts with 7ish and zooms to 5ish.
-    console.log("dp.zoom " + dp.zoom);
-    if (container == null) { // Initialize map
-      console.log("Initialize map again - this should not be reached.");
-      map = L.map(whichmap, {
-        center: mapCenter,
-        scrollWheelZoom: false,
-        zoom: dp.zoom,
-        dragging: !L.Browser.mobile, 
-        tap: !L.Browser.mobile
-      });
-      
-      
-      // setView does not seem to have an effect triggering map.on below
-      /*
-      map = L.map(whichmap,{
-        center: mapCenter,
-        scrollWheelZoom: false,
-        zoom: dp.zoom,
-        zoomControl: false
-      });
-      // Placing map.whenReady or map.on('load') here did not resolve
-      map.setView(mapCenter,dp.zoom);
-      */
-      map.on('click', function() {
-        if (location.host.indexOf('localhost') >= 0) {
-          //alert('Toggle scrollwheel zoom')
-        }
-        if (this.scrollWheelZoom.enabled()) {
-          this.scrollWheelZoom.disable();
-        }
-        else {
-          this.scrollWheelZoom.enable();
-        }
-      })
-    } else {
-      console.log("dp.zoom 2 " + dp.zoom);
-      map.setView(mapCenter,dp.zoom);
-    }
-    // Right column map
-    let map2 = {};
-    if (whichmap2) {
-      $("#list_main").show();
-      map2 = document.querySelector('#' + whichmap2)._leaflet_map; // Recall existing map
-      var container2 = L.DomUtil.get(map2);
-      if (container2 == null) { // Initialize map
-        map2 = L.map(whichmap2, {
-          center: mapCenter,
-          scrollWheelZoom: false,
-          zoom: 6,
-          dragging: !L.Browser.mobile, 
-          tap: !L.Browser.mobile
-        });
-      }
-    }
-
-    // 5. Load Layers Asynchronously
-    //var dataset = "../community/map/zip/basic/places.csv";
-
-    // Change below
-    // latColumn: "lat",
-    //      lonColumn: "lon",
-    //var dataset = "https://datascape.github.io/community/map/zip/basic/places.csv";
-
-    // ADD DATASET TO DUAL MAPS
-
-    // We are currently loading dp.dataset from a CSV file.
-    // Later we will check if the filename ends with .csv
-
-    if (dp.googleCategories && !dp.googleCSV) {            
-      d3.csv(dp.googleCategories).then(function(data) {
-        // LOAD CATEGORIES TAB - Category, SubCategory, SubCategoryLong
-        //localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
-        localObject.layerCategories[dp.show] = data;
-        preCatList = localObject.layerCategories[hash.show];
-
-        console.log("preCatList");
-        console.log(preCatList);
-
-        let catList = {};
-        // Build catList object with category name as the key.
-        let catColName = "Category"; // TO DO, apply this below.
-        for (var i = 0, l = preCatList.length; i < l; i++) {
-
-          let key = Object.keys(preCatList[i]);
-
-          //iconColor = colorScale(element[dp.valueColumn]);
-          //if (dp.color) { 
-          //  iconColor = dp.color;
-          //}
-          iconColor = "blue";
-
-          //console.log("element[dp.valueColumn] " + element[dp.valueColumn]);
-          //if (dp.valueColumn) {
-            // Requires only ONE category value in the valueColumn.
-            if(!catList.Category) {
-              catList[preCatList[i].Category] = {};
-              catList[preCatList[i].Category].count = 1;
-            } else {
-              catList[preCatList[i].Category].count++;
-            }
-            catList[preCatList[i].Category].color = iconColor;
-          //}
-        }
-        console.log("catList");
-        console.log(catList);
-
-        localObject.layerCategories[dp.show] = catList;
-
-        renderCatList(catList);
-        //processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
-      });
-    }
-
-    let stateAllowed = true;
-    if (dp.datastates && hash.state) {
-      if (dp.datastates.split(",").indexOf(hash.state.split(",")[0].toUpperCase()) == -1) {
-        stateAllowed = false;
-        //alert("State1 of " + hash.state + " has no map point data based on dp.datastates indicated.");
-        $("#list_main").hide();
-        $("#map1").hide();
-        return;
-      }
-    }
-
-    console.log("TO DO - place prior dataset in object within processOutput() to avoid reloading")
-    if (dp.dataset && stateAllowed && (dp.dataset.toLowerCase().includes(".json") || dp.datatype === "json")) { // To Do: only check that it ends with .json
-      if (dp.headerAuth) {
-        //dp.headerAuth = $.parseJSON(dp.headerAuth); // TO DO: Add object below
-        $.ajaxSetup({
-            headers : {
-              'Authorization' : 'Bearer 204ad15687571d9c62bdfa780526b1514c090f68'
-            }
-        });
-      }
-      $.getJSON(dp.dataset, function (data) {
-        dp.data = readJsonData(data, dp.numColumns, dp.valueColumn);
-        processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){
-          callback(); // Triggers initialHighlight()
-        });
-      });
-    } else if (dp.dataset) {
-      d3.csv(dp.dataset).then(function(data) { // One row per line
-          //console.log("To do: store data in browser to avoid repeat loading from CSV.");
-
-          //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
-          dp.data = data;
-        
-          // Make element key always lowercase
-          //dp.data_lowercase_key;
-
-          //alert("okay1")
-          // TO DO - Need to verify this is needed, and where.
-          // Convert all keys to lowercase
-          /*
-          // THIS BREAKS FARMFRESH, was never deployed, keys are already entered as lowercase
-          for (var i = 0, l = dp.data.length; i < l; i++) {
-            var key, keys = Object.keys(dp.data[i]);
-            var n = keys.length;
-            //var newobj={}
-            dp.data[i] = {};
-            while (n--) {
-              key = keys[n];
-              //if (key.toLowerCase() != key) {
-                dp.data[i][key.toLowerCase()] = dp.data[i][key];
-                //dp.data[i][key] = null;
-              //}
-            }
-            //console.log("TEST dp.data[i]");
-            //console.log(dp.data[i]);
-          }
-          */
-          processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
-      })
-    } else if (dp.googleCSV) {
-      d3.csv(dp.googleCSV).then(function(data) { // One row per line
-        // LOAD GOOGLE SHEET
-          //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
-          dp.data = data;
-          if (dp.googleCategories) {            
-            d3.csv(dp.googleCategories).then(function(data) {
-              // LOAD CATEGORIES TAB - Category, SubCategory, SubCategoryLong
-              //localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
-              localObject.layerCategories[dp.show] = data;
-              processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
-            });
-          } else {
-            processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
-          }
-      });
-    }
-    
-    //.catch(function(error){ 
-    //     alert("Data loading error: " + error)
-    //})
-  } else {
-      attempts = attempts + 1;
-      if (attempts < 2000) {
-        // To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
-        setTimeout( function() {
-          loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback);
-        }, 20 );
-      } else {
-        alert("D3 javascript not available for loading map dataset.")
-      }
-  }
-}
-
-var overlays1 = {};
-var overlays2 = {};
-
-// DELETE in 2023 - Not in use
-dataParameters.forEach(function(ele) {
-  if (location.host.indexOf('localhost') >= 0) {
-    alert("dataParameters in use")
-  }
-  overlays1[ele.name] = ele.group; // Add to layer menu
-  overlays2[ele.name] = ele.group2; // Add to layer menu
-})
-
-function processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,callback) {
-  if (typeof map === 'undefined') {
-    console.log("processOutput: map undefined");
-  }
-  dp.scale = getScale(dp.data, dp.scaleType, dp.valueColumn);
-  dp.group = L.layerGroup();
-  dp.group2 = L.layerGroup();
-  dp.iconName = 'star';
-  //dataParameters.push(dp);
-
-   // Prevents dups of layer from appearing
-   // Each dup shows a data subset when filter is being applied.
-
-   if (overlays1 && overlays1[dp.dataTitle]) {
-      if (map.hasLayer(overlays1[dp.dataTitle])){
-        overlays1[dp.dataTitle].remove(); // clear the markers from the map for the layer
-      }
-      layerControl[whichmap].removeLayer(overlays1[dp.dataTitle]);
-   }
-   if (overlays2 && overlays2[dp.dataTitle]) {
-      if (map2.hasLayer(overlays2[dp.dataTitle])){
-        overlays2[dp.dataTitle].remove();
-     }
-      // Wasn't working, multiple checkboxes appeared ...seems to be fixed now, haven't seen multiple lately.
-      layerControl[whichmap2].removeLayer(overlays2[dp.dataTitle]);
-      //controlLayers.removeLayer(overlays2[dp.dataTitle]);
-   }
-
-  // Allows for use of dp.dataTitle with removeLayer and addLayer
-  console.log("dp.group");
-  console.log(dp.group); // Error here: http://localhost:8887/apps/brigades/
-  
-  if (overlays1) { // To avoid: Cannot set properties of undefined (setting 'Coding Brigades')
-    overlays1[dp.dataTitle] = dp.group;
-    overlays2[dp.dataTitle] = dp.group2;
-  } else {
-    console.log("ALERT: overlays1 not available.");
-  }
-
-  if (layerControl[whichmap] !== undefined) {
-    // Remove existing instance of layer
-    //layerControl[whichmap].removeLayer(overlays[dp.dataTitle]); // Remove from control 
-    //map.removeLayer(overlays[dp.dataTitle]); // Remove from map
-  }
-
-  if (layerControl[whichmap] !== undefined && dp.group) {
-      //layerControl[whichmap].removeLayer(dp.group);
-  }
-
-
-  // Still causes jump
-  //overlays2["Intermodal Ports 2"] = overlays["Intermodal Ports"];
-
-  // ADD BACKGROUND BASEMAP
-  if (layerControl[whichmap] == undefined) {
-    layerControl[whichmap] = L.control.layers(basemaps1, overlays1).addTo(map); // Init layer checkboxes
-    basemaps1["Grayscale"].addTo(map); // Set the initial baselayer.  OpenStreetMap
-  } else {
-    layerControl[whichmap].addOverlay(dp.group, dp.dataTitle); // Add layer checkbox
-  }
-  // ADD BACKGROUND BASEMAP to Side Map
-  if (layerControl[whichmap2] == undefined) {
-    layerControl[whichmap2] = L.control.layers(basemaps2, overlays2).addTo(map2); // Init layer checkboxes
-    if (location.host.indexOf('localhost') >= 0) {
-      // OpenStreetMap tiles stopped working on localhost in March of 2022. Using Grayscale locally for small map instead.
-      // "Access denied. See https://operations.osmfoundation.org/policies/tiles/"
-      //basemaps2["Grayscale"].addTo(map2); // Set the initial baselayer.
-      basemaps2["OpenStreetMap"].addTo(map2); // Set the initial baselayer. // Working as of June 2022.
-    } else {
-      basemaps2["OpenStreetMap"].addTo(map2); // Set the initial baselayer.
-    }
-  } else {
-    layerControl[whichmap2].addOverlay(dp.group2, dp.dataTitle); // Add layer checkbox
-  }
-
-  if (dp.showLegend != false) {
-    //alert("addLegend")
-    //addLegend(map, dp.scale, dp.scaleType, dp.name); // Too big and d3-legend.js file is not available in embed, despite 
-  }
-
-  // ADD ICONS TO MAP
-  // All layers reside in dataParameters object:
-  //console.log("dataParameters:");
-  //console.log(dataParameters);
-
-  if (dp.showLayer != false) {
-    $("#widgetTitle").text(dp.dataTitle);
-    dp = showList(dp,map); // Reduces list based on filters
-    addIcons(dp,map,map2);
-    // These do not effect the display of layer checkboxes
-    map.addLayer(overlays1[dp.dataTitle]);
-    map2.addLayer(overlays2[dp.dataTitle]);
-  }
-  $("#activeLayer").text(dp.dataTitle); // Resides after showList
-
-  //callback(map); // Sends to function(results).  "var map =" can be omitted when calling this function
-
-
-  // Runs too soon, unless placed within d3.csv.
-  // Otherwise causes: Cannot read property 'addOverlay' of undefined
-
-  //map.whenReady(function(){ 
-  //map.on('load',function(){ // Never runs
-    //alert("loaded")
-    callback(dp)
-  //});
-
-  /*
-  // Neigher map.whenReady or map.on('load') seems to require SetView()
-  if (document.body.clientWidth > 500) { // Since map tiles do not fully load when below list. Could use a .5 sec timeout perhaps.
-    setTimeout( function() {
-      //$("#sidemapCard").hide(); // Hide after size is available for tiles.
-    }, 3000 ); // Allow ample time to load.
-  }
-  */
-}
-
-
-/////////// MAP SETTINGS ///////////
-
-// 33.863516,-84.368775
-//var mapCenter = [32.90,-83.35]; // [latitude, longitude]
-var mapCenter = [33.7490,-84.3880]; // [latitude, longitude]
-
-// Add above to include overlays WITHOUT showing in legend:
-// layers: [dataParameters[0].group]
-
-// If added both baseLayers and overlays WITHOUT showing in legend:
-// layers: [grayscale, dataParameters[0].group]
-
-// Avoid layers: [grayscale] above 
-// - two sets of tiles would be loaded when upper baseLayer is changed using radio buttons.
-
-// Two sets prevents one map from changing the other
-
-
-
-
-// NOT USED IN CURRENT REPO - Check if still used when transitioning PPE map
-function populateMap(whichmap, dp, callback) { // From JSON within page
-    var circle;
-    let defaults = {};
-    defaults.zoom = 7;
-
-    if (dp.latitude && dp.longitude) {
-      mapCenter = [dp.latitude,dp.longitude]; 
-    } else {
-      mapCenter = [33.74,-84.38];
-    }
-
-    dp = mix(dp,defaults); // Gives priority to dp
-    console.log("populateMap dp.zoom " + dp.zoom);
-
-    let map = L.map(whichmap,{
-      center: mapCenter,
-      scrollWheelZoom: false,
-      zoom: dp.zoom,
-      zoomControl: false,
-      dragging: !L.Browser.mobile, 
-      tap: !L.Browser.mobile
-    });
-
-    map.setView(mapCenter,dp.zoom);
-
-    L.control.zoom({
-        position: 'topright'
-    }).addTo(map);
-
-    overlays1[dp.dataTitle] = dp.group; // Allows for use of dp.name with removeLayer and addLayer
-
-    // Adds checkbox, but unselects other map on page
-    //overlays2[dp.dataTitle] = dp.group;
-    overlays2[dp.dataTitle ] = dp.group2; //Haven't test switch to this
-
-    /*
-    if (layerControl[whichmap] == undefined) {
-      baseLayers["Streets"].addTo(map); // Set the initial baselayer.
-
-      //layerControl[whichmap] = L.control.layers(baseLayers, overlays).addTo(map);
-
-    }
-    */
-
-    if (layerControl[whichmap] == undefined) {
-      layerControl[whichmap] = L.control.layers(basemaps1, overlays1).addTo(map); // Push multple layers
-      //basemaps1["Satellite"].addTo(map);
-      basemaps1["Streets"].addTo(map);
-    } else {
-      layerControl[whichmap].addOverlay(dp.group, dp.dataTitle); // Appends to existing layers
-    }
-    
-    // Attach the icon to the marker and add to the map
-    //L.marker([33.74,-84.38], {icon: busIcon}).addTo(map)
-    
-    // Set .my-div-icon styles in CSS
-    //var myIcon = L.divIcon({className: 'my-div-icon'});
-    //L.marker([32.90,-83.83], {icon: myIcon}).addTo(map);
-
-    addIcons(dp, map);
-    map.addLayer(overlays1[dp.dataTitle]);
-    
-    // Both work
-    map.on('load',function(){
-
-      // Sample of single icon - place in addIcons function
-      // Create a semi-transparent bus icon
-      var busIcon = L.IconMaterial.icon({
-        icon: 'local_shipping',            // Name of Material icon
-        iconColor: '#fff',              // Material icon color (could be rgba, hex, html name...)
-        markerColor: 'rgba(255,0,0,0.5)',  // Marker fill color
-        outlineColor: 'rgba(255,0,0,0.5)',            // Marker outline color
-        outlineWidth: 1,                   // Marker outline width 
-      });
-
-      callback(map)
-    }); //  event handler before you load the map
-    //map.whenReady(callback(map)); //  event handler before you load the map with SetView()
-    
-}
-
-
-
-/////////////////////////////////////////
-// helper functions
-/////////////////////////////////////////
-function addLegend(map, scale, scaleType, title) {
-
-  /*
-  $("#allLegends").text(""); // Clear prior results
-  var svg = d3.select("#allLegends")
-    .append("div")
-      .attr("class", "legend "  + title)
-    .append("svg")
-      .style("width", 200);
-      // .styleX("height", 300)
-
-  svg.append("g")
-      .attr("class", "legend")
-      .attr("transform", "translate(20,20)");
-
-
-  var legend = d3.legendColor()
-    .labelFormat(d3.format(".2f"))
-    .title(title);
-
-  if (scaleType === "scaleThreshold") {
-    legend = legend.labels(d3.legendHelpers.thresholdLabels);
-  }
-
-  legend.scale(scale);  
-
-  svg.select("g.legend")
-    .call(legend);
-
-  //alert($(".legendCells .cell").length)
-  $("#legendHolder").height(80 + $(".legendCells .cell").length * 19);
-  */
-
-  // Source: https://leafletjs.com/examples/choropleth/
-  var legend = L.control({position: 'bottomright'});
-
-  legend.onAdd = function (map) {
-
-      var div = L.DomUtil.create('div', 'info legend'),
-          grades = [0, 10, 20, 50, 100, 200, 500, 1000],
-          labels = [];
-
-      // loop through our density intervals and generate a label with a colored square for each interval
-      for (var i = 0; i < grades.length; i++) {
-          div.innerHTML +=
-              '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-              grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-      }
-
-      return div;
-  };
-
-  legend.addTo(map);
-
-
-}
-function getColor(d) {
-    return d > 1000 ? '#800026' :
-           d > 500  ? '#BD0026' :
-           d > 200  ? '#E31A1C' :
-           d > 100  ? '#FC4E2A' :
-           d > 50   ? '#FD8D3C' :
-           d > 20   ? '#FEB24C' :
-           d > 10   ? '#FED976' :
-                      '#FFEDA0';
-}
-
-function hex2rgb(hex) {
-  // long version
-  r = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if (r) {
-    return r.slice(1,4).map(function(x) { return parseInt(x, 16); });
-  }
-  // short version
-  r = hex.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
-  if (r) {
-    return r.slice(1,4).map(function(x) { return 0x11 * parseInt(x, 16); });
-  }
-  return null;
-}
-function addIcons(dp,map,map2) {
-  var circle,circle2;
-  var iconColor, iconColorRGB, iconName;
-  var colorScale = dp.scale;
-  let hash = getHash();
-
-  dp.data.forEach(function(element) {
-    // Add a lowercase instance of each column name
-    var key, keys = Object.keys(element);
-    var n = keys.length;
-    //var element={};
-    while (n--) {
-      key = keys[n];
-      element[key.toLowerCase()] = element[key];
-    }
-
-    if (dp.color) {
-      iconColor = dp.color;
-    } else if (dp.colorColumn) {
-      iconColor = colorScale(element[dp.colorColumn]);
-    } else if (dp.valueColumn) {
-      // If the valueColumn = type, the item column my be filtered. For PPE the item contains multiple types.
-
-      //console.log("dp.valueColumn: " + dp.valueColumn);
-      //console.log("dp.valueColumn value: " + element[dp.valueColumn]);
-      //console.log("dp.valueColumn value Type: " + element["Type"]);
-      //console.log("dp.valueColumn value Category: " + element["Category"]);
-      iconColor = colorScale(element[dp.valueColumn]);
-    } else {
-      iconColor = "blue";
-    }
-    
-
-    //console.log("element state " + element.state + " iconColor: " + iconColor)
-    if (typeof dp.latColumn == "undefined") {
-      dp.latColumn = "lat";
-    }
-    if (typeof dp.lonColumn == "undefined") {
-      dp.lonColumn = "lon";
-    }
-
-    iconColorRGB = hex2rgb(iconColor);
-    iconName = dp.iconName;
-    if (typeof L === 'undefined') {
-      if (location.host.indexOf('localhost') >= 0) {
-        alert("Leaflet L not yet loaded");
-      }
-    } else if (typeof L.IconMaterial === 'undefined') {
-      if (location.host.indexOf('localhost') >= 0) {
-        alert("Leaflet L.IconMaterial undefined = leaflet.icon-material.js not loaded");
-      }
-    }
-    var busIcon = L.IconMaterial.icon({ /* Cannot read property 'icon' of undefined = leaflet.icon-material.js not loaded */
-      icon: iconName,            // Name of Material icon - star
-      iconColor: '#fff',         // Material icon color (could be rgba, hex, html name...)
-      markerColor: 'rgba(' + iconColorRGB + ',0.7)',  // Marker fill color
-      outlineColor: 'rgba(' + iconColorRGB + ',0.7)', // Marker outline color
-      outlineWidth: 1,                   // Marker outline width 
-    })
-
-    let name = element.name;
-    if (element[dp.nameColumn]) {
-      name = element[dp.nameColumn];
-    } else if (element.title) {
-      name = element.title;
-    }
-
-    //alert(element["plant_or_group"]["latitude"]);
-
-    if (dp.latColumn.includes(".")) { // ToDo - add support for third level
-      element[dp.latColumn] = element[dp.latColumn.split(".")[0]][dp.latColumn.split(".")[1]];
-      element[dp.lonColumn] = element[dp.lonColumn.split(".")[0]][dp.lonColumn.split(".")[1]];
-    }
-    if (!element[dp.latColumn] || !element[dp.lonColumn]) {
-      console.log("Missing lat/lon: " + name);
-      return;
-    }
-    // Attach the icon to the marker and add to the map
-    //L.marker([element[dp.latColumn], element[dp.lonColumn]], {icon: busIcon}).addTo(map)
-
-    if (dp.markerType == "google") {
-        if (1==2 && param["show"] != "suppliers" && (location.host == 'georgia.org' || location.host == 'www.georgia.org')) {
-          // Show an old-style marker when Google Material Icon version not supported
-          circle = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group);
-          circle2 = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group2);
-        } else {
-          //if (!dp.showShapeMap) {
-            // If this line returns an error, try setting dp1.latColumn and dp1.latColumn to the names of your latitude and longitude columns.
-            circle = L.marker([element[dp.latColumn], element[dp.lonColumn]], {icon: busIcon}).addTo(dp.group); // Works, but not in Drupal site.
-            //circle2 = L.marker([element[dp.latColumn], element[dp.lonColumn]], {icon: busIcon}).addTo(dp.group2);
-          //}
-          // Display a small circle on small side map2
-          circle2 = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
-                color: colorScale(element[dp.valueColumn]),
-                fillColor: colorScale(element[dp.valueColumn]),
-                fillOpacity: 1,
-                radius: markerRadius(1,map2) // was 50.  Aiming for 1 to 10
-            }).addTo(dp.group2);
-        }
-    } else {
-      circle = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
-                color: colorScale(element[dp.valueColumn]),
-                fillColor: colorScale(element[dp.valueColumn]),
-                fillOpacity: 1,
-                radius: markerRadius(1,map) // was 50.  Aiming for 1 to 10
-            }).addTo(dp.group);
-      circle2 = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
-                color: colorScale(element[dp.valueColumn]),
-                fillColor: colorScale(element[dp.valueColumn]),
-                fillOpacity: 1,
-                radius: markerRadius(1,map2) // was 50.  Aiming for 1 to 10
-            }).addTo(dp.group2);
-    }
-
-    // MAP POPUP
-    var output = "<b>" + name + "</b><br>";
-    if (element.description) {
-      output += element.description + "<br>";
-    } else if (element.description) {
-      output += element.description + "<br>";
-    } else if (element["business description"]) {
-      output += element["business description"] + "<br>";
-    }
-    if (element[dp.addressColumn]) {
-      output +=  element[dp.addressColumn] + "<br>";
-    } else if (element.address || element.city || element.state || element.zip) { 
-      if (element.address) {
-        output += element.address + "<br>";
-      } else {
-        if (element.city) {
-          output += element.city;
-        }
-        if (element.state || element.zip) {
-          output += ", ";
-        }
-        if (element.state) {
-          output += element.state + " ";
-        }
-        if (element.zip) {
-          output += element.zip;
-        }
-        output += "<br>";
-      }
-    }
-
-    if (element.phone || element.phone_afterhours) {
-      if (element.phone) {
-        output += element.phone + " ";
-      }
-      if (element.phone_afterhours) {
-       output += element.phone_afterhours;
-      }
-      output += "<br>";
-    }
-    if (element[dp.valueColumn]) {
-      if (dp.valueColumnLabel) {
-        output += "<b>" + dp.valueColumnLabel + ":</b> " + element[dp.valueColumn].replace(/,/g,", ") + "<br>";
-      } else if (element[dp.valueColumn] != element.name) {
-        output += element[dp.valueColumn].replace(/,/g,", ") + "<br>";
-      }
-    }
-    if (element[dp.showKeys]) {
-      output += "<b>" + dp.showLabels + ":</b> " + element[dp.showKeys] + "<br>";
-    }
-    if (element.schedule) {
-      output += "Hours: " + element.schedule + "<br>";
-    }
-    if (element.items) {
-      output += "<b>Items:</b> " + element.items + "<br>";
-    }
-
-    if (element.website && !element.website.toLowerCase().includes("http")) {
-        element.website = "http://" + element.website;
-    }
-    if (element.website) {
-      if (element.website.length <= 50) {
-        output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a>";
-      } else {
-        // To Do: Display domain only
-        output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a>"; 
-      }
-    }
-    if (dp.listLocation != false) {
-      if (element[dp.latColumn]) {
-        if (element.website) {
-          output += " | ";
-        }
-        //console.log("latitude2: " + dp.latColumn + " " + element.latitude);
-        //output += "<div class='detail' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "'>Zoom In</div> | ";
-        output += "<a href='https://www.waze.com/ul?ll=" + element[dp.latColumn] + "%2C" + element[dp.lonColumn] + "&navigate=yes&zoom=17'>Waze Directions</a><br>";
-      }
-    } else if (element.website) {
-      output += "<br>";
-    }
-    if (dp.distance) {
-      output += "distance: " + dp.distance + "<br>";
-    }
-
-    element.mapframe = getMapframe(element);
-    if (element.mapframe) {
-      output += "<a href='#show=360&m=" + element.mapframe + "'>Birdseye View<br>";
-    }
-    if (element.property_link) {
-      output += "<a href='" + element.property_link + "'>Property Details</a><br>";
-    } else if (element[dp.nameColumn] || element["name"]) {
-      let entityName = element[dp.nameColumn] || element["name"];
-      entityName = entityName.replace(/\ /g,"_").replace(/'/g,"\'")
-      output += "<a onclick='goHash({\"name\":\"" + entityName + "\"}); return false;' href='#show=" + hash.show + "&name=" + entityName + "'>View Details</a><br>";
-    }
-    // ADD POPUP BUBBLES TO MAP POINTS
-    if (circle) {
-      circle.bindPopup(output);
-    }
-    circle2.bindPopup(output);
-
-    /*
-    map.on('zoomend', function() {
-      console.log('zoomend',map.getZoom())
-      circle.setRadius(markerRadius(1,map));
-    });
-    */
-
-  });
-
-  // Also see community-forecasting/map/leaflet/index.html for sample of svg layer that resizes with map
-  map.on('zoomend', function() { // zoomend
-    //L.layerGroup().eachLayer(function (marker) {
-    dp.group.eachLayer(function (marker) { // This hits every point individually. A CSS change might be less script processing intensive
-      //console.log('zoom ' + map.getZoom());
-      if (marker.setRadius) {
-        // Only reached when circles are used instead of map points.
-        marker.setRadius(markerRadius(1,map));
-      }
-    });
-
-
-    //if (map.getZoom() === 15)  {
-    //alert(map.getZoom()) 
-    
-    // NOTE - This will get called for each layer
-    //alert("zoomed"); // Occurs twice
-    var elements = document.getElementsByClassName('l-icon-material');
-    for (var i=0, max=elements.length; i < max; i++) {
-      //elements[i].style.backgroundColor = "transparent"; // "rgba(0, 0, 0, 0)";
-
-      if (map.getZoom() >= 9)  {
-        elements[i].style.marginTop = "-42px"; // Move circle to default when mappoint shape displayed.
-        elements[i].childNodes[0].style.opacity = 1; // The path within SVG. Show mappoint shape around circle with icon. Undoes custom hide in leaflet.icon-material.js line 57.
-      } else {
-        elements[i].style.marginTop = "-14px"; // Move circle down when mappoint shape not displayed.
-        elements[i].childNodes[0].style.opacity = 0;
-      }
-      //elements[i].child.style.opacity = 1;
-      // path.setAttribute('opacity', 0);
-
-      //elements[i].style.fillOpacity = 0;
-      //elements[i].style.opacity = 0; // works
-      //elements[i].style.width      = 6; // works sorta - crops
-
-      //elements[i].style.display = "none"; // works
-      //elements[i].style.width      = 16;
-      //elements[i].style.height     = 20;
-      //elements[i].style.marginLeft = 8;
-      //elements[i].style.marginTop  = 22;
-    }
-    
-
-
-  });
-  map2.on('zoomend', function() { // zoomend
-    // Resize the circle to avoid large circles on close-ups
-    dp.group2.eachLayer(function (marker) { // This hits every point individually. A CSS change might be less processing intensive
-      //console.log('zoom ' + map.getZoom());
-      if (marker.setRadius) {
-        marker.setRadius(markerRadius(1,map2));
-      }
-    });
-    $(".leaflet-interactive").show();
-  });
-  map2.on('zoom', function() {
-    // Hide the circles so they don't fill screen. Set small to hide.
-    $(".leaflet-interactive").hide();
-    $(".l-icon-material").show();
-  });
-
-  $('.detail').click(function() { // Provides close-up with map2
-      $("#sidemapCard").show(); // map2 - show first to maximize time tiles have to see full size of map div.
-
-      // Reduce the size of all circles - to do: when zoom is going in 
-      /* No effect
-      dp.group2.eachLayer(function (marker) { // This hits every point individually. A CSS change might be less script processing intensive
-        //console.log('zoom ' + map.getZoom());
-        if (marker.setRadius) {
-          console.log("marker.setRadius" + markerRadiusSmall(1,map2));
-          marker.setRadius(markerRadiusSmall(1,map2));
-        }
-      });
-      */
-      
-
-      //$('.detail').css("border","none");
-      //$('.detail').css("background-color","inherit");
-      //$('.detail').css("padding","12px 0 12px 4px");
-      $('.detail').removeClass("detailActive");
-
-      console.log("List detail click");
-      let locname = $(this).attr("name").replace(/ /g,"_");
-      updateHash({"name":locname});
-      $('#sidemapName').text($(this).attr("name"));
-
-      //$(this).css("border","1px solid #ccc");
-      //$(this).css("background-color","rgb(250, 250, 250)");
-      //$(this).css("padding","15px");
-      $(this).addClass("detailActive");
-      if ($(".detailActive").height() < 250) {
-        $("#changeHublistHeight").hide();
-      }
-      
-      var listingsVisible = $('#detaillist .detail:visible').length;
-      if (listingsVisible == 1 || hash.cat) {
-        $(".viewAllLink").show();
-      }
-
-      if ($(this).attr("latitude") && $(this).attr("longitude")) {
-        popMapPoint(dp, map2, $(this).attr("latitude"), $(this).attr("longitude"), $(this).attr("name"));
-      } else {
-        $("#sidemapCard").hide();
-      }
-      // Might reactivate scrolling to map2
-      /*
-      window.scrollTo({
-        top: $("#sidemapCard").offset().top - 140,
-        left: 0
-      });
-      */
-
-      $(".go_local").show();
-    }
-  );
-  $('.showItemMenu').click(function () {
-    $("#listingMenu").show();
-
-    $("#listingMenu").prependTo($(this).parent());
-
-    event.stopPropagation();
-    //$("#map").show();
-    // $(this).css('border', 'solid 1px #aaa');
-  });
-  $('.showLocMenu').click(function () {
-    $(".locMenu").show();
-    //event.stopPropagation();
-  });
-  $('#hideSideMap').click(function () {
-    $("#sidemapCard").hide(); // map2
-  });
-
-}
-
-function markerRadiusSmall(radiusValue,map) {
-  return .00001;
-}
-function markerRadius(radiusValue,map) {
-  //return 100;
-  // Standard radiusValue = 1
-  let mapZoom = map.getZoom();
-  let smallerWhenClose = 30;
-  if (mapZoom >= 4) { smallerWhenClose = 10};
-  if (mapZoom >= 5) { smallerWhenClose = 9};
-  if (mapZoom >= 6) { smallerWhenClose = 8.5};
-  if (mapZoom >= 8) { smallerWhenClose = 6};
-  if (mapZoom >= 9) { smallerWhenClose = 3};
-  if (mapZoom >= 10) { smallerWhenClose = 2};
-  if (mapZoom >= 11) { smallerWhenClose = 1.8};
-  if (mapZoom >= 12) { smallerWhenClose = 1.4};
-  if (mapZoom >= 13) { smallerWhenClose = 1};
-  if (mapZoom >= 14) { smallerWhenClose = .8};
-  if (mapZoom >= 15) { smallerWhenClose = .4};
-  if (mapZoom >= 17) { smallerWhenClose = .3};
-  if (mapZoom >= 18) { smallerWhenClose = .2};
-  if (mapZoom >= 20) { smallerWhenClose = .1};
-  if ($(window).width() < 600) {
-    smallerWhenClose = smallerWhenClose * 3; // Larger dots for clicking on mobile
-  }
-  let radiusOut = ((radiusValue * 2000) / mapZoom) * smallerWhenClose;
-
-  //console.log("mapZoom:" + mapZoom + " radiusValu:" + radiusValue + " radiusOut:" + radiusOut);
-  return radiusOut;
-}
 
 // MAP 1
 // var map1 = {};
 var showprevious = param["show"];
-
 var tabletop; // Allows us to wait for tabletop to load.
 
-function zoomFromKm(kilometers_wide) {
-  //alert(kilometers_wide) // undefined for the 1st of 3.
-  let zoom = 5;
-  if (!kilometers_wide) return zoom;
-  if (kilometers_wide > 1000000) { // Alaska
-    zoom = 4
-  } else if (kilometers_wide > 600000) { // Texas
-    zoom = 5
-  } else if (kilometers_wide > 105000) { // Hawaii and Idaho
-    zoom = 6
-  }
-  return zoom;
-}
 function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe still index.html, map-embed.js
 
   console.log('loadMap1 calledBy ' + calledBy + ' show: ' + show);
@@ -1698,9 +375,10 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
               
       } else if (show == "360") {
         dp.listTitle = "Birdseye Views";
-        //  https://model.earth/community-data/us/state/GA/VirtualTourSites.csv
         dp.dataset =  local_app.custom_data_root() + "360/GeorgiaPowerSites.csv";
-
+        dp.search = {"In Dataset Name": "name", "In City": "CITY", "In Property URL": "property_link"};
+        dp.color = "#ff9819"; // orange - Since there is no type column. An item column is filtered.
+        dp.markerType = "google";
       } else if (show == "dmap") {
         dp.listTitle = "Georgia Map";
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPe-t3GBhimUV6JN62lLmtpZ5XsmLDXPusjOfrJ-_tW7BZlVrvcVT4oLFXtAtRX79WSAgVQe9zK2Ik/pub?gid=0&single=true&output=csv";
@@ -1721,6 +399,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
       } else if (show == "recyclers") {
         dp.listTitle = "Georgia B2B Recyclers";
+        dp.dataTitle = "B2B Recyclers";
         dp.adminNote = "maps.g";
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=1924677788&single=true&output=csv";
         dp.googleCategories = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=381237740&single=true&output=csv";
@@ -1734,16 +413,38 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.catColumn = "Category";
         dp.subcatColumn = "Materials Accepted";
         dp.itemsColumn = "Materials Accepted"; // Needs to remain capitalized. Equivalent to PPE items column, checkboxes
+        dp.color = "#E31C79"; // When no category
 
+        dp.markerType = "google";
         // https://map.georgia.org/recycling/
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
         dp.listInfo = "<a href='https://map.georgia.org/recycling/'>Add Recycler Listings</a> or post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.&nbsp; View&nbsp;<a href='../map/recycling/ga/'>Recycling&nbsp;Datasets</a>.";
         dp.search = {"In Main Category": "Category", "In Materials Accepted": "Materials Accepted", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
-      } else if (show == "cameraready") {
-        dp.listTitle = "Cameraready";
+      
+      } else if (show == "cameraready-locations") {
+        dp.listTitle = "CameraReady Film Locations";
+        dp.dataTitle = "Filming Locations";
         dp.datatype = "json";
         dp.dataset = "https://raw.githubusercontent.com/GeorgiaFilm/cameraready_locations_curl/main/cameraready.json";
+        //dp.color = "#548d1a"; // green
+        dp.markerType = "google";
+        dp.filters = {tag:"Locations"}; // Supports comma separated values
+        dp.showKeys = "hours_saturday";
+        dp.showLabels = "Saturday";
+        dp.search = {"In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website", "Type": "tag"};
+        
+      } else if (show == "cameraready") {
+        dp.listTitle = "CameraReady County Liaisons";
+        dp.dataTitle = "CameraReady Liaisons";
+        dp.datatype = "json";
+        dp.dataset = "https://raw.githubusercontent.com/GeorgiaFilm/cameraready_locations_curl/main/cameraready.json";
+        dp.color = "#ff9819"; // orange - Since there is no type column. An item column is filtered. To do: Pull types from a tab and relate to the first type in each column.
+        dp.markerType = "google";
+        dp.filters = {tag:"Liaisons"}; // Supports comma separated values
+        dp.search = {"In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website", "Type": "tag"};
+        
       } else if (1==2 && (show == "recycling" || show == "transfer" || show == "recyclers" || show == "inert" || show == "landfills")) { // recycling-processors
+        // NOT USED - LOOK ABOVE
         if (hash.state == "GA") {
           dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
           //dp.googleDocID = "1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY";
@@ -1756,7 +457,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
           } else if (show == "recyclers") {
             dp.listTitle = "Georgia Companies that Recycle During Manufacturing";
             dp.sheetName = "Manufacturer Recyclers";
-            dp.valueColumn = "category"; // Bug - need to support uppercase too.
+            dp.valueColumn = "category"; // Bug - need to support uppercase too. Also, most don't have a Category value
             dp.valueColumnLabel = "Recycles";
           } else if (show == "landfills") {
             dp.listTitle = "Georgia Landfills";
@@ -1808,7 +509,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         //dp.dataset = "https://model.earth/georgia-data/automotive/automotive.csv";
         dp.datastates = "GA";
         // Dark green map points indicate electric vehicle parts manufacturing.<br>
-        dp.listInfo = "From 2020 to 2022 Georgia added more than 20 EV-related projects. <a href='https://www.georgiatrend.com/2022/07/29/electric-revolution/'>Learn&nbsp;more</a><br>Dark Green: Electric Vehicle (EV) Industry<br>Dark Blue: Internal Combustion Engine (ICE)<br>Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates.<br><a href='/localsite/info/input/'>Contact Us</a> to help maintain the sheet directly. Learn about <a href='../../community/projects/mobility/'>data sources</a>.";
+        dp.listInfo = "From 2020 to 2022 Georgia added more than 20 EV-related projects. <a href='https://www.georgiatrend.com/2022/07/29/electric-revolution/'>Learn&nbsp;more</a><br>Dark Green: Electric Vehicle (EV) Industry<br>Dark Blue: Internal Combustion Engine (ICE)<br>Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates.<br><a href='/localsite/info/input/'>Contact Us</a> to help maintain the sheet directly. Learn about <a href='../../community/projects/mobility/'>data&nbsp;sources</a>.";
         dp.valueColumn = "ev industry";
         dp.valueColumnLabel = "EV Industry";
         dp.markerType = "google";
@@ -1889,7 +590,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.dataset = "https://map.georgia.org/display/products/suppliers/us_ga_suppliers_ppe_2021_08_09.csv";
 
         //dp.dataTitle = "Manufacturers and Distributors";
-        dp.dataTitle = "PPE Suppliers";
+        dp.dataTitle = "PPE Suppliers"; // Appears in thumb menu.
         dp.itemsColumn = "items";
         dp.valueColumn = "type";
         dp.valueColumnLabel = "Type";
@@ -2028,7 +729,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
   hash = getHash();
   if (hash.geo) {
     loadGeos(hash.geo,0,function(results) {
-      loadFromSheet('map1','map2', dp, basemaps1, basemaps2, 0, function(results) {
+      loadFromSheet('map1','map2', dp, basemaps1, basemaps2, 1, function(results) {
         initialHighlight(hash);
       });
     });
@@ -2040,7 +741,7 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
       $(".locationTabText").text($("#state_select").find(":selected").text());
       $(".locationTabText").attr("title",$("#state_select").find(":selected").text());
     }
-    loadFromSheet('map1','map2', dp, basemaps1, basemaps2, 0, function(results) {
+    loadFromSheet('map1','map2', dp, basemaps1, basemaps2, 1, function(results) {
       initialHighlight(hash);  
     });
   }
@@ -2066,8 +767,9 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
 }
 function initialHighlight(hash) {
+  // When is this called - not for list highlight
   if (hash.name) {
-    let locname = hash.name.replace(/_/g," ");
+    let locname = hash.name.replace(/_/g," ").replace(/ & /g,' AND ');
 
     // console.log("Auto select the first location in list")
     //$("#detaillist > [name='"+locname+"']" ).trigger("click");
@@ -2089,7 +791,6 @@ function initialHighlight(hash) {
     }
   }
 }
-
 jQuery.fn.scrollTo = function(elem) {
 
     // BUG Reactivate test with http://localhost:8887/localsite/info/#show=ppe&name=Code_the_South
@@ -2103,24 +804,18 @@ jQuery.fn.scrollTo = function(elem) {
     */
 };
 
-function onTabletopLoad(dp1) {
-  //createDocumentSettings(tabletop.sheets(constants.informationSheetName).elements); // Custom - remove
-  // Custom
-  documentSettings = {
-
-  }
-
-  var points = tabletop.sheets(dp1.sheetName).elements;
-  //var layers = determineLayers(points);
-  if (documentSettings["Map Type:"] === 'Heatmap') {
-    //mapHeatmap(points);
-  } else {
-    //mapPoints(points, layers);
-    //displayListVax(points, layers);
-  }
-  //console.log(points)
-}
-
+$(document).on("click", "#show_county_colors", function(event) {
+  let hash = getHash();
+  let layerName = hash.state.split(",")[0].toUpperCase() + " Counties";
+  overlays[layerName].eachLayer(function (layer) {  
+    //if(layer.feature.properties.COUNTYFP == '121') { // Fulton County
+      layer.setStyle({fillColor :'blue', fillOpacity:.5 }) 
+      // Or call a function:
+      // layer.setStyle(function...)
+    //}
+  });
+  //alert("done"); // Occurs before layers above appear.
+});
 
 
 function loadGeos(geo, attempts, callback) {
@@ -2248,8 +943,8 @@ function getMapframe(element) {
 }
 
 function showList(dp,map) {
-  
-  console.log("Call showList for " + dp.dataTitle + " list")
+  console.log("Call showList for " + dp.dataTitle + " list");
+  //return; // Temp
   var iconColor, iconColorRGB;
   var colorScale = dp.scale;
   let count = 0
@@ -2265,6 +960,7 @@ function showList(dp,map) {
   var productcodes = "";
   var products_array = [];
   var productcode_array = [];
+  let shortout = "";
 
   isObject = function(a) {
       return (!!a) && (a.constructor === Object);
@@ -2362,12 +1058,12 @@ function showList(dp,map) {
 
   if ($("#catSearch").val()) {
     products = $("#catSearch").val().replace(" AND ",";").toLowerCase().replace(allItemsPhrase,"");
-    products_array = products.split2(/\s*;\s*/);
+    products_array = products.split(/\s*;\s*/);
   }
   if ($("#productCodes").val()) {
     // For each product ID - Still to implement, copied for map-filters.js
     productcodes = $("#productCodes").val().replace(";",",");
-    productcode_array = productcodes.split2(/\s*,\s*/); // Removes space when splitting on comma
+    productcode_array = productcodes.split(/\s*,\s*/); // Removes space when splitting on comma
   }
 
   let selected_col = [];
@@ -2415,10 +1111,17 @@ function showList(dp,map) {
   console.log("showlist() VIEW DATA (dp.data) ")
   console.log(dp.data)
 
+  //alert("what1")
+    
+  let output = "";
+  let output_details = "";
+  let avoidRepeating = ["description","address","website","phone","email","email address","county","admin note","your name","organization name","cognito_id"];
+    
   dp.data.forEach(function(elementRaw) {
     count++;
     foundMatch = 0;
     productMatchFound = 0;
+    let filterMatchFound = true;
 
     if (count > 4000) {
         return;
@@ -2452,6 +1155,7 @@ function showList(dp,map) {
 
     // count "filtered" populated for active rows only
     if (localObject.layerCategories[dp.show] && localObject.layerCategories[dp.show].length >= 0) {
+
       if (elementRaw[dp.catColumn].length > 0 && elementRaw[dp.catColumn] == hash.cat) {
         if (dp.subcatColumn && elementRaw[dp.subcatColumn].length <= 0) {
           subcatObject["null"].count = subcatObject["null"].count + 1;
@@ -2475,6 +1179,53 @@ function showList(dp,map) {
           });
         }
       }
+    }
+
+    // Filter by object containing a set of keys and their possible values
+    if (dp.filters) {
+      filterMatchFound = false;
+      $.each(dp.filters, function(index,value) {
+        if (typeof value == 'string' && value.length >= 0) {
+          //console.log("value " + value);
+          let value_array = value.split(/\s*,\s*/); // Removes space when splitting possible values on comma
+          for(let i = 0; i < value_array.length; i++) {
+            if (value_array[i].length > 0) {
+              //console.log("dp.filters key: " + index + " value " + value_array[i]);
+              if (elementRaw[index] == value_array[i]) {
+                //console.log("found match dp.filters key: " + index + " value " + value_array[i]);
+                filterMatchFound = true;
+              }
+            }
+          }
+        }
+      });
+
+      /*
+      if (elementRaw[dp.filterKeys].length > && elementRaw[dp.filterValues].length > 0) {
+        if (dp.subcatColumn && elementRaw[dp.subcatColumn].length <= 0) {
+          subcatObject["null"].count = subcatObject["null"].count + 1;
+        } else {
+
+          // Should we walk on the current subcatObject?
+          console.log(localObject.layerCategories[dp.filterKeys])
+          $.each(localObject.layerCategories[dp.show], function(index,value) {
+            console.log("value.SubCategory: " + value.SubCategory);
+            //console.log(subcatObject[value.SubCategory]);
+            if (subcatObject[value.SubCategory] == elementRaw[dp.subcatColumn]) {
+              
+              subcatObject[value.SubCategory].count = subcatObject[value.SubCategory].count + 1;
+              subcatObject[value.SubCategory].count = 12345;
+              console.log(subcatObject[value.SubCategory]);
+              //alert(subcatObject[value.Category].count)
+            }
+          });
+        }
+      }
+      */
+
+    }
+    if (!filterMatchFound) {
+      return; // Go to next in foreach
     }
 
     //if (keyword.length > 0 || products_array.length > 0 || productcode_array.length > 0) {
@@ -2591,12 +1342,12 @@ function showList(dp,map) {
 
           //console.log("foundMatch " + foundMatch)
           //if (1==2) { // Not yet tested here
-            console.log("Check if listing's product HS codes match.");
+            //console.log("Check if listing's product HS codes match.");
             for(var pc = 0; pc < productcode_array.length; pc++) { 
               if (productcode_array[pc].length > 0) {
                 if (isInt(productcode_array[pc])) { // Int
                   //var codesArray = $(this.childNodes[3]).text().replace(";",",").split(/\s*,\s*/);
-                  var codesArray = dataSet[i][5].toString().replace(";",",").split2(/\s*,\s*/);
+                  var codesArray = dataSet[i][5].toString().replace(";",",").split(/\s*,\s*/);
                   for(var j = 0; j < codesArray.length; j++) {
                     if (isInt(codesArray[j])) {
                       if (codesArray[j].startsWith(productcode_array[pc])) { // If columns values start with search values.
@@ -2645,13 +1396,11 @@ function showList(dp,map) {
         }
       }
     }
-
     var key, keys = Object.keys(elementRaw);
     var n = keys.length;
     var element={};
-    let output = "";
-    let output_details = "";
-    let avoidRepeating = ["description","address","website","phone","email","email address","county","admin note","your name","organization name","cognito_id"];
+    output_details = ""; // Reuse for each row
+
     while (n--) {
       key = keys[n];
       //element[key] = elementRaw[key]; // Also keep uppercase for element["Prepared"]
@@ -2666,9 +1415,12 @@ function showList(dp,map) {
     }
 
     iconColor = colorScale(element[dp.valueColumn]);
-    if (dp.color) { 
+    if (!iconColor && dp.color) { 
       iconColor = dp.color;
+    } else if (!iconColor && !dp.color) { 
+      iconColor = "#777"; // Grey - for side category list
     }
+
     //iconColorRGB = hex2rgb(iconColor);
     //console.log("element state2 " + element.state + " iconColor: " + iconColor)
 
@@ -2766,239 +1518,285 @@ function showList(dp,map) {
           element[dp.lonColumn] = element[dp.lonColumn.split(".")[0]][dp.lonColumn.split(".")[1]];
         }
 
-        // Hide all until displayed after adding to dom
-        if (element[dp.latColumn] && element[dp.lonColumn]) {
-          output += "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "'>";
-        } else {
-          output += "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "'>";
+        let bulletColor = "#E31C79"; // Hot pink
+        if (dp.color) {
+          bulletColor = dp.color;
+        }
+        if (dp.valueColumn && element[dp.valueColumn]) {
+          let bulletColorFromColorScale = colorScale(element[dp.valueColumn]);
+          if (bulletColorFromColorScale != undefined) {
+            bulletColor = bulletColorFromColorScale;
+          }
         }
 
-        output += "<div class='showItemMenu' style='float:right'>&mldr;</div>"; 
-        output += "<div style='padding-bottom:4px'><div style='width:15px;height:15px;margin-right:6px;margin-top:8px;background:" + colorScale(elementRaw[dp.valueColumn]) + ";float:left'></div>";
+        // Hide all until displayed after adding to dom
+        if (element[dp.latColumn] && element[dp.lonColumn]) {
+          output += "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "' color='" + bulletColor + "'>";
+        } else {
+          output += "<div style='display:none' class='detail' name='" + name.replace(/'/g,'&#39;') + "' color='" + bulletColor + "'>";
+        }
+
+        if (element.photo1) {
+          // unique data-id used by buildSwiperSlider to init multiple sliders.
+          // Might not need id
+          output += "<div class='swiper-container' id='swiper" + count + "' data-id='swiper" + count + "'><div class='swiper-wrapper'><div class='swiper-slide'>";
+          output += "<img style='width:100%;max-width:800px' class='swiper-lazy' data-src='" + element.photo1 + "'>";
+          output += "</div></div></div>";
+        }
+
+        output += "<div class='showItemMenu' style='float:right'>&mldr;</div>";
+
+        //console.log("dp.valueColumn 1 " + element[dp.valueColumn]); // Works, but many recyclers have blank Category value.
+        //console.log("dp.valueColumn 3 " + element["category"]); // Lowercase required (basing on recyclers)
+
+        output += "<div style='padding-bottom:4px;float:left'><div style='width:15px;height:15px;margin-right:6px;background:" + bulletColor + ";float:left'></div></div>";
 
         //output += "<div style='position:relative'><div style='float:left;min-width:28px;margin-top:2px'><input name='contact' type='checkbox' value='" + name + "'></div><div style='overflow:auto'><div>" + name + "</div>";
                   
-        //output += "<div style='overflow:auto'>";
-        
-        output += "<b style='font-size:20px; font-weight:400; color:#333;'>" + name + "</b></div>";
-        if (element[dp.description]) {
-          output += "<div style='padding-bottom:8px'>" + element[dp.description] + "</div>";
-        } else if (element.description) {
-          output += "<div style='padding-bottom:8px'>" + element.description + "</div>";
-        } else if (element["business description"]) {
-          output += "<div style='padding-bottom:8px'>" + element["business description"] + "</div>";
-        }
+        output += "<div style='overflow:auto'>";
 
-        // Lower
-        output += "<div style='font-size:0.95em;line-height:1.5em'>";
+          output += "<div class='detailTitle'>" + name + "</div>";
+          if (element[dp.description]) {
+            output += "<div style='padding-bottom:8px'>" + element[dp.description] + "</div>";
+          } else if (element.description) {
+            output += "<div style='padding-bottom:8px'>" + element.description + "</div>";
+          } else if (element["business description"]) {
+            output += "<div style='padding-bottom:8px'>" + element["business description"] + "</div>";
+          }
 
-        if (element.items) {
-          output += "<b>Items:</b> " + element.items + "<br>";
-        }
-        
-        if (element[dp.addressColumn]) { 
-            output +=  element[dp.addressColumn] + "<br>"; 
-        } else if (element.address || element.city || element.state || element.zip) {
-          output += "<b>Location:</b> ";
-          if (element.address) {
-            output += element.address + "<br>";
-          } else {
-            if (element.city) {
-              output += element.city;
+          // Lower
+          output += "<div style='clear:both;font-size:0.95em;line-height:1.5em'>";
+
+          if (element.items) {
+            output += "<b>Items:</b> " + element.items + "<br>";
+          }
+          
+          var outaddress = "";
+          if (element[dp.addressColumn]) { 
+              outaddress +=  element[dp.addressColumn] + "<br>"; 
+          } else if (element.address || element.city || element.state || element.zip) {
+            if (element.address) {
+              outaddress += element.address + "<br>";
+            } else {
+              if (element.city) {
+                outaddress += element.city;
+              }
+              if (element.state || element.zip) {
+                outaddress += ", ";
+              }
+              if (element.state) {
+                outaddress += element.state + " ";
+              }
+              if (element.zip) {
+                outaddress += element.zip;
+              }
+              if (element.city || element.state || element.zip) {
+                outaddress += "<br>";
+              }
             }
-            if (element.state || element.zip) {
-              output += ", ";
-            }
-            if (element.state) {
-              output += element.state + " ";
-            }
-            if (element.zip) {
-              output += element.zip;
-            }
-            if (element.city || element.state || element.zip) {
-              output += "<br>";
-            }
           }
-        }
-        if (element.county) {
-          output += '<b>Location:</b> ' + element.county + " County<br>";
-        }
-
-        if (element.website) {
-          if (element.website.length <= 50) {
-            output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a><br>";
-          } else {
-            // To Do: Display domain only
-            output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a><br>"; 
-          }
-        } else if (element.webpage) {
-          // Switch to calling Webpage, probably add linkify above.
-          output += '<b>Webpage:</b> ' + linkify(element.webpage + "<br>");
-        }
-        if (element.category1) {
-          output += "<b>Type:</b> " + element.category1 + "<br>";
-        }
-        if (element.district) {
-          output += "<b>District:</b> " + element.district + "<br>";
-        }
-        if (element.location) {
-          if (isObject(element.location)) {
-            // No need to display since Location is also proviced as a string in Brigade data
-            //output += "<b>Location Object:</b><br>" + element.location + "<br>";
-            //for (e in element.location){
-            //  output += "<div>" + e + ": " + element.location[e] + "</div>";
-            //}             
-          } else {
-            output += "<b>Location:</b> " + element.location + "<br>";
-          }
-        }
-        if (element.comments) {
-          output += element.comments + "<br>";
-        }
-        if (element.availability) {
-          output += element.availability + "<br>";
-        }
-        //output += element.name + " View Details<br>";
-
-        if (element.phone || element.phone_afterhours) {
-          if (element.phone) {
-            output += "<b>Phone:</b> " + element.phone + " ";
-          }
-          if (element.phone_afterhours) {
-           output += element.phone_afterhours;
-          }
-          output += "<br>";
-        }
-
-        if (element.schedule) {
-          output += "<b>Hours:</b> " + element.schedule + "<br>";
-        }
-        if (element["jobs range"]) {
-          output += "<b>Employees:</b> " + element["jobs range"] + "<br>";
-        } else if (element["jobs 2021"]) {
-          output += "<b>Employees:</b> " + element["jobs 2021"] + "<br>";
-        }
-
-        if (element[dp.valueColumn]) {
-          if (dp.valueColumnLabel) {
-            output += "<b>" + dp.valueColumnLabel + ":</b> " + element[dp.valueColumn] + "<br>";
-          } else if (element[dp.valueColumn] != element.name) {
-            output += element[dp.valueColumn] + "<br>";
-          }
-        }
-        if (element[dp.showKeys]) {
-          output += "<b>" + dp.showLabels + ":</b> " + element[dp.showKeys] + "<br>";
-        }
-
-        if(output_details) {
-          //output += "<br>Details:<br>" + output_details;
-          output += output_details;
-        }
-
-        output += "<div style='height:10px'></div>";
-        if (element.mapframe) {
-            output += "<a href='#show=360&m=" + element.mapframe + "'>Birdseye View<br>";
-        }
-        if (element.property_link) {
-            output += "<a href='" + element.property_link + "'>Property Details</a><br>";
-        }
-
-        var googleMapLink;
-        if (name.length || element.address || element.county) {
-          googleMapLink = name;
-          if (element.address) {
-            googleMapLink += ', ' + element.address;
+          if (outaddress) {
+            output += "<b>Location:</b> " + outaddress;
           }
           if (element.county) {
-            googleMapLink += ', ' + element.county + ' County';
+            output += '<b>Location:</b> ' + element.county + " County<br>";
           }
-          if (hash.state) {
-            googleMapLink += ', ' + hash.state;
-          }
-        }
-        if (googleMapLink) {
-          googleMapLink = 'https://www.google.com/maps/search/' + (googleMapLink).replace(/ /g,"+");
-        }
-        if (googleMapLink) {
-            output += '<a href="' + googleMapLink + '" target="_blank">Google Map</a>';
-        }
-        
-        if (hash.details != "true") {
-          if (hash.name) {
-            output += "&nbsp; | &nbsp;<a href='" + window.location + "&details=true'>Details</a>";
-          } else {
-            output += "&nbsp; | &nbsp;<a href='" + window.location + "&name=" + name.replace(/ /g,"+") + "&details=true'>Details</a>";
-          }
-        }
-        if (dp.editLink) {
-          if (googleMapLink) {
-            output += "&nbsp; | &nbsp;"
-          }
-          output += "<a href='" + dp.editLink + "' target='edit" + param["show"] + "'>Make Updates</a><br>";
-        }
-        
-        if (!element.mapable == "false" && !element.county && !(element[dp.latColumn] && element[dp.lonColumn])) {
-          if (!element[dp.lonColumn]) {
-            output += "<span>Add latitude and longitude</span><br>";
-          } else {
-            output += "<span>Add address or lat/lon values</span><br>";
-          }
-        }
 
-        //alert(dp.listLocation)
-        if (dp.listLocation != false) {
-          
-          if (element[dp.latColumn]) {
-              output += "<a href='https://www.waze.com/ul?ll=" + element[dp.latColumn] + "%2C" + element[dp.lonColumn] + "&navigate=yes&zoom=17'>Waze Directions</a>";
+          if (element.website) {
+            if (element.website.length <= 50) {
+              output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a><br>";
+            } else {
+              // To Do: Display domain only
+              output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a><br>"; 
+            }
+          } else if (element.webpage) {
+            // Switch to calling Webpage, probably add linkify above.
+            output += '<b>Webpage:</b> ' + linkify(element.webpage + "<br>");
           }
-        }
-
-        if (element.facebook) {
-          if (element.facebook.toLowerCase().indexOf('facebook.com') < 0) {
-            element.facebook = 'https://facebook.com/search/top/?q=' + element.facebook.replace(/'/g,'%27').replace(/ /g,'%20')
+          if (element.category1) {
+            output += "<b>Type:</b> " + element.category1 + "<br>";
           }
-          if (element[dp.latColumn] && dp.listLocation != false) {
-            output += " | ";
+          if (element.district) {
+            output += "<b>District:</b> " + element.district + "<br>";
           }
-          output += "<a href='" + element.facebook + "' target='_blank'>Facebook</a>";
-        }
-        if (element.twitter) {
-          if (element[dp.latColumn] || element.facebook) {
-            output += " | ";
-          }
-          output += "<a href='" + element.twitter + "' target='_blank'>Twitter</a>";
-        }
-        if ((element[dp.latColumn] && dp.listLocation != false) || element.facebook || element.twitter) {
-          output += "<br>";
-        }
-
-        if (element.county) {
-          //output += element.county + " County<br>";
-        }
-
-        
-        if (element.distance) {
-            output += "<b>Distance:</b> " + element.distance + " miles<br>"; 
-          
-        }
-
-        if (dp.skips) {
-          dp.skips = "," + dp.skips + ",";
-          for (i in element) {
-            if (element[i] != null && dp.skips.indexOf("," + i + ",") == -1) {
-              output += "<b>" + i + ":</b> " + element[i] + "<br>"; 
+          if (element.location) {
+            if (isObject(element.location)) {
+              // No need to display since Location is also proviced as a string in Brigade data
+              //output += "<b>Location Object:</b><br>" + element.location + "<br>";
+              //for (e in element.location){
+              //  output += "<div>" + e + ": " + element.location[e] + "</div>";
+              //}             
+            } else {
+              output += "<b>Location:</b> " + element.location + "<br>";
             }
           }
-        }
+
+          if (outaddress) { // Only listings with locations, for map points. 
+            // To do: Adjust so Google link is used when address but no latitude and longitude.
+            if (element[dp.latColumn] && element[dp.lonColumn]) {
+              shortout += "<div class='detail' name='" + name.replace(/'/g,'&#39;') + "' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "' color='" + bulletColor + "'>";
+            } else {
+              shortout += "<div class='detail' name='" + name.replace(/'/g,'&#39;') + "' color='" + bulletColor + "'>";
+            }
+            shortout += "<div class='detailTitle'>" + name + "</div>";
+            if (outaddress) {
+              shortout += "<div class='detailLocation'>" + outaddress + "</div>";
+            }
+            shortout += "</div>";
+          }
+
+          if (element.comments) {
+            output += element.comments + "<br>";
+          }
+          if (element.availability) {
+            output += element.availability + "<br>";
+          }
+          //output += element.name + " View Details<br>";
+
+          if (element.phone || element.phone_afterhours) {
+            if (element.phone) {
+              output += "<b>Phone:</b> " + element.phone + " ";
+            }
+            if (element.phone_afterhours) {
+             output += element.phone_afterhours;
+            }
+            output += "<br>";
+          }
+
+          if (element.schedule) {
+            output += "<b>Hours:</b> " + element.schedule + "<br>";
+          }
+          if (element["jobs range"]) {
+            output += "<b>Employees:</b> " + element["jobs range"] + "<br>";
+          } else if (element["jobs 2021"]) {
+            output += "<b>Employees:</b> " + element["jobs 2021"] + "<br>";
+          }
+
+          if (element[dp.valueColumn]) {
+            if (dp.valueColumnLabel) {
+              output += "<b>" + dp.valueColumnLabel + ":</b> " + element[dp.valueColumn] + "<br>";
+            } else if (element[dp.valueColumn] != element.name) {
+              output += element[dp.valueColumn] + "<br>";
+            }
+          }
+          if (element[dp.showKeys]) {
+            output += "<b>" + dp.showLabels + ":</b> " + element[dp.showKeys] + "<br>";
+          }
+
+          if(output_details) {
+            //output += "<br>Details:<br>" + output_details;
+            output += output_details;
+          }
+
+          output += "<div style='height:10px'></div>";
+          output += "<div class='detailLinks'>";
+            if (element.mapframe) {
+                output += "<a href='#show=360&m=" + element.mapframe + "'>Birdseye View<br>";
+            }
+            if (element.property_link) {
+                output += "<a href='" + element.property_link + "'>Property Details</a><br>";
+            }
+
+            var googleMapLink;
+            if (name.length || element.address || element.county) {
+              googleMapLink = name;
+              if (element.address) {
+                googleMapLink += ', ' + element.address;
+              }
+              if (element.county) {
+                googleMapLink += ', ' + element.county + ' County';
+              }
+              if (hash.state) {
+                googleMapLink += ', ' + hash.state;
+              }
+            }
+            if (googleMapLink) {
+              googleMapLink = 'https://www.google.com/maps/search/' + (googleMapLink).replace(/ /g,"+");
+            }
+            if (googleMapLink) {
+                output += '<a href="' + googleMapLink + '" target="_blank">Google Map</a>';
+            }
+            
+            if (hash.details != "true") {
+              if (hash.name) {
+                output += "&nbsp; | &nbsp;<a href='" + window.location + "&details=true'>Details</a>";
+              } else {
+                output += "&nbsp; | &nbsp;<a href='" + window.location + "&name=" + name.replace(/ & /g,' AND ').replace(/ /g,"+") + "&details=true'>Details</a>";
+              }
+            }
+            if (dp.editLink) {
+              if (googleMapLink) {
+                output += "&nbsp; | &nbsp;"
+              }
+              output += "<a href='" + dp.editLink + "' target='edit" + param["show"] + "'>Make Updates</a><br>";
+            }
+            
+            if (!element.mapable == "false" && !element.county && !(element[dp.latColumn] && element[dp.lonColumn])) {
+              if (!element[dp.lonColumn]) {
+                output += "<span>Add latitude and longitude</span><br>";
+              } else {
+                output += "<span>Add address or lat/lon values</span><br>";
+              }
+            }
+
+            //alert(dp.listLocation)
+            if (dp.listLocation != false) {
+              
+              if (element[dp.latColumn]) {
+                  output += "<a href='https://www.waze.com/ul?ll=" + element[dp.latColumn] + "%2C" + element[dp.lonColumn] + "&navigate=yes&zoom=17'>Waze Directions</a>";
+              }
+            }
+
+            if (element.facebook) {
+              if (element.facebook.toLowerCase().indexOf('facebook.com') < 0) {
+                element.facebook = 'https://facebook.com/search/top/?q=' + element.facebook.replace(/'/g,'%27').replace(/ /g,'%20')
+              }
+              if (element[dp.latColumn] && dp.listLocation != false) {
+                output += " | ";
+              }
+              output += "<a href='" + element.facebook + "' target='_blank'>Facebook</a>";
+            }
+            if (element.twitter) {
+              if (element[dp.latColumn] || element.facebook) {
+                output += " | ";
+              }
+              output += "<a href='" + element.twitter + "' target='_blank'>Twitter</a>";
+            }
+            if ((element[dp.latColumn] && dp.listLocation != false) || element.facebook || element.twitter) {
+              output += "<br>";
+            }
+
+            if (element.county) {
+              //output += element.county + " County<br>";
+            }
+
+            
+            if (element.distance) {
+                output += "<b>Distance:</b> " + element.distance + " miles<br>"; 
+              
+            }
+
+            if (dp.skips) {
+              dp.skips = "," + dp.skips + ",";
+              for (i in element) {
+                if (element[i] != null && dp.skips.indexOf("," + i + ",") == -1) {
+                  output += "<b>" + i + ":</b> " + element[i] + "<br>"; 
+                }
+              }
+            }
+          output += "</div>"; // detailLinks
 
         output += "</div>"; // End Lower
+        output += "</div>"; // End overflow:auto
         output += "</div>"; // End detail
         
         // Here display:none is used when listings are excluded. Do we use script to show these, or simply re-run the list?
-        $("#detaillist").append(output);
+        
       }
     }
   });
+
+  $("#detaillist").append(output);
   $("#detaillist").append("<div style='height:60px'></div>"); // For space behind absolute buttons at bottom.
 
   /*
@@ -3012,7 +1810,6 @@ function showList(dp,map) {
     $("#detaillist").prepend(subcatList);
   }
   */
-  $("#detaillist").prepend("<hr>");
   if (subcatObject["null"].count > 0) {
     $("#detaillist").prepend(hash.cat + " rows needing subcategory: " + subcatObject["null"].count);
   }
@@ -3021,23 +1818,38 @@ function showList(dp,map) {
   if (hash.show != showprevious || $("#tableSide > .catList").text().length == 0) { // Prevents selected category from being overwritten.
     renderCatList(catList);
   }
-  if (hash.name && $("#detaillist > [name='"+ hash.name.replace(/_/g,' ') +"']").length) {
-    let listingName = hash.name.replace(/_/g,' ');
+  if (hash.name && $("#detaillist > [name='"+ hash.name.replace(/_/g,' ').replace(/ AND /g,' & ') +"']").length) {
+    let listingName = hash.name.replace(/_/g,' ').replace(/ AND /g,' & ');
     $("#detaillist > [name='"+ listingName.replace(/'/g,'&#39;') +"']").show(); // To do: check if this or next line for apostrophe in name.
     $("#detaillist > [name='"+ listingName +"']").show();
     // Clickit
     setTimeout(function(){  
       $("#detaillist > [name='"+ listingName +"']" ).trigger("click"); // Not working to show close-up map
+      $("#detaillist > [name='"+ listingName +"']" ).removeClass("detailActive");
+      $("#detaillist > [name='"+ listingName +"']" ).addClass("detailCurrent");
+      $("#changeHublistHeight").hide(); // Since only one is being displayed
     }, 100);
   } else {
     $("#detaillist .detail").show(); // Show all
+    $("#changeHublistHeight").show();
   }
-    //$("#detaillist > [name='"+ name.replace(/'/g,'&#39;') +"']").show();
+    //$("#detaillist > [name='"+ name.replace(/'/g,'&#39;').replace(/& /g,'AND ') +"']").show();
 
-  // BUGBUG - May need to clear first to avoid multiple calls.
-  $('.detail').mouseover(
+  if(location.host.indexOf('localhost') >= 0) {
+
+    // For full list clone to side of map - may impact performance
+    //var $detailListClone = $('#detaillist').clone().prop('id', 'detailListClone');
+    //$('#mapList1').html($detailListClone);
+
+    // Alternative
+    $("#mapList1").append(shortout);
+  }
+
+  $('.detail').mouseenter(
       function() { 
-        //popMapPoint(dp, map, $(this).attr("latitude"), $(this).attr("longitude"));
+        // Triggered when rolling over list.
+        // TO DO: make mappoint bigger when rolling over list, but don't zoom until click.
+        popMapPoint(dp, map, $(this).attr("latitude"), $(this).attr("longitude"), $(this).attr("name"), $(this).attr("color"));
       }
   );
 
@@ -3108,7 +1920,7 @@ function showList(dp,map) {
       }
       // We're not using "loc" yet, but it seems better than using id to avoid conflicts.
       // Remove name from hash to trigger refresh
-      searchFor += " <span class='viewAllLink' style='display:none;'><a onclick='goHash({},[\"name\",\"loc\",\"cat\",\"subcat\"]); return false;' href='#show=" + param["show"] + "'>View All</a></span>";
+      searchFor += " <span class='viewAllLink' style='display:none;'><a onclick='goHash({},[\"name\",\"loc\",\"cat\",\"subcat\"]); return false;' href='#show=" + param["show"] + "'>Show All</a></span>";
 
       $("#dataList").html(searchFor);
       $("#resultsPanel").show();
@@ -3186,25 +1998,22 @@ var colorTheCountry = d3.scaleThreshold()
     .domain(d3.range(2, 1000000))
     .range(d3.schemeBlues[9]);
 
-function popMapPoint(dp, map, latitude, longitude, name) {
-  //return;
-  let center = [latitude,longitude];
+function popMapPoint(dp, map, latitude, longitude, name, color) {
+  // Place large icon on side map and zoom
 
-  // BUGBUG - causes map point on other map to temporarily disappear.
-  //map.flyTo(center, 15); // 19 in lake
+  if (!latitude || !longitude) {
+    console.log("No latitude or longitude for " + name)
+    return;
+  }
+  console.log("popMapPoint for: " + name);
 
-  // Because flyTo causes points on other map to disappear
-  map.setView(center, 11);
+  // TODO: Remove prior red highlighted markers
 
   // Add a single map point
   var iconColor, iconColorRGB, iconName;
   var colorScale = dp.scale;
 
-  iconColor = "#440";
-  if (dp.color) {
-    iconColor = dp.color;
-  }
-  iconColorRGB = hex2rgb(iconColor);
+  iconColorRGB = hex2rgb(color);
   iconName = dp.iconName;
   var busIcon = L.IconMaterial.icon({
     icon: iconName,            // Name of Material icon - star
@@ -3219,10 +2028,16 @@ function popMapPoint(dp, map, latitude, longitude, name) {
   // Attach the icon to the marker and add to the map
   //dp.group2 = 
 
-  // To do: Make this point clickable. Associate popup somehow.
+  // To do: Make this point clickable. Associate popup somehow. OR allow click to pass through to mappoint below.
+  // Currently appears on map1
   circle = L.marker([latitude,longitude], {icon: busIcon}).addTo(map)
-  circle.bindPopup(name);
 
+  // Temp - shows name only
+  circle.bindPopup(name + " &nbsp;");
+
+  // TO DO - send in output or other
+  //circle.bindPopup(L.popup({paddingTopLeft:[200,200]}).setContent(output));
+  //console.log("what2");
 
   //var markerGroup = L.layerGroup().addTo(map);
   //L.marker([latitude,longitude]).addTo(markerGroup);
@@ -3245,6 +2060,70 @@ function popMapPoint(dp, map, latitude, longitude, name) {
           }).addTo(dp.group);
   }
   */
+}
+function zoomMapPoint(dp, map, latitude, longitude, name, color) {
+  // Place large icon on side map and zoom
+
+  if (!latitude || !longitude) {
+    console.log("No latitude or longitude for " + name)
+    return;
+  }
+  console.log("zoomMapPoint for: " + name);
+
+  let center = [latitude,longitude];
+
+  // BUGBUG - causes map point on other map to temporarily disappear.
+  //map.flyTo(center, 15); // 19 in lake
+
+  // Because flyTo causes points on other map to disappear
+  // TODO IMPORTANT: Reactivate this for some clicks, but not rollover.
+  map.setView(center, 11);
+
+  // Add a single map point - RED, uses a star Google Material Icon
+  var iconColor, iconColorRGB, iconName;
+  var colorScale = dp.scale;
+
+  iconColorRGB = hex2rgb(color);
+  iconName = dp.iconName;
+  /*
+  var busIcon = L.IconMaterial.icon({
+    icon: iconName,            // Name of Material icon - star
+    iconColor: '#fff',         // Material icon color (could be rgba, hex, html name...)
+    markerColor: 'rgba(' + iconColorRGB + ',0.7)',  // Marker fill color
+    outlineColor: 'rgba(' + iconColorRGB + ',0.7)', // Marker outline color
+    outlineWidth: 1,                   // Marker outline width 
+  })
+  */
+  //dp.group2.clearLayers();
+
+  // Attach the icon to the marker and add to the map
+  //dp.group2 = 
+
+  // To do: Make this point clickable. Associate popup somehow.
+  //circle = L.marker([latitude,longitude], {icon: busIcon}).addTo(map)
+  //circle.bindPopup(name + " &nbsp;");
+
+  //var markerGroup = L.layerGroup().addTo(map);
+  //L.marker([latitude,longitude]).addTo(markerGroup);
+
+  // Didn't work here
+  /*
+  if (dp.markerType == "google") {
+      if (location.host == 'georgia.org' || location.host == 'www.georgia.org') {
+        circle = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group);
+      } else {
+        // If this line returns an error, try setting dp1.latColumn and dp1.latColumn to the names of your latitude and longitude columns.
+        circle = L.marker([latitude,longitude], {icon: busIcon}).addTo(dp.group); // Works, but not in Drupal site.
+      }
+  } else {
+    circle = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
+              color: colorScale(element[dp.valueColumn]),
+              fillColor: colorScale(element[dp.valueColumn]),
+              fillOpacity: 1,
+              radius: markerRadius(1,map) // was 50.  Aiming for 1 to 10
+          }).addTo(dp.group);
+  }
+
   if (param["initial"] == "response") {
     if (dp.public == "Yes") {
       $(".suppliers_pre_message").hide();
@@ -3253,6 +2132,7 @@ function popMapPoint(dp, map, latitude, longitude, name) {
       $(".suppliers_pre_message").show();
     }
   }
+  */
 }
 
 // Scales: http://d3indepth.com/scales/
@@ -3277,6 +2157,8 @@ function getScale(data, scaleType, valueCol) {
     scale = d3.scaleOrdinal()
       .domain(data.map(function(d) { return d[valueCol]; }))
       .range(d3.schemePaired);
+      console.log("d3.schemePaired");
+      console.log(d3.schemePaired);
   }
   return scale;
 }
@@ -3381,7 +2263,7 @@ function removeWhiteSpaces (str) {
 
 
 var revealHeader = true;
-$('#sidecolumnContent a').click(function(event) {
+$('.sidecolumnLeft a').click(function(event) {
   revealHeader = false;
   /*
   setTimeout(function(){ 
@@ -3440,7 +2322,6 @@ var scrollItems = menuItems.map(function(){
 var topMenuHeight = 150;
 */
 
-
 var mapFixed = false;
 var previousScrollTop = $(window).scrollTop();
 $(window).scroll(function() {
@@ -3452,8 +2333,9 @@ $(window).scroll(function() {
     }
     $('#filterFieldsHolder').hide();
     $('.headerOffset').hide();
+    $('#headerbar').hide();
 
-    $('#sidecolumnContent').css("top","54px");
+    $('#sidecolumnLeft').css("top","54px");
     $('#showSide').css("top","7px");
 
     if (!$("#filterFieldsHolder").is(':visible')) { // Retain search filters space at top, unless they are already hidden
@@ -3462,50 +2344,74 @@ $(window).scroll(function() {
     
     revealHeader = true; // For next manual scroll
   } else if ($(window).scrollTop() > previousScrollTop) { // Scrolling Up
-    if ($(window).scrollTop() > previousScrollTop + 20) { // Scrolling Up fast
-      $("#headerLarge").addClass("headerLargeHide"); $('.headerbar').hide(); $('.headerOffset').hide(); $('#logoholderbar').show(); 
+    if ($('#headerbar').is(':visible')) {
+      if ($(window).scrollTop() > previousScrollTop + 20) { // Scrolling Up fast
+        // Switch to smaller header
 
-      // BUGBUG - occuring on initial reload when page is a little from top.
-      //$('#logoholderside').show();
-      //alert("load")
+        $("#headerLarge").addClass("headerLargeHide"); 
+        $('.headerbar').hide();
+        $('.headerOffset').hide();
+        $('#logoholderbar').show(); 
 
-      $("#filterFieldsHolder").addClass("filterFieldsHolderFixed");
-      if (param.showheader != "false") {
-        $('.showMenuSmNav').show(); 
-      }
-      //$('#filterFieldsHolder').hide();
-      $('.headerOffset').hide();
-      //alert("4")
-      $('#sidecolumnContent').css("top","54px");
-      $('#showSide').css("top","7px");
-      if (!$("#filterFieldsHolder").is(':visible')) { // Retain search filters space at top, unless they are already hidden
-        $('#headerLarge').hide();
+        // Hide right side menu
+        $("#rightTopMenuVisibility").hide();
+        // BUGBUG - occuring on initial reload when page is a little from top.
+        //$('#logoholderside').show();
+
+        if (!$("#filterFieldsHolder").hasClass("filterFieldsHidden")) {
+          $("#filterFieldsHolder").addClass("filterFieldsHolderFixed");
+          console.log("#filterFieldsHolder show");
+          $("#filterFieldsHolder").show();
+          if (param.showheader != "false") {
+            $('.showMenuSmNav').show(); 
+          }
+          $('.headerOffset').hide();
+          $('#headerbar').hide(); // Not working
+          $('#headerbar').addClass("headerbarhide");
+        }
+        
+        $('#sidecolumnLeft').css("top","54px");
+        //alert("#headerbar hide")
+        $('#showSide').css("top","7px");
+        if (!$("#filterFieldsHolder").is(':visible')) { // Retain search filters space at top, unless they are already hidden
+          $('#headerLarge').hide();
+        }
       }
     }
   } else { // Scrolling Down
-    if ($(window).scrollTop() < (previousScrollTop - 20)) { // Reveal if scrolling down fast
+    if ($(window).scrollTop() < (previousScrollTop - 20)) { // Reveal #headerLarge if scrolling down fast
       $("#headerLarge").removeClass("headerLargeHide"); $('.headerbar').show(); $('#logoholderbar').hide(); $('#logoholderside').hide();
       //$('#filterFieldsHolder').show();
       $("#filterFieldsHolder").removeClass("filterFieldsHolderFixed");
       if ($("#headerbar").length) {
         if (param.showheader != "false") {
           $('.headerOffset').show();
+          $('#headerbar').show();
+          $('#headerbar').removeClass("headerbarhide");
+          $('#local-header').show();
           $('.showMenuSmNav').hide();
         }
-        $('#sidecolumnContent').css("top","150px");
+        let headerFixedHeight = $("#headerbar").height(); // #headerLarge was too big at 150px
+        $('#sidecolumnLeft').css("top",headerFixedHeight + "px");
+        //$('#sidecolumnLeft').css("top","0px");
         $('#showSide').css("top","108px");
       }
       $('#headerLarge').show();
     } else if ($(window).scrollTop() == 0) { // At top
       $("#headerLarge").removeClass("headerLargeHide"); $('.headerbar').show(); $('#logoholderbar').hide(); $('#logoholderside').hide();
-      //$('#filterFieldsHolder').show();
+      // We avoid hiding #filterFieldsHolder here since we retain it if already open.
       $("#filterFieldsHolder").removeClass("filterFieldsHolderFixed");
       if ($("#headerbar").length) {
         if (param.showheader != "false") {
           $('.headerOffset').show();
+          $('#headerbar').show();
+          $('#headerbar').removeClass("headerbarhide");
+          $('#local-header').show();
           $('.showMenuSmNav').hide();
         }
-        $('#sidecolumnContent').css("top","150px");
+        let headerFixedHeight = $("#headerbar").height(); // #headerLarge was too big at 150px
+        $('#sidecolumnLeft').css("top",headerFixedHeight + "px");
+        //$('#sidecolumnLeft').css("top","0px");
         $('#showSide').css("top","108px");
       }
       $('#headerLarge').show();
@@ -3514,8 +2420,7 @@ $(window).scroll(function() {
   previousScrollTop = $(window).scrollTop();
 
   lockSidemap(mapFixed);
-  let headerFixedHeight = $("#headerLarge").height();
-  $('#sidecolumnContent').css("top",headerFixedHeight + "px");
+  
 });
 function lockSidemap() {
   // Detect when #hublist is scrolled into view and add class mapHolderFixed.
@@ -3655,18 +2560,18 @@ function styleShape(feature) { // Called FOR EACH topojson row
       // TO DO - Adjust for 2e-7
       theValue = theValue/10000000;
       fillColor = colorTheCountry(theValue);
-      console.log("fillColor: " + fillColor + "; theValue: " + theValue + " " + feature.properties.name);
+      //console.log("fillColor: " + fillColor + "; theValue: " + theValue + " " + feature.properties.name);
       fillOpacity = .5;
   } else if ((hash.mapview == "country" || (hash.mapview == "state" && !hash.state)) && typeof localObject.state != 'undefined') {
       let theValue = 2;
        if (localObject.state[getState(stateID)] && localObject.state[getState(stateID)].CO2_per_capita != "No data") {
-        console.log(stateID + " " + getState(stateID));
-        console.log(stateID + " " + localObject.state[getState(stateID)].CO2_per_capita);
+        //console.log("state: " + stateID + " " + getState(stateID));
+        //console.log("state: " + stateID + " " + localObject.state[getState(stateID)].CO2_per_capita);
         theValue = localObject.state[getState(stateID)].CO2_per_capita;
       }
       theValue = theValue/4; // Ranges from 0 to 26
       fillColor = colorTheStateCarbon(theValue);
-      console.log("fillColor: " + fillColor + "; theValue: " + theValue + " " + feature.properties.name);
+      //console.log("fillColor: " + fillColor + "; theValue: " + theValue + " " + feature.properties.name);
       fillOpacity = .5;
   } return {
       weight: 1,
@@ -3701,7 +2606,9 @@ function getStateNameFromID(stateID) {
 // DISPLAY geomap - first of three maps
 
 var geojsonLayer; // Hold the prior letter. We can use an array or object instead.
-var overlays = {}; // Also overlays1 and overlays2 above.
+var overlays = {};
+var overlays1 = {};
+var overlays2 = {};
 function renderMapShapes(whichmap, hash, attempts) {
   //alert("renderMapShapes state: " + hash.state + " attempts: " + attempts);
 
@@ -3807,6 +2714,11 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
   var url;
   let topoObjName = "";
   var layerName = "Map Layer";
+  if (hash.mapview == "earth") {
+    //hideAdvanced();
+    showGlobalMap("https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
+  } 
+
   if (hash.mapview == "zip") {
     layerName = "Zipcodes";
     if (stateAbbr) {
@@ -3840,12 +2752,9 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
 
     //url = local_app.modelearth_root() + "/opojson/countries/us-states/GA-13-georgia-counties.json";
     // IMPORTANT: ALSO change localhost setting that uses cb_2015_alabama_county_20m below
-  } else { // ALL COUNTIRES
+  } else { // ALL COUNTRIES
   //} else if (hash.mapview == "earth") {
-    if (hash.mapview == "earth") {
-      hideAdvanced();
-      showGlobalMap();
-    } 
+
 
     url = local_app.modelearth_root() + "/topojson/world-countries-sans-antarctica.json";
     topoObjName = "topoob.objects.countries1";
@@ -4139,7 +3048,8 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
     map.setView(mapCenter,zoom);
   }
   
-
+  console.log("zoom " + zoom);
+  console.log(mapCenter);
 
 
   /* From other map, probably not Leaflet
@@ -4205,7 +3115,7 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
           //alert("Remove the prior topo layer")
           //map.removeLayer(geojsonLayer); // Remove the prior topo layer
         }
-    }
+      }
 
       // layerControl wasn't yet available in loading sequence.
       // Could require localsite/js/map.js load first, but top maps might not always be loaded.
@@ -4299,7 +3209,7 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
       if(layerControl === false) {
         //layerControl = L.control.layers(baseLayers, overlays).addTo(map);
       }
-    }
+    } // end layerControl
 
     // To add additional layers:
     //layerControl.addOverlay(dp.group, dp.name); // Appends to existing layers
@@ -4417,21 +3327,1367 @@ function renderMapShapeAfterPromise(whichmap, hash, attempts) {
 
 
 
-$(document).on("click", "#show_county_colors", function(event) {
+function processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,callback) {
+  if (typeof map === 'undefined') {
+    console.log("processOutput: map undefined");
+  }
+  dp.scale = getScale(dp.data, dp.scaleType, dp.valueColumn);
+  dp.group = L.layerGroup();
+  dp.group2 = L.layerGroup();
+  dp.iconName = 'star';
+  //dataParameters.push(dp);
+
+   // Prevents dups of layer from appearing
+   // Each dup shows a data subset when filter is being applied.
+
+   if (overlays1 && overlays1[dp.dataTitle]) {
+      if (map.hasLayer(overlays1[dp.dataTitle])){
+        overlays1[dp.dataTitle].remove(); // clear the markers from the map for the layer
+      }
+      layerControl[whichmap].removeLayer(overlays1[dp.dataTitle]);
+   }
+   if (overlays2 && overlays2[dp.dataTitle]) {
+      if (map2.hasLayer(overlays2[dp.dataTitle])){
+        overlays2[dp.dataTitle].remove();
+     }
+      // Wasn't working, multiple checkboxes appeared ...seems to be fixed now, haven't seen multiple lately.
+      layerControl[whichmap2].removeLayer(overlays2[dp.dataTitle]);
+      //controlLayers.removeLayer(overlays2[dp.dataTitle]);
+   }
+
+  // Allows for use of dp.dataTitle with removeLayer and addLayer
+  console.log("dp.group");
+  console.log(dp.group); // Error here: http://localhost:8887/apps/brigades/
+  
+  if (overlays1) { // Avoids: Cannot set properties of undefined (setting '[The Layer Title]')
+    overlays1[dp.dataTitle] = dp.group;
+    overlays2[dp.dataTitle] = dp.group2;
+  } else {
+    console.log("ALERT: overlays1 not available.");
+  }
+
+  if (layerControl[whichmap] !== undefined) {
+    // Remove existing instance of layer
+    //layerControl[whichmap].removeLayer(overlays[dp.dataTitle]); // Remove from control 
+    //map.removeLayer(overlays[dp.dataTitle]); // Remove from map
+  }
+
+  if (layerControl[whichmap] !== undefined && dp.group) {
+      //layerControl[whichmap].removeLayer(dp.group);
+  }
+
+
+  // Still causes jump
+  //overlays2["Intermodal Ports 2"] = overlays["Intermodal Ports"];
+
+  // ADD BACKGROUND BASEMAP
+  if (layerControl[whichmap] == undefined) {
+    layerControl[whichmap] = L.control.layers(basemaps1, overlays1).addTo(map); // Init layer checkboxes
+    basemaps1["Grayscale"].addTo(map); // Set the initial baselayer.  OpenStreetMap
+  } else {
+    layerControl[whichmap].addOverlay(dp.group, dp.dataTitle); // Add layer checkbox
+  }
+  // ADD BACKGROUND BASEMAP to Side Map
+  if (layerControl[whichmap2] == undefined) {
+    layerControl[whichmap2] = L.control.layers(basemaps2, overlays2).addTo(map2); // Init layer checkboxes
+    if (location.host.indexOf('localhost') >= 0) {
+      // OpenStreetMap tiles stopped working on localhost in March of 2022. Using Grayscale locally for small map instead.
+      // "Access denied. See https://operations.osmfoundation.org/policies/tiles/"
+      //basemaps2["Grayscale"].addTo(map2); // Set the initial baselayer.
+      basemaps2["OpenStreetMap"].addTo(map2); // Set the initial baselayer. // Working as of June 2022.
+    } else {
+      basemaps2["OpenStreetMap"].addTo(map2); // Set the initial baselayer.
+    }
+  } else {
+    layerControl[whichmap2].addOverlay(dp.group2, dp.dataTitle); // Add layer checkbox
+  }
+
+  if (dp.showLegend != false) {
+    //alert("addLegend")
+    //addLegend(map, dp.scale, dp.scaleType, dp.name); // Too big and d3-legend.js file is not available in embed, despite 
+  }
+
+  // ADD ICONS TO MAP
+  // All layers reside in dataParameters object:
+  //console.log("dataParameters:");
+  //console.log(dataParameters);
+
+  if (dp.showLayer != false) {
+    $("#widgetTitle").text(dp.dataTitle);
+    dp = showList(dp,map); // Reduces list based on filters
+    addIcons(dp,map,map2);
+    if (overlays1) { // Avoids: Cannot read properties of undefined (reading '[The Layer Title]')
+      // These do not effect the display of layer checkboxes
+      map.addLayer(overlays1[dp.dataTitle]);
+      map2.addLayer(overlays2[dp.dataTitle]); // Add small circle icons
+    }
+  }
+  $("#activeLayer").text(dp.dataTitle); // Resides after showList
+
+  //callback(map); // Sends to function(results).  "var map =" can be omitted when calling this function
+
+
+  // Runs too soon, unless placed within d3.csv.
+  // Otherwise causes: Cannot read property 'addOverlay' of undefined
+
+  //map.whenReady(function(){ 
+  //map.on('load',function(){ // Never runs
+    //alert("loaded")
+    callback(dp)
+  //});
+
+  /*
+  // Neigher map.whenReady or map.on('load') seems to require SetView()
+  if (document.body.clientWidth > 500) { // Since map tiles do not fully load when below list. Could use a .5 sec timeout perhaps.
+    setTimeout( function() {
+      //$("#sidemapCard").hide(); // Hide after size is available for tiles.
+    }, 3000 ); // Allow ample time to load.
+  }
+  */
+}
+
+
+/////////// MAP SETTINGS ///////////
+
+// 33.863516,-84.368775
+//var mapCenter = [32.90,-83.35]; // [latitude, longitude]
+var mapCenter = [33.7490,-84.3880]; // [latitude, longitude]
+
+// Add above to include overlays WITHOUT showing in legend:
+// layers: [dataParameters[0].group]
+
+// If added both baseLayers and overlays WITHOUT showing in legend:
+// layers: [grayscale, dataParameters[0].group]
+
+// Avoid layers: [grayscale] above 
+// - two sets of tiles would be loaded when upper baseLayer is changed using radio buttons.
+
+// Two sets prevents one map from changing the other
+
+
+
+
+// NOT USED IN CURRENT REPO - Check if still used when transitioning PPE map
+function populateMap(whichmap, dp, callback) { // From JSON within page
+    var circle;
+    let defaults = {};
+    defaults.zoom = 7;
+
+    if (dp.latitude && dp.longitude) {
+      mapCenter = [dp.latitude,dp.longitude]; 
+    } else {
+      mapCenter = [33.74,-84.38];
+    }
+
+    dp = mix(dp,defaults); // Gives priority to dp
+    console.log("populateMap dp.zoom " + dp.zoom);
+    console.log(mapCenter);
+
+    let map = L.map(whichmap,{
+      center: mapCenter,
+      scrollWheelZoom: false,
+      zoom: dp.zoom,
+      zoomControl: false,
+      dragging: !L.Browser.mobile, 
+      tap: !L.Browser.mobile
+    });
+
+    map.setView(mapCenter,dp.zoom);
+
+    L.control.zoom({
+        position: 'topright'
+    }).addTo(map);
+
+    overlays1[dp.dataTitle] = dp.group; // Allows for use of dp.name with removeLayer and addLayer
+
+    // Adds checkbox, but unselects other map on page
+    //overlays2[dp.dataTitle] = dp.group;
+    overlays2[dp.dataTitle ] = dp.group2; //Haven't test switch to this
+
+    /*
+    if (layerControl[whichmap] == undefined) {
+      baseLayers["Streets"].addTo(map); // Set the initial baselayer.
+
+      //layerControl[whichmap] = L.control.layers(baseLayers, overlays).addTo(map);
+
+    }
+    */
+
+    if (layerControl[whichmap] == undefined) {
+      layerControl[whichmap] = L.control.layers(basemaps1, overlays1).addTo(map); // Push multple layers
+      //basemaps1["Satellite"].addTo(map);
+      basemaps1["Streets"].addTo(map);
+    } else {
+      layerControl[whichmap].addOverlay(dp.group, dp.dataTitle); // Appends to existing layers
+    }
+    
+    // Attach the icon to the marker and add to the map
+    //L.marker([33.74,-84.38], {icon: busIcon}).addTo(map)
+    
+    // Set .my-div-icon styles in CSS
+    //var myIcon = L.divIcon({className: 'my-div-icon'});
+    //L.marker([32.90,-83.83], {icon: myIcon}).addTo(map);
+
+    addIcons(dp, map);
+    map.addLayer(overlays1[dp.dataTitle]);
+    
+    // Both work
+    map.on('load',function(){
+
+      // Sample of single icon - place in addIcons function
+      // Create a semi-transparent bus icon
+      var busIcon = L.IconMaterial.icon({
+        icon: 'local_shipping',            // Name of Material icon
+        iconColor: '#fff',              // Material icon color (could be rgba, hex, html name...)
+        markerColor: 'rgba(255,0,0,0.5)',  // Marker fill color
+        outlineColor: 'rgba(255,0,0,0.5)',  // Marker outline color
+        outlineWidth: 1,                   // Marker outline width 
+      });
+
+      callback(map)
+    }); //  event handler before you load the map
+    //map.whenReady(callback(map)); //  event handler before you load the map with SetView()
+    
+}
+
+
+
+/////////////////////////////////////////
+// helper functions
+/////////////////////////////////////////
+function addLegend(map, scale, scaleType, title) {
+
+  /*
+  $("#allLegends").text(""); // Clear prior results
+  var svg = d3.select("#allLegends")
+    .append("div")
+      .attr("class", "legend "  + title)
+    .append("svg")
+      .style("width", 200);
+      // .styleX("height", 300)
+
+  svg.append("g")
+      .attr("class", "legend")
+      .attr("transform", "translate(20,20)");
+
+
+  var legend = d3.legendColor()
+    .labelFormat(d3.format(".2f"))
+    .title(title);
+
+  if (scaleType === "scaleThreshold") {
+    legend = legend.labels(d3.legendHelpers.thresholdLabels);
+  }
+
+  legend.scale(scale);  
+
+  svg.select("g.legend")
+    .call(legend);
+
+  //alert($(".legendCells .cell").length)
+  $("#legendHolder").height(80 + $(".legendCells .cell").length * 19);
+  */
+
+  // Source: https://leafletjs.com/examples/choropleth/
+  var legend = L.control({position: 'bottomright'});
+
+  legend.onAdd = function (map) {
+
+      var div = L.DomUtil.create('div', 'info legend'),
+          grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+          labels = [];
+
+      // loop through our density intervals and generate a label with a colored square for each interval
+      for (var i = 0; i < grades.length; i++) {
+          div.innerHTML +=
+              '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+              grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      }
+
+      return div;
+  };
+
+  legend.addTo(map);
+
+
+}
+function getColor(d) {
+    return d > 1000 ? '#800026' :
+           d > 500  ? '#BD0026' :
+           d > 200  ? '#E31A1C' :
+           d > 100  ? '#FC4E2A' :
+           d > 50   ? '#FD8D3C' :
+           d > 20   ? '#FEB24C' :
+           d > 10   ? '#FED976' :
+                      '#FFEDA0';
+}
+
+function hex2rgb(hex) {
+  // long version
+  r = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (r) {
+    return r.slice(1,4).map(function(x) { return parseInt(x, 16); });
+  }
+  // short version
+  r = hex.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (r) {
+    return r.slice(1,4).map(function(x) { return 0x11 * parseInt(x, 16); });
+  }
+  return null;
+}
+
+function addIcons(dp,map,map2) {
+  var circle,circle2;
+  var iconColor, iconColorRGB, iconName;
+  var colorScale = dp.scale; // A function that returns colors based on the categories in the Values column
+  //console.log("colorScale:")
+  //console.log(colorScale)
+
   let hash = getHash();
-  let layerName = hash.state.split(",")[0].toUpperCase() + " Counties";
-  overlays[layerName].eachLayer(function (layer) {  
-    //if(layer.feature.properties.COUNTYFP == '121') { // Fulton County
-      layer.setStyle({fillColor :'blue', fillOpacity:.5 }) 
-      // Or call a function:
-      // layer.setStyle(function...)
+  //console.log("dp.color " + dp.color);
+  dp.data.forEach(function(element) {
+    // Add a lowercase instance of each column name
+    var key, keys = Object.keys(element);
+    var n = keys.length;
+    //var element={};
+    while (n--) {
+      key = keys[n];
+      element[key.toLowerCase()] = element[key];
+    }
+
+    if (dp.colorColumn) {
+      iconColor = colorScale(element[dp.colorColumn]);
+    } else if (dp.valueColumn) {
+      // If the valueColumn = type, the item column my be filtered. For PPE the item contains multiple types.
+
+      //console.log("dp.valueColumn: " + dp.valueColumn);
+      //console.log("dp.valueColumn value: " + element[dp.valueColumn]);
+      //console.log("dp.valueColumn value Type: " + element["Type"]);
+      //console.log("dp.valueColumn value Category: " + element["Category"]);
+      iconColor = colorScale(element[dp.valueColumn]);
+    } else if (dp.color) {
+      iconColor = dp.color;
+    } else {
+      iconColor = "#548d1a"; // Green. Was "blue"
+    }
+    
+    console.log("element[dp.valueColumn] " + element[dp.valueColumn] + " iconColor: " + iconColor + " dp.valueColumn: " + dp.valueColumn);
+    
+    if (typeof dp.latColumn == "undefined") {
+      dp.latColumn = "lat";
+    }
+    if (typeof dp.lonColumn == "undefined") {
+      dp.lonColumn = "lon";
+    }
+
+    iconColorRGB = hex2rgb(iconColor);
+    iconName = dp.iconName;
+    if (typeof L === 'undefined') {
+      if (location.host.indexOf('localhost') >= 0) {
+        alert("Leaflet L not yet loaded");
+      }
+    } else if (typeof L.IconMaterial === 'undefined') {
+      if (location.host.indexOf('localhost') >= 0) {
+        alert("Leaflet L.IconMaterial undefined = leaflet.icon-material.js not loaded");
+      }
+    }
+    var busIcon = L.IconMaterial.icon({ /* Cannot read property 'icon' of undefined = leaflet.icon-material.js not loaded */
+      icon: iconName,            // Name of Material icon - star
+      iconColor: '#fff',         // Material icon color (could be rgba, hex, html name...)
+      markerColor: 'rgba(' + iconColorRGB + ',0.7)',  // Marker fill color
+      outlineColor: 'rgba(' + iconColorRGB + ',0.7)', // Marker outline color
+      outlineWidth: 1,                   // Marker outline width 
+    })
+
+    let name = element.name;
+    if (element[dp.nameColumn]) {
+      name = element[dp.nameColumn];
+    } else if (element.title) {
+      name = element.title;
+    }
+
+    //alert(element["plant_or_group"]["latitude"]);
+
+    if (dp.latColumn.includes(".")) { // ToDo - add support for third level
+      element[dp.latColumn] = element[dp.latColumn.split(".")[0]][dp.latColumn.split(".")[1]];
+      element[dp.lonColumn] = element[dp.lonColumn.split(".")[0]][dp.lonColumn.split(".")[1]];
+    }
+    if (!element[dp.latColumn] || !element[dp.lonColumn]) {
+      console.log("Missing lat/lon: " + name);
+      return;
+    }
+    // Attach the icon to the marker and add to the map
+    //L.marker([element[dp.latColumn], element[dp.lonColumn]], {icon: busIcon}).addTo(map)
+
+    //let bulletColor = dp.color;
+    //if (dp.valueColumn && element[dp.valueColumn]) {
+    //  bulletColor = colorScale(element[dp.valueColumn]);
     //}
+
+    if (dp.markerType == "google") {
+        if (1==2 && param["show"] != "suppliers" && (location.host == 'georgia.org' || location.host == 'www.georgia.org')) {
+          // Show an old-style marker when Google Material Icon version not supported
+          circle = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group);
+          circle2 = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group2);
+        } else {
+          //if (!dp.showShapeMap) {
+            // If this line returns an error, try setting dp1.latColumn and dp1.latColumn to the names of your latitude and longitude columns.
+            circle = L.marker([element[dp.latColumn], element[dp.lonColumn]], {icon: busIcon}).addTo(dp.group); // Works, but not in Drupal site.
+            //circle2 = L.marker([element[dp.latColumn], element[dp.lonColumn]], {icon: busIcon}).addTo(dp.group2);
+          //}
+          // Display a small circle on small side map2
+          circle2 = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
+                color: colorScale(element[dp.valueColumn]),
+                fillColor: colorScale(element[dp.valueColumn]),
+                fillOpacity: 1,
+                radius: markerRadius(1,map2) // was 50.  Aiming for 1 to 10
+            }).addTo(dp.group2);
+        }
+    } else {
+      circle = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
+                color: colorScale(element[dp.valueColumn]),
+                fillColor: colorScale(element[dp.valueColumn]),
+                fillOpacity: 1,
+                radius: markerRadius(1,map) // was 50.  Aiming for 1 to 10
+            }).addTo(dp.group);
+      circle2 = L.circle([element[dp.latColumn], element[dp.lonColumn]], {
+                color: colorScale(element[dp.valueColumn]),
+                fillColor: colorScale(element[dp.valueColumn]),
+                fillOpacity: 1,
+                radius: markerRadius(1,map2) // was 50.  Aiming for 1 to 10
+            }).addTo(dp.group2);
+    }
+
+    // MAP POPUP
+    var output = "<b>" + name + "</b><br>";
+    if (element.description) {
+      output += element.description + "<br>";
+    } else if (element.description) {
+      output += element.description + "<br>";
+    } else if (element["business description"]) {
+      output += element["business description"] + "<br>";
+    }
+    if (element[dp.addressColumn]) {
+      output +=  element[dp.addressColumn] + "<br>";
+    } else if (element.address || element.city || element.state || element.zip) { 
+      if (element.address) {
+        output += element.address + "<br>";
+      } else {
+        if (element.city) {
+          output += element.city;
+        }
+        if (element.state || element.zip) {
+          output += ", ";
+        }
+        if (element.state) {
+          output += element.state + " ";
+        }
+        if (element.zip) {
+          output += element.zip;
+        }
+        output += "<br>";
+      }
+    }
+
+    if (element.phone || element.phone_afterhours) {
+      if (element.phone) {
+        output += element.phone + " ";
+      }
+      if (element.phone_afterhours) {
+       output += element.phone_afterhours;
+      }
+      output += "<br>";
+    }
+    if (element[dp.valueColumn]) {
+      if (dp.valueColumnLabel) {
+        output += "<b>" + dp.valueColumnLabel + ":</b> " + element[dp.valueColumn].replace(/,/g,", ") + "<br>";
+      } else if (element[dp.valueColumn] != element.name) {
+        output += element[dp.valueColumn].replace(/,/g,", ") + "<br>";
+      }
+    }
+    if (element[dp.showKeys]) {
+      output += "<b>" + dp.showLabels + ":</b> " + element[dp.showKeys] + "<br>";
+    }
+    if (element.schedule) {
+      output += "Hours: " + element.schedule + "<br>";
+    }
+    if (element.items) {
+      output += "<b>Items:</b> " + element.items + "<br>";
+    }
+
+    if (element.website && !element.website.toLowerCase().includes("http")) {
+        element.website = "http://" + element.website;
+    }
+    if (element.website) {
+      if (element.website.length <= 50) {
+        output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a>";
+      } else {
+        // To Do: Display domain only
+        output += "<b>Website:</b> <a href='" + element.website + "' target='_blank'>" + element.website.replace("https://","").replace("http://","").replace("www.","").replace(/\/$/, "") + "</a>"; 
+      }
+    }
+    if (dp.listLocation != false) {
+      if (element[dp.latColumn]) {
+        if (element.website) {
+          output += " | ";
+        }
+        //console.log("latitude2: " + dp.latColumn + " " + element.latitude);
+        //output += "<div class='detail' latitude='" + element[dp.latColumn] + "' longitude='" + element[dp.lonColumn] + "'>Zoom In</div> | ";
+        output += "<a href='https://www.waze.com/ul?ll=" + element[dp.latColumn] + "%2C" + element[dp.lonColumn] + "&navigate=yes&zoom=17'>Waze Directions</a><br>";
+      }
+    } else if (element.website) {
+      output += "<br>";
+    }
+    if (dp.distance) {
+      output += "distance: " + dp.distance + "<br>";
+    }
+
+    element.mapframe = getMapframe(element);
+    if (element.mapframe) {
+      output += "<a href='#show=360&m=" + element.mapframe + "'>Birdseye View<br>";
+    }
+    output = "<div class='leaflet-popup-text'>" + output + "</div>";
+    if (element.property_link) {
+      output += "<a href='" + element.property_link + "'>Property Details</a><br>";
+    } else if (element[dp.nameColumn] || element["name"]) {
+      let entityName = element[dp.nameColumn] || element["name"];
+      entityName = entityName.replace(/\ /g,"_").replace(/'/g,"\'")
+      output += "<a class='btn btn-success' style='margin-top:10px' onclick='goHash({\"show\":\"" + hash.show + "\",\"name\":\"" + entityName + "\"}); return false;' href='#show=" + hash.show + "&name=" + entityName + "'>View Details</a><br>";
+    }
+    // ADD POPUP BUBBLES TO MAP POINTS
+    if (circle) {
+      //circle.bindPopup(output);
+      circle.bindPopup(L.popup({paddingTopLeft:[200,200]}).setContent(output));
+    }
+    circle2.bindPopup(output);
+
+    /*
+    map.on('zoomend', function() {
+      console.log('zoomend',map.getZoom())
+      circle.setRadius(markerRadius(1,map));
+    });
+    */
+
   });
-  //alert("done"); // Occurs before layers above appear.
+
+  // Also see community-forecasting/map/leaflet/index.html for sample of svg layer that resizes with map
+  map.on('zoomend', function() { // zoomend
+    //L.layerGroup().eachLayer(function (marker) {
+    dp.group.eachLayer(function (marker) { // This hits every point individually. A CSS change might be less script processing intensive
+      //console.log('zoom ' + map.getZoom());
+      if (marker.setRadius) {
+        // Only reached when circles are used instead of map points.
+        marker.setRadius(markerRadius(1,map));
+      }
+    });
+
+
+    //if (map.getZoom() === 15)  {
+    //alert(map.getZoom()) 
+    
+    // NOTE - This will get called for each layer
+    //alert("zoomed"); // Occurs twice
+    var elements = document.getElementsByClassName('l-icon-material');
+    for (var i=0, max=elements.length; i < max; i++) {
+      //elements[i].style.backgroundColor = "transparent"; // "rgba(0, 0, 0, 0)";
+
+      if (map.getZoom() >= 9)  {
+        elements[i].style.marginTop = "-42px"; // Move circle to default when mappoint shape displayed.
+        elements[i].childNodes[0].style.opacity = 1; // The path within SVG. Show mappoint shape around circle with icon. Undoes custom hide in leaflet.icon-material.js line 57.
+      } else {
+        elements[i].style.marginTop = "-14px"; // Move circle down when mappoint shape not displayed.
+        elements[i].childNodes[0].style.opacity = 0;
+      }
+      //elements[i].child.style.opacity = 1;
+      // path.setAttribute('opacity', 0);
+
+      //elements[i].style.fillOpacity = 0;
+      //elements[i].style.opacity = 0; // works
+      //elements[i].style.width      = 6; // works sorta - crops
+
+      //elements[i].style.display = "none"; // works
+      //elements[i].style.width      = 16;
+      //elements[i].style.height     = 20;
+      //elements[i].style.marginLeft = 8;
+      //elements[i].style.marginTop  = 22;
+    }
+  });
+  map2.on('zoomend', function() { // zoomend
+    // Resize the circle to avoid large circles on close-ups
+    dp.group2.eachLayer(function (marker) { // This hits every point individually. A CSS change might be less processing intensive
+      //console.log('zoom ' + map.getZoom());
+      if (marker.setRadius) {
+        marker.setRadius(markerRadius(1,map2));
+      }
+    });
+    $(".leaflet-interactive").show();
+  });
+  map2.on('zoom', function() {
+    // Hide the circles so they don't fill screen. Set small to hide.
+    $(".leaflet-interactive").hide();
+    $(".l-icon-material").show();
+  });
+
+  $('.detail').click(function() { // Provides close-up with map2
+      $("#sidemapCard").show(); // map2 - show first to maximize time tiles have to see full size of map div.
+
+      // Reduce the size of all circles - to do: when zoom is going in 
+      /* No effect
+      dp.group2.eachLayer(function (marker) { // This hits every point individually. A CSS change might be less script processing intensive
+        //console.log('zoom ' + map.getZoom());
+        if (marker.setRadius) {
+          console.log("marker.setRadius" + markerRadiusSmall(1,map2));
+          marker.setRadius(markerRadiusSmall(1,map2));
+        }
+      });
+      */
+      
+
+      //$('.detail').css("border","none");
+      //$('.detail').css("background-color","inherit");
+      //$('.detail').css("padding","12px 0 12px 4px");
+      $('.detail').removeClass("detailActive");
+
+      // BUGBUG - Click is sent twice for top list, apparently because bottom list is already rendered when it loads.
+      console.log("List detail click");
+      let locname = $(this).attr("name").replace(/ & /g," AND ").replace(/ /g,"_");
+      updateHash({"name":locname});
+      $('#sidemapName').text($(this).attr("name"));
+
+      //$(this).css("border","1px solid #ccc");
+      //$(this).css("background-color","rgb(250, 250, 250)");
+      //$(this).css("padding","15px");
+      $(this).addClass("detailActive");
+      if ($(".detailActive").height() < 250) {
+        $("#changeHublistHeight").hide();
+      }
+      
+      var listingsVisible = $('#detaillist .detail:visible').length;
+      if (listingsVisible == 1 || hash.cat) {
+        $(".viewAllLink").show();
+      }
+
+      if ($(this).attr("latitude") && $(this).attr("longitude")) {
+        popMapPoint(dp, map2, $(this).attr("latitude"), $(this).attr("longitude"), $(this).attr("name"), $(this).attr("color"));
+        zoomMapPoint(dp, map2, $(this).attr("latitude"), $(this).attr("longitude"), $(this).attr("name"), $(this).attr("color"));
+      } else {
+        $("#sidemapCard").hide();
+      }
+      // Might reactivate scrolling to map2
+      /*
+      window.scrollTo({
+        top: $("#sidemapCard").offset().top - 140,
+        left: 0
+      });
+      */
+
+      $(".go_local").show();
+  });
+  $('.showItemMenu').click(function () {
+    $("#listingMenu").show();
+
+    $("#listingMenu").prependTo($(this).parent());
+
+    event.stopPropagation();
+    //$("#map").show();
+    // $(this).css('border', 'solid 1px #aaa');
+  });
+  $('.showLocMenu').click(function () {
+    $(".locMenu").show();
+    //event.stopPropagation();
+  });
+  $('#hideSideMap').click(function () {
+    $("#sidemapCard").hide(); // map2
+  });
+
+}
+
+function markerRadiusSmall(radiusValue,map) {
+  return .00001;
+}
+function markerRadius(radiusValue,map) {
+  //return 100;
+  // Standard radiusValue = 1
+  let mapZoom = map.getZoom();
+  let smallerWhenClose = 30;
+  if (mapZoom >= 4) { smallerWhenClose = 10};
+  if (mapZoom >= 5) { smallerWhenClose = 9};
+  if (mapZoom >= 6) { smallerWhenClose = 8.5};
+  if (mapZoom >= 8) { smallerWhenClose = 6};
+  if (mapZoom >= 9) { smallerWhenClose = 3};
+  if (mapZoom >= 10) { smallerWhenClose = 2};
+  if (mapZoom >= 11) { smallerWhenClose = 1.8};
+  if (mapZoom >= 12) { smallerWhenClose = 1.4};
+  if (mapZoom >= 13) { smallerWhenClose = 1};
+  if (mapZoom >= 14) { smallerWhenClose = .8};
+  if (mapZoom >= 15) { smallerWhenClose = .4};
+  if (mapZoom >= 17) { smallerWhenClose = .3};
+  if (mapZoom >= 18) { smallerWhenClose = .2};
+  if (mapZoom >= 20) { smallerWhenClose = .1};
+  if ($(window).width() < 600) {
+    smallerWhenClose = smallerWhenClose * 3; // Larger dots for clicking on mobile
+  }
+  let radiusOut = ((radiusValue * 2000) / mapZoom) * smallerWhenClose;
+
+  //console.log("mapZoom:" + mapZoom + " radiusValu:" + radiusValue + " radiusOut:" + radiusOut);
+  return radiusOut;
+}
+
+function hashChangedMap() {
+  let hash = getHash();
+
+  if (hash.show == "undefined") { // To eventually remove
+    delete hash.show; // Fix URL bug from indicator select hamburger menu
+    updateHash({'show':''}); // Remove from URL hash without invoking hashChanged event.
+  }
+
+  // For PPE embed, also in map-filters.js. Will likely change
+  if (!hash.show) {
+    // For embed link
+    hash.show = param.show;
+    hiddenhash.show = param.show;
+  }
+  if (!hash.state && param.state) {
+    // For embed link
+
+    // Reactivate if needed
+    //hash.state = param.state;
+    //hiddenhash.state = param.state;
+  }
+
+  // Temp for PPE
+  if ((hash.show == "ppe" || hash.show == "suppliers") && !hash.state && location.host.indexOf("georgia") >= 0) {
+    hash.state = "GA";
+    hiddenhash.state = "GA";
+  }
+
+  if (hash.cat || hash.name) {
+    $(".viewAllLink").show();
+  } else {
+    $(".viewAllLink").hide();
+  }
+
+  if (hash.name !== priorHashMap.name) {
+    loadMap1("hashChanged() in map.js new name for View Details " + hash.name, hash.show);
+    $(document).ready(function () {
+      if (document.getElementById("list_main") !== null) { //if exists. may not be loaded into Dom yet.
+        let offTop = $("#list_main").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height();
+        window.scroll(0, offTop);
+      }
+    });
+  } else if (hash.layers !== priorHashMap.layers) {
+    //applyIO(hiddenhash.naics);
+    loadMap1("hashChangedMap() in map.js layers", hash.show);
+  } else if (hash.show !== priorHashMap.show) {
+    //applyIO(hiddenhash.naics);
+    loadMap1("hash.show hashChangedMap() in map.js", hash.show);
+  } else if (hash.state && hash.state !== priorHashMap.state) {
+    // Why are new map points not appearing
+
+    let dp = {};
+    // Copied from map-filters.js
+    if($("#state_select").find(":selected").val()) {
+      let theState = $("#state_select").find(":selected").val();
+        if (theState != "") {
+          let kilometers_wide = $("#state_select").find(":selected").attr("km");
+          //zoom = 1/kilometers_wide * 1800000;
+  
+          if (theState == "HI") { // Hawaii
+              zoom = 6
+          } else if (kilometers_wide > 1000000) { // Alaska
+              zoom = 4
+          } else {
+              zoom = 7; // For Georgia map
+          }
+          dp.latitude = $("#state_select").find(":selected").attr("lat");
+          dp.longitude = $("#state_select").find(":selected").attr("lon");
+        }
+    } else {
+      console.log("ERROR #state_select not available in hashChangedMap()");
+    }    
+
+    loadMap1("hashChanged() in map.js new state(s) " + hash.state, hash.show, dp);
+
+  } else if (hash.cat !== priorHashMap.cat) {
+    loadMap1("hashChanged() in map.js new cat " + hash.cat, hash.show);
+  } else if (hash.subcat !== priorHashMap.subcat) {
+    loadMap1("hashChanged() in map.js new subcat " + hash.subcat, hash.show);
+  } else if (hash.details !== priorHashMap.details) {
+    loadMap1("hashChanged() in map.js new details = " + hash.details, hash.show);
+  }
+  priorHashMap = getHash();
+}
+$(document).ready(function () {
+  // INIT
+  hashChangedMap();
 });
 
-console.log('end of localsite/js/map.js');
+// Allows layers to be fetched using: layerControl[whichmap].getOverlays(); // { Truck 1: true, Truck 2: false, Truck 3: false }
+// the key is the name of the layer. If the layer is showing, it has a value of of true.
+L.Control.Layers.include({
+  getOverlays: function() { // A custom function used for multiple maps
+    // create hash to hold all layers
+    var control, layers;
+    layers = {};
+    control = this;
+
+    // loop thru all layers in control
+    control._layers.forEach(function(obj) {
+      var layerName;
+
+      // check if layer is an overlay
+      if (obj.overlay) {
+        // get name of overlay
+        layerName = obj.name;
+        // store whether it's present on the map or not
+        return layers[layerName] = control._map.hasLayer(obj.layer);
+      }
+    });
+
+    return layers;
+  }
+});
+
+function zoomFromKm(kilometers_wide) {
+  //alert(kilometers_wide) // undefined for the 1st of 3.
+  let zoom = 5;
+  if (!kilometers_wide) return zoom;
+  if (kilometers_wide > 1000000) { // Alaska
+    zoom = 4
+  } else if (kilometers_wide > 600000) { // Texas
+    zoom = 5
+  } else if (kilometers_wide > 105000) { // Hawaii and Idaho
+    zoom = 6
+  }
+  return zoom;
+}
+
+// NULLSCHOOL
+$(document).on("click", "#earthZoom .leaflet-control-zoom-in", function(event) { // ZOOM IN
+  zoomEarth(200);
+  event.stopPropagation();
+});
+$(document).on("click", "#earthZoom .leaflet-control-zoom-out", function(event) { // ZOOM IN
+  zoomEarth(-200);
+  event.stopPropagation();
+});
+function zoomEarth(zoomAmount) {
+  if (!localObject.earth) {
+    let earthSrc = document.getElementById("mainframe").src; // Only returns the initial cross-domain uri.
+    localObject.earth = getEarthObject(earthSrc.split('#')[1]);
+  }
+  // Add 100 to orthographic map zoom
+  let orthographic = localObject.earth.orthographic.split(",");
+  localObject.earth.orthographic = orthographic[0] + "," + orthographic[1] + "," + (+orthographic[2] + zoomAmount);
+  
+  /*
+  let theMonth = 6;
+  let theDay = 1;
+  let theHour = 0;
+
+  let monthStr = String(theMonth).padStart(2, '0');
+  let dayStr = String(theDay).padStart(2, '0');
+  let hourStr = String(theHour).padStart(2, '0');
+  $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
+  */
+
+  let earthUrl = "https://earth.nullschool.net/#";
+  if (localObject.earth.date) {
+    earthUrl += localObject.earth.date + "/" + localObject.earth.time + "/";
+  } else {
+    earthUrl += "current/";
+  }
+  earthUrl += localObject.earth.mode + "/overlay=" + localObject.earth.overlay + "/orthographic=" + localObject.earth.orthographic;
+  loadIframe("mainframe", earthUrl);
+  //loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
+}
+function getEarthObject(url) {
+  console.log("map.js getEarthObject " + url);
+  if (url == undefined) {
+    console.log("BUG - getEarthObject url undefined");
+    return;
+  }
+  let urlPart = url.split('/');
+  let params = {};
+  if (urlPart.length > 6) { // URL contains date and time
+    params.date = urlPart[0] + "/" + urlPart[1] + "/" + urlPart[2];
+    params.time = urlPart[3];
+    params.mode = urlPart[4] + "/" + urlPart[5] + "/" + urlPart[6];
+  } else {
+    params.mode = urlPart[1] + "/" + urlPart[2] + "/" + urlPart[3];
+  }
+  for (let i = 4; i < urlPart.length; i++) {
+      if(!urlPart[i])
+          continue;
+      if (i==0 && urlPart[i].indexOf("=") == -1) {
+        params[""] = urlPart[i];  // Allows for initial # params without =.
+        continue;
+      }
+      let hashPair = urlPart[i].split('=');
+      params[decodeURIComponent(hashPair[0]).toLowerCase()] = decodeURIComponent(hashPair[1]);
+   }
+   return params;
+}
+function delay(time) {
+  return new Promise(resolve => setTimeout(resolve, time));
+}
+async function loopMap() {
+  await delay(200);
+  let theMonth = 6;
+  let theDay = 1;
+  let theHour = 0;
+  while (theDay <= 20) {
+    let monthStr = String(theMonth).padStart(2, '0');
+    let dayStr = String(theDay).padStart(2, '0');
+    let hourStr = String(theHour).padStart(2, '0');
+    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
+
+    loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
+    await delay(1000);
+
+    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " 12:00 GMT (7 AM EST)");
+    loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/1200Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
+    await delay(1000);
+
+    theDay += 1;
+    //theHour += 2;   
+  }
+}
+$(document).ready(function () {
+  // Run animation - add a button for this
+  //loopMap();
+});
+// END NULLSCHOOL
+
+
+function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback) {
+  if (attempts > 40) {
+    console.log("loadFromSheet attempts exceed 40.");
+    return;
+  }
+  console.log("loadFromSheet - Might not need to call from Beyond Car. when state not displayed.")
+  // To Do: Map background could be loaded while waiting for D3 file. 
+  // Move "d3.csv(dp.dataset).then" further down into a new function that starts with the following line.
+
+  // Even without dataset, set titles since NAICS industries are still loaded.
+  let defaults = {};
+  defaults.zoom = 7;
+  defaults.numColumns = ["zip","lat","lon"];
+  defaults.nameColumn = "name";
+  //defaults.valueColumn = "name"; // For color coding - Avoid because this invokes side legend
+  defaults.latColumn = "latitude";
+  defaults.lonColumn = "longitude";
+  //defaults.scaleType = "scaleQuantile";
+  defaults.scaleType = "scaleOrdinal";
+  defaults.dataTitle = "Data Projects"; // Must match "map.addLayer(overlays" below.
+  if (dp.latitude && dp.longitude) {
+      mapCenter = [dp.latitude,dp.longitude];
+  } else {
+    // mapCenter = [33.74,-84.38];
+    mapCenter = [32.16,-82.9]; // Some center is always needed, else error will occur when first using flyTo.
+  }
+
+  // Make all keys lowercase - add more here, good to loop through array of possible keys
+  if (dp.itemsColumn) {
+    //dp.itemsColumn = dp.itemsColumn.toLowerCase(); // Prevented match with ElementRaw
+  }
+
+  if (dp.dataTitle) {
+    $("#showAppsText").text(dp.dataTitle);
+    $("#showAppsText").attr("title",dp.dataTitle);
+    $(".regiontitle").text(dp.dataTitle);
+  } else {
+    // Handled by getNaics_setHiddenHash()
+    //$("#showAppsText").text(hash.show.charAt(0).toUpperCase() + hash.show.substr(1).replace(/\_/g," "));  
+  }
+  if (dp.listTitle && !dp.dataTitle) {
+    dp.dataTitle = dp.listTitle;
+  }
+
+  if (typeof d3 !== 'undefined') {
+    if (!dp.dataset && !dp.googleCSV) {
+      let hash = getHash();
+      console.log('%cCANCEL loadFromSheet show: ' + hash.show + '. No dataset selected for top map. Data may not be setup for state. hash.state: ' + hash.state, 'color: green; background: yellow; font-size: 14px');
+      /*
+      if (!hash.state) {
+        if (location.host.indexOf('localhost') >= 0) {
+          alert("Localhost message: State may be required for requested data. Appending state GA.");
+        }
+        goHash({'state':'GA'});
+        hash = getHash();
+        return;
+      }
+      */
+
+      $("#" + whichmap).hide();
+      $("#tableSide").hide();
+      $("#list_main").hide();
+
+      if (param.showsearch == "true") { // For EPD products io/template
+        $(".keywordField").show();
+      } else {
+        $("#data-section").hide();
+      }
+      return;
+    } else {
+      console.log('loadFromSheet into #' + whichmap);
+      $(".keywordField").show();
+      if (dp.mapable != "false") {
+        $("#" + whichmap).show();
+      }
+    }
+
+    dp = mix(dp,defaults); // Gives priority to dp
+    if (dp.addLink) {
+      //console.log("Add Link: " + dp.addLink)
+    }
+    if (dp.showShapeMap) {
+      let hash = getHash();
+      renderMapShapes("map1", hash, 1); // County select map
+    }
+    
+    // TRY AGAIN UNTIL #[whichmap] and (whichmap)._leaflet_map are available.
+    //if (typeof document.querySelector('#' + whichmap)._leaflet_map === 'undefined') {
+    if (typeof document.querySelector('#' + whichmap) === 'undefined' || typeof document.querySelector('#' + whichmap) === 'null') {
+      console.log("#" + whichmap + " is undefined. Try again.  Attempt " + attempts);
+      if (attempts <= 100) {
+        setTimeout( function() {
+          loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts+1,callback);
+        }, 20 );
+      } else {
+        console.log("ERROR #" + whichmap + " - exceeded 100 attempts.");
+      }
+      return;
+    } else if (document.querySelector('#' + whichmap) && typeof L.DomUtil != "object") { // Wait for Leaflet library
+      //if (document.querySelector('#' + whichmap) && !document.querySelector'#' + whichmap)._leaflet_map) { // Won't work because ._leaflet_map always equals "undefined"
+        console.log("L.DomUtil not available for #" + whichmap + ".  Try again. Attempt " + attempts);
+        console.log(typeof L.DomUtil);
+        if (attempts <= 100) {
+          setTimeout( function() {
+            loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts+1,callback);
+          }, 200);
+        } else {
+          console.log("ERROR - _leaflet_map null exceeded 100 attempts.");
+        }
+        return;
+    }
+    /*
+    else {
+        console.log("typeof document.querySelector ._leaflet_map: " + typeof document.querySelector('#' + whichmap)._leaflet_map);
+    }
+    */
+
+    // Pevent error when backing up: map container is already initialized
+    //if (map) {
+    //  map.off();
+    //  map.remove();
+    //}
+
+
+    //map2 = document.querySelector('#' + whichmap2)._leaflet_map; // Recall existing map
+    //  var container2 = L.DomUtil.get(map2);
+    //  if (container2 == null) { // Initialize map
+
+
+    waitForElm('#bodyFile #' + whichmap).then((elm) => {
+          $(".displayMapForLoad").show(); // Might not work since !important might be needed.
+          $('#bodyFile #' + whichmap).show();
+          let map = {};
+          console.log(whichmap + " length: " + $('#bodyFile #' + whichmap).length);
+          if( $('#bodyFile #' + whichmap).text().trim().length > 1) {
+            console.log("#" + whichmap + " div found! Length: " + $('#bodyFile #' + whichmap).text().trim().length);
+            map = document.querySelector('#bodyFile #'+whichmap)._leaflet_map; // Recall existing map
+            console.log("typeof map1: " + typeof map);
+          } else {
+            //alert("#" + whichmap + " not found");
+            //var containerExists = L.DomUtil.get(map); // NOT NEEDED
+
+            // https://help.openstreetmap.org/questions/12935/error-map-container-is-already-initialized
+            // if(container != null){ container._leaflet_id = null; }
+
+            //if (containerExists == null) { // NOT NEEDED - need to detect L.map
+              // Runagain was here
+
+              // Error: Map container not found.
+              // This can be deleted since return occurs above.
+              map = L.map(whichmap, { // var --> Map container is already initialized.
+                center: mapCenter,
+                scrollWheelZoom: false,
+                zoom: dp.zoom,
+                dragging: !L.Browser.mobile, 
+                tap: !L.Browser.mobile
+              });
+            //}
+          }
+
+          console.log("typeof map: " + typeof map);
+          console.log("typeof document.querySelector ._leaflet_map: " + typeof document.querySelector('#' + whichmap)._leaflet_map);
+          
+          // Might be able to rename/reconfig/reuse containerExists above to container and remove this line:
+          var container = L.DomUtil.get(map);
+          //dp.zoom = 18; // TEMP - Causes map to start with extreme close-up, then zooms out to about 5.
+          // Otherwise starts with 7ish and zooms to 5ish.
+          console.log("dp.zoom " + dp.zoom);
+          console.log(mapCenter);
+          if (container == null) { // Initialize map
+            alert("loadFromSheet Initialize " +  whichmap + " (map container was null)");
+            //$("#"+whichmap).show();
+            //$("#"+whichmap).addClass("itsAvailable"); // Temp, remove
+            
+            map = L.map(whichmap, {
+              center: mapCenter,
+              scrollWheelZoom: false,
+              zoom: dp.zoom,
+              dragging: !L.Browser.mobile, 
+              tap: !L.Browser.mobile
+            });
+            
+            
+            // setView does not seem to have an effect triggering map.on below
+            /*
+            map = L.map(whichmap,{
+              center: mapCenter,
+              scrollWheelZoom: false,
+              zoom: dp.zoom,
+              zoomControl: false
+            });
+            // Placing map.whenReady or map.on('load') here did not resolve
+            map.setView(mapCenter,dp.zoom);
+            */
+            map.on('click', function() {
+              if (location.host.indexOf('localhost') >= 0) {
+                //alert('Toggle scrollwheel zoom')
+              }
+              if (this.scrollWheelZoom.enabled()) {
+                this.scrollWheelZoom.disable();
+              }
+              else {
+                this.scrollWheelZoom.enable();
+              }
+            })
+          } else {
+            console.log("dp.zoom " + dp.zoom);
+            map.setView(mapCenter,dp.zoom);
+          }
+
+        // Runagain moved here
+        //if (location.host.indexOf('localhost') >= 0) {
+          // BUGBUG - intermitant, every other time.
+          /*
+          console.log("Attempt " + attempts + ". Trying again - An error occurred because the #" + whichmap + " div was not yet rendered.");
+          setTimeout( function() {
+            loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts+1,callback);
+          }, 200 );
+          return;
+          */
+        //}
+
+
+      waitForElm('#bodyFile #' + whichmap2).then((elm) => {
+
+          // Right column map
+          let map2 = {};
+          if (whichmap2) {
+            $("#list_main").show();
+            $("#tableSide").show();
+            map2 = document.querySelector('#bodyFile #' + whichmap2)._leaflet_map; // Recall existing map
+            var container2 = L.DomUtil.get(map2);
+            if (container2 == null) { // Initialize map
+              map2 = L.map(whichmap2, {
+                center: mapCenter,
+                scrollWheelZoom: false,
+                zoom: 6,
+                dragging: !L.Browser.mobile, 
+                tap: !L.Browser.mobile
+              });
+            }
+          }
+                  
+
+
+                  // 5. Load Layers Asynchronously
+                  //var dataset = "../community/map/zip/basic/places.csv";
+
+                  // Change below
+                  // latColumn: "lat",
+                  //      lonColumn: "lon",
+                  //var dataset = "https://datascape.github.io/community/map/zip/basic/places.csv";
+
+                  // ADD DATASET TO DUAL MAPS
+
+                  // We are currently loading dp.dataset from a CSV file.
+                  // Later we will check if the filename ends with .csv
+
+                  if (dp.googleCategories && !dp.googleCSV) {          
+                    d3.csv(dp.googleCategories).then(function(data) {
+                      // LOAD CATEGORIES TAB - Category, SubCategory, SubCategoryLong
+                      //localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+                      localObject.layerCategories[dp.show] = data;
+                      preCatList = localObject.layerCategories[hash.show];
+
+                      console.log("preCatList");
+                      console.log(preCatList);
+
+                      let catList = {};
+                      // Build catList object with category name as the key.
+                      let catColName = "Category"; // TO DO, apply this below.
+                      for (var i = 0, l = preCatList.length; i < l; i++) {
+
+                        let key = Object.keys(preCatList[i]);
+
+                        //iconColor = colorScale(element[dp.valueColumn]);
+                        //if (dp.color) { 
+                        //  iconColor = dp.color;
+                        //}
+                        iconColor = "blue";
+
+                        //console.log("element[dp.valueColumn] " + element[dp.valueColumn]);
+                        //if (dp.valueColumn) {
+                          // Requires only ONE category value in the valueColumn.
+                          if(!catList.Category) {
+                            catList[preCatList[i].Category] = {};
+                            catList[preCatList[i].Category].count = 1;
+                          } else {
+                            catList[preCatList[i].Category].count++;
+                          }
+                          catList[preCatList[i].Category].color = iconColor;
+                        //}
+                      }
+                      console.log("catList");
+                      console.log(catList);
+
+                      localObject.layerCategories[dp.show] = catList;
+
+                      renderCatList(catList);
+                      //processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
+                    });
+                  }
+
+                  let stateAllowed = true;
+                  if (dp.datastates && hash.state) {
+                    if (dp.datastates.split(",").indexOf(hash.state.split(",")[0].toUpperCase()) == -1) {
+                      stateAllowed = false;
+                      //alert("State1 of " + hash.state + " has no map point data based on dp.datastates indicated.");
+                      $("#list_main").hide();
+                      $("#map1").hide();
+                      return;
+                    }
+                  }
+
+                  console.log("TO DO - place prior dataset in object within processOutput() to avoid reloading")
+                  if (dp.dataset && stateAllowed && (dp.dataset.toLowerCase().includes(".json") || dp.datatype === "json")) { // To Do: only check that it ends with .json
+                    if (dp.headerAuth) {
+                      //dp.headerAuth = $.parseJSON(dp.headerAuth); // TO DO: Add object below
+                      $.ajaxSetup({
+                          headers : {
+                            'Authorization' : 'Bearer 204ad15687571d9c62bdfa780526b1514c090f68'
+                          }
+                      });
+                    }
+                    $.getJSON(dp.dataset, function (data) {
+                      dp.data = readJsonData(data, dp.numColumns, dp.valueColumn);
+                      processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){
+                        callback(); // Triggers initialHighlight()
+                      });
+                    });
+                  } else if (dp.dataset) {
+                    d3.csv(dp.dataset).then(function(data) { // One row per line
+                        //console.log("To do: store data in browser to avoid repeat loading from CSV.");
+
+                        //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+                        dp.data = data;
+                      
+                        // Make element key always lowercase
+                        //dp.data_lowercase_key;
+
+                        //alert("okay1")
+                        // TO DO - Need to verify this is needed, and where.
+                        // Convert all keys to lowercase
+                        /*
+                        // THIS BREAKS FARMFRESH, was never deployed, keys are already entered as lowercase
+                        for (var i = 0, l = dp.data.length; i < l; i++) {
+                          var key, keys = Object.keys(dp.data[i]);
+                          var n = keys.length;
+                          //var newobj={}
+                          dp.data[i] = {};
+                          while (n--) {
+                            key = keys[n];
+                            //if (key.toLowerCase() != key) {
+                              dp.data[i][key.toLowerCase()] = dp.data[i][key];
+                              //dp.data[i][key] = null;
+                            //}
+                          }
+                          //console.log("TEST dp.data[i]");
+                          //console.log(dp.data[i]);
+                        }
+                        */
+                        // For both maps:
+                        processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
+                    })
+                  } else if (dp.googleCSV) {
+                    d3.csv(dp.googleCSV).then(function(data) { // One row per line
+                      // LOAD GOOGLE SHEET
+                        //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+                        dp.data = data;
+                        if (dp.googleCategories) {            
+                          d3.csv(dp.googleCategories).then(function(data) {
+                            // LOAD CATEGORIES TAB - Category, SubCategory, SubCategoryLong
+                            //localObject.layerCategories[dp.show] = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
+                            localObject.layerCategories[dp.show] = data;
+                            processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
+                          });
+                        } else {
+                          processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
+                        }
+                    });
+                  }
+                  
+                  //.catch(function(error){ 
+                  //     alert("Data loading error: " + error)
+                  //})
+
+                /*
+                } else {
+                    attempts = attempts + 1;
+                    if (attempts < 2000) {
+                      // To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
+                      setTimeout( function() {
+                        loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback);
+                      }, 20 );
+                    } else {
+                      alert("D3 javascript not available for loading map dataset.")
+                    }
+                }
+                */
+                //setTimeout( function() {
+                //  alert("#" + whichmap + " div is now length: " + $('#' + whichmap).text().trim().length);
+                //  $('#' + whichmap).show();
+                //}, 3000 );
+      }); // End wait for element #map1
+    }); // End wait for element #map2
+  
+  } // 
+} // end function loadFromSheet
+
+
+
+// DELETE in 2023 - Not in use
+/*
+dataParameters.forEach(function(ele) {
+  if (location.host.indexOf('localhost') >= 0) {
+    alert("dataParameters in use")
+  }
+  overlays1[ele.name] = ele.group; // Add to layer menu
+  overlays2[ele.name] = ele.group2; // Add to layer menu
+})
+*/
+
 
 // Why does this work on /community/start/maps/counties/counties.html
 //console.timeEnd("End of localsite/js/map.js: ");
 //console.timeEnd("Processing time: ");
+
+
+
+
+console.log('end of localsite/js/map.js');
