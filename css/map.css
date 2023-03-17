@@ -21,6 +21,8 @@
     background-color:#111;
     padding:10px;
     border-bottom: 1px solid #777;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
   }
   #mapList1 {
     position: absolute;
@@ -28,7 +30,14 @@
     bottom: 0px;
     width: 100%;
     padding: 6px;
-    background-color: #333;
+    background-color: rgb(44, 44, 44);
+  }
+  #mapList1 a:link, #mapList1 a:visited {
+    color: #66CF79;
+    text-decoration: none;
+  }
+  #mapList1 a:link:hover, #mapList1 a:visited:hover {
+    text-decoration: underline;
   }
   #mapList1 .detailTitle {
     overflow: auto;
@@ -83,11 +92,13 @@
      border:none;
      margin-left:30px;
   }
-  .leaflet-touch .leaflet-bar a {
+  .leaflet-touch .leaflet-bar a, #earthZoom .leaflet-bar a {
     width:38px !important;
     height:38px !important;
     font-size: 26px !important;
-    color: #333;
+    color: #fff;
+    background-color: #555;
+    border: 0px !important;
     border-radius: 6px !important;
   }
   .leaflet-control-zoom-in {
@@ -97,7 +108,7 @@
   }
   .leaflet-control-zoom-out {
     border:#bbb 2px solid !important;
-    line-height: 36px !important;
+    line-height: 32px !important;
   }
   .leaflet-top > .info {
     background-color: rgba(33, 33, 33, 0.5);
@@ -214,7 +225,6 @@
   }
   #detaillist .detailTitle {
     font-size:20px;
-    margin-top: -7px;
     font-weight:400;
     color:#333;
   }

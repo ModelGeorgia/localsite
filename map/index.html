@@ -265,7 +265,7 @@ localsite.js pulls the #insertedText div from this page as the template for head
           </div>
       </div>
 
-    <div class="earth local" style="float:left; display:none">
+    <div style="float:left;">
       <div class="showEarth">
         <i class="material-icons show-on-load" style="font-size:34px;opacity:0.2; margin-top:-3px" data="apps">&#xE894;</i>
       </div>
@@ -1499,8 +1499,8 @@ Displayed by hashChanged() in map-filters.js
   }
   #mainbucket {
     position: absolute;
-    right: 40px;
-    bottom: 60px;
+    right: 80px;
+    bottom: 20px;
     padding: 20px;
     font-size: 18px;
     line-height: 28px;
@@ -1523,19 +1523,26 @@ Displayed by hashChanged() in map-filters.js
 
   <div class="hideMobile">
   <div id="mainbucket" style="display:none">
-    <a href="../io/charts/"><img src="/community/img/logo/epa-circle.png" style="width:100px;float:left;margin-right:16px;"></a>
+    <a href="../io/charts/"><img src="/community/img/logo/epa-circle.png" style="width:115px;float:left;margin-right:16px;"></a>
 
-    <div style="padding-top:5px; overflow:auto">
-      Join us in building Product Lifecycle Tools that&nbsp;increase positive environmental impacts through&nbsp;local innovation. 
+    <div style="padding-top:5px; overflow:auto" class="hideOnProjectsPage">
+      Transforming environments through collaborative modeling and gamification.
+
+      <!--
+      Join us in building Product Lifecycle Tools that&nbsp;increase positive environmental impacts through&nbsp;local innovation. -->
+      <br>
       
-      <br><br><a href="https://democracylab.org/events/hackynewyear2023" class="linkondark">Democracy Lab - Hacky New Year!</a><br>
-      January 27th and 28, 2023<br>
-      <a href="/io/coders/" class="btn btn-white" style="margin-top:10px;">Our Hackathon Projects</a>
+      <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
 
       <!--
         <a href="/localsite/info/" class="linkondark">Explore&nbsp;Impacts</a>
       -->
 
+    </div>
+    <div style="display:none" class="projectsPage">
+      Build your school projects and dissertations using USEEIO environmentally-extended data.
+
+      <a href="/io/learn/" class="btn btn-warning" style="margin-top:10px;">For Research Projects</a>
     </div>
     <!--
     <a href="projects/">Current Projects</a> and <a href="/localsite/info/">Data Visualizations</a><br>
@@ -1572,6 +1579,7 @@ Displayed by hashChanged() in map-filters.js
 <div class="displayOnload displayMapForLoad" style="display:none;position:relative;overflow:hidden;">
   <div id="mapList1Holder" class="local" style="display:none">
     <div id="mapList1Header">Locations</div>
+    <div id="mapList1Intro"></div>
     <div id="mapList1" class="always-show-scroll"></div>
   </div>
 
@@ -2174,7 +2182,6 @@ document.addEventListener('hashChangeEvent', function (elem) {
 <script src='/localsite/js/plyr.min.js'></script>
 
 
-
 <!-- For testing slider -->
 <div class="swiper-container local" style="display:none;overflow:hidden;clear:both" id="sample1">
 
@@ -2183,7 +2190,8 @@ document.addEventListener('hashChangeEvent', function (elem) {
     
     <!-- Slide 1 -->
     <div class="swiper-slide" data-hash="plant">
-      <img class="swiper-lazy" data-src="/localsite/img/hero/plant.png" style="opacity:0.9;width:100%;max-width:2000px">
+      <!-- BUG why does this need to be swiper-lazyX and src. Scroll to the far right to see -->
+      <img class="swiper-lazyX" src="/localsite/img/hero/plant.png" style="opacity:0.9;width:100%;max-width:2000px">
       <div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
       <div class="optionalText content contentpadding" style="displayX:none;position:absolute; bottom:-30px">
         Add Optional Text 1
@@ -2267,6 +2275,7 @@ document.addEventListener('hashChangeEvent', function (elem) {
 // Function that builds the swiper 
 const buildSwiperSlider = sliderElm => {
     const sliderIdentifier = sliderElm.id;
+    //alert("test " + sliderIdentifier)
     const homeSwiper = new Swiper(`#${sliderElm.id}`, {
         slidesPerView: 1,
         spaceBetween: 30,
@@ -2365,6 +2374,13 @@ const allSliders = document.querySelectorAll('.swiper-container');
 
 // Loop over all of the fetched sliders and apply Swiper on each one.
 allSliders.forEach(slider => buildSwiperSlider(slider));
+
+
+const allListSliders = document.querySelectorAll('#detaillist');
+// Loop over all of the fetched sliders and apply Swiper on each one.
+allListSliders.forEach(slider => buildSwiperSlider(slider));
+
+
 
 $(".swiper-button-play").show();
 //$(".swiper-button-play").css('opacity', '0.8');

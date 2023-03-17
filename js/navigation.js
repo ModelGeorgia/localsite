@@ -87,7 +87,15 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 			param.headerLogoSmall = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
 			showClassInline(".lifecycle");
 			earthFooter = true;
-		// || (((location.host.indexOf('localhost') >= 0) || false) && !param.headerLogo)
+		} else if (location.host.indexOf("dreamstudio") >= 0) {
+			//showLeftIcon = true;
+			$(".siteTitleShort").text("DreamStudio");
+			param.titleArray = [];
+			param.headerLogo = "<a href='https://dreamstudio.com'><img src='https://dreamstudio.com/dreamstudio/img/logo/dreamstudio.png' style='height:23px'></a>";
+			param.headerLogoNoText = " ";
+		} else if (location.host.indexOf("nxtwave") >= 0) {
+			param.titleArray = ["Nxt","Wave"];
+			$(".siteTitleShort").text("NxtWave");
 		} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0 ) {
 			// Show locally for Brave Browser only - insert before:  ) || false
 			// && navigator && navigator.brave
@@ -417,7 +425,11 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 						$(document).on("click", ".showEarth", function(event) {
 							if ($("#nullschoolHeader").is(':visible')) {
 								$("#nullschoolHeader").hide();
+								//$("#globalMapHolder").show();
+								$("#hero_holder").show();
 							} else {
+								//$("#globalMapHolder").hide(); // Home page nullschool map.
+								$("#hero_holder").hide();
 								// Add a setting to choose map: Temperatures or just wind
 								// Big blue: https://earth.nullschool.net/#current/wind/surface/level/orthographic=-35.06,40.67,511
 								showGlobalMap("https://earth.nullschool.net/#current/wind/surface/level/overlay=temp/orthographic=-72.24,46.06,511"); //   /loc=-81.021,33.630
