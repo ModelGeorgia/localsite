@@ -543,46 +543,53 @@ function loadLocalTemplate() {
   $(bodyFileDiv).load(bodyFile, function( response, status, xhr ) {
     $("#insertedTextSource").remove(); // For map/index.html. Avoids dup header.
 
+    //$('img').each(function() {
+    //  $(this).attr('src', 'https://model.earth' + $(this).attr('src'));
+    //});
+
     let elemDiv = document.createElement('div');
     elemDiv.id = "localsiteDetails";
     elemDiv.style.cssText = "display:none";
     elemDiv.innerHTML = "testing";
     document.body.appendChild(elemDiv);
-    $("#headerbar").prependTo("body"); // Move back up to top.
 
     console.log("Template Loaded: " + bodyFile);
     if (typeof relocatedStateMenu != "undefined") {
       relocatedStateMenu.appendChild(state_select); // For apps hero
       $(".stateFilters").hide();
     }
-    if (param.showstates != "false") {
-      $("#filterClickLocation").show();
-    }
-    $("#mapFilters").prependTo("#fullcolumn");
-    $("#local-header").prependTo("body"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
-    $("#headerbar").prependTo("body"); // Move back up to top.
-    if (param.showheader == "true") {
+    waitForElm('#filterClickLocation').then((elm) => {
+      if (param.showstates != "false") {
+          $("#filterClickLocation").show();
+      }
+      $("#mapFilters").prependTo("#fullcolumn");
+      // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
+      $("#local-header").prependTo("#fullcolumn");
+      $("#headerbar").prependTo("#fullcolumn");
+    });
+    //waitForElm('#local-header').then((elm) => {
+    //  $("#local-header").prependTo("#fullcolumn"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
+    //});
 
-      waitForElm('body').then((elm) => {
-        waitForElm('#headerbar').then((elm) => { 
-          $('#headerbar').hide();
-          $("#headerbar").prependTo("body");
-          setTimeout( function() {
-            $("#headerbar").prependTo("body");
-            //showHeaderBar();
-          }, 200 );
-          setTimeout( function() {
-            $("#headerbar").prependTo("body");
-            showHeaderBar();
-          }, 400 );
-          //showHeaderBar();
+    waitForElm('#fullcolumn').then((elm) => {
+      $("#headerbar").prependTo("#fullcolumn"); // Move back up to top.
+      //$("#bodyMainHolder").prependTo("#fullcolumn"); // Move back up to top.
+      $("#sideTabs").prependTo("#fullcolumn"); // Move back up to top.
+
+      // Replace paths in div
+      if(location.host.indexOf("intranet") >= 0) {
+        $("#intranet-nav a").each(function() {
+          $(this).attr('href', $(this).attr('href').replace(/\/docs\//g,"\/"));
         });
-        waitForElm('#local-header').then((elm) => {
-          //$('#headerbar').removeClass("headerbarhide");
-          //$('#local-header').show();
+      }
+      if(location.host.indexOf("dreamstudio") >= 0) {
+        $("#dreamstudio-nav a").each(function() {
+          $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
         });
-      });
-    }
+      }
+      showHeaderBar();
+    });
+
     if (location.host.indexOf('model') >= 0) {
       $(".showSearch").show();
       $(".showSearch").removeClass("local");
@@ -606,28 +613,37 @@ function loadSearchFilterIncludes() {
   }
 }
 function loadLeafletAndMapFilters() {
+  //alert("param.showheader " + param.showheader)
   //if (param.shownav) {
   if (param.showheader != "false") {
     loadScript(theroot + 'js/navigation.js', function(results) {
-      // Might need to add a check here. Occasional:
-      // Uncaught ReferenceError: applyNavigation is not defined
+      waitForElm('body').then((elm) => {
+        console.log("body is now available"); // If missing header persists, remove waitForElm('body') here (line above annd closure)
+        // Puts space above flexmain for navcolumn to be visible after header
+        $("body").prepend("<div id='local-header' class='flexheader hideprint' style='display:none'></div>\r");
+        waitForElm('#local-header').then((elm) => {
+          $("#local-header").prependTo("#fullcolumn"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
+        
+        });
+        // Might need to add a check here. Occasional:
+        // Uncaught ReferenceError: applyNavigation is not defined
 
-      // if #local-header already exists, abort
+        // if #local-header already exists, abort
 
 
-      // To Do: wait for div from navigation.js
-      //waitForElm('body').then((elm) => {
+        // To Do: wait for div from navigation.js
+        //waitForElm('body').then((elm) => {
 
-      //});
+        //});
 
-      setTimeout( function() {
+        //setTimeout( function() {
 
-        console.log("applyNavigation() after 200 ms delay"); // 10 ms returned error on CloudFlare, but fine locally.
-        applyNavigation();
-      }, 200 ); // Bugbug - better to wait for a div to be available. Try inserting from within navigation.js before DOM ready.
+        //  console.log("applyNavigation() after 200 ms delay"); // 10 ms returned error on CloudFlare, but fine locally.
+          applyNavigation();
+        //}, 200 ); // Bugbug - better to wait for a div to be available. Try inserting from within navigation.js before DOM ready.
+      });
     });
   }
-
   loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
     includeCSS3(theroot + 'css/leaflet.css',theroot);
     loadScript(theroot + 'js/leaflet.js', function(results) {
@@ -650,64 +666,79 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       //Doc ready was here, now further down
 
-        console.log("Ready DOM Loaded (But not template yet). Using theroot: " + theroot)
+      console.log("Ready DOM Loaded (But not template yet). Using theroot: " + theroot)
 
-        $(document).click(function(event) { // Hide open menus in core
-          $('.hideOnDocClick').hide();
-        });
-        
+      $(document).click(function(event) { // Hide open menus in core
+        $('.hideOnDocClick').hide();
+      });
 
-        // Load when body div becomes available, faster than waiting for all DOM .js files to load.
-        waitForElm('body').then((elm) => {
-         console.log("body becomes available")
-          if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
+      // Load when body div becomes available, faster than waiting for all DOM .js files to load.
+      waitForElm('body').then((elm) => {
+       console.log("body becomes available")
+        if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
+          var div = $("<div />", {
+              html: '<style>.local{display:inline !important}.localonly{display:block !important}</style>'
+            }).appendTo("body");
+        } else {
+          // Inject style rule
             var div = $("<div />", {
-                html: '<style>.local{display:inline !important}.localonly{display:block !important}</style>'
-              }).appendTo("body");
-          } else {
-            // Inject style rule
-              var div = $("<div />", {
-                html: '<style>.local{display:none}.localonly{display:none}</style>'
-              }).appendTo("body");
-          }
+              html: '<style>.local{display:none}.localonly{display:none}</style>'
+            }).appendTo("body");
+        }
 
-          // LOAD HTML TEMPLATE - Holds search filters and maps
-          // View html source: https://model.earth/localsite/map
-          // Consider pulling in HTML before DOM is loaded, then send to page once #bodyFile is available.
+        // LOAD HTML TEMPLATE - Holds search filters and maps
+        // View html source: https://model.earth/localsite/map
+        // Consider pulling in HTML before DOM is loaded, then send to page once #bodyFile is available.
 
-         if (param.insertafter && $("#" + param.insertafter).length) {
-            $("#" + param.insertafter).append("<div id='bodyFile'></div>");
-          //} else if (!$("#bodyFile").length) {
-          } else if(document.getElementById("bodyFile") == null) {
-            $('body').prepend("<div id='bodyFile'></div>");
-          }
-          if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
-            //if (param.templatepage != "true") { // Prevents dup header on map/index.html - Correction, this is needed. param.templatepage can probably be removed.
+       if (param.insertafter && $("#" + param.insertafter).length) {
+          $("#" + param.insertafter).append("<div id='bodyFile'></div>");
+        //} else if (!$("#bodyFile").length) {
+        } else if(document.getElementById("bodyFile") == null) {
+          $('body').prepend("<div id='bodyFile'></div>");
+        }
+        if(param.showheader == "true") {
+          $('body').prepend("<div id='showSide' class='showSide' style='top:92px;left:-28px;position:absolute'><i class='material-icons show-on-load' style='font-size:35px; opacity:0.7; background:#fcfcfc; padding-right:3px; border:1px solid #555; border-radius:8px;'>&#xE5D2;</i></div>");
+        }
+        
+        waitForElm('#fullcolumn').then((elm) => {
+          $("#showSide").prependTo("#fullcolumn"); 
+        });
+
+        if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
+          //if (param.templatepage != "true") { // Prevents dup header on map/index.html - Correction, this is needed. param.templatepage can probably be removed.
+            //if (param.shownav != "true") { // Test for mentors page, will likely revise
               loadLocalTemplate();
             //}
-            //else {
-            //  $("#headerbar").prependTo("body"); // For map/index.html
-          }
-        
+          //}
+        }
+      
 
-          // LOAD INFO TEMPLATE - Holds input-output widgets
-          // View html source: https://model.earth/localsite/info/info-template.html
-          if (!$("#infoFile").length) {
-            $('body').append("<div id='infoFile'></div>");
-          }
-          if (param.display == "everything") {
-            let infoFile = theroot + "info/info-template.html #info-template"; // Including #info-template limits to div within page, prevents other includes in page from being loaded.
-            //console.log("Before template Loaded infoFile: " + infoFile);
-            //alert("Before template Loaded: " + bodyFile);
-            $("#infoFile").load(infoFile, function( response, status, xhr ) {
-              console.log("Info Template Loaded: " + infoFile);
-              $("#industryFilters").appendTo("#append_industryFilters");
-            });
-          }
+        // LOAD INFO TEMPLATE - Holds input-output widgets
+        // View html source: https://model.earth/localsite/info/info-template.html
+        if (!$("#infoFile").length) {
+          $('body').append("<div id='infoFile'></div>");
+        }
+        if (param.display == "everything") {
+          let infoFile = theroot + "info/info-template.html #info-template"; // Including #info-template limits to div within page, prevents other includes in page from being loaded.
+          //console.log("Before template Loaded infoFile: " + infoFile);
+          //alert("Before template Loaded: " + bodyFile);
+          $("#infoFile").load(infoFile, function( response, status, xhr ) {
+            console.log("Info Template Loaded: " + infoFile);
+            $("#industryFilters").appendTo("#append_industryFilters");
+          });
+        }
 
-          // Move local-footer to the end of body
+        // Move local-footer to the end of body
+        let foundTemplate = false;
+        // When the template (map/index.html) becomes available
+        waitForElm('#templateLoaded').then((elm) => {
+          foundTemplate = true;
           $("#local-footer").appendTo("body");
-        }); // End body ready
+        });
+        if (foundTemplate == false) { // An initial move to the bottom - occurs when the template is not yet available.
+          $("#local-footer").appendTo("body");
+        }
+      }); // End body ready
 
       $(document).ready(function () {
         /*! jQuery & Zepto Lazy v1.7.6 - http://jquery.eisbehr.de/lazy - MIT&GPL-2.0 license - Copyright 2012-2017 Daniel 'Eisbehr' Kern */
@@ -718,7 +749,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         $(function() {
               $('.lazy').Lazy(); // Lazy load all divs with class .lazy
         });
-      }); // End doc ready
+      });
 
       $(window).on('hashchange', function() { // Avoid window.onhashchange since overridden by map and widget embeds  
         consoleLog("window hashchange");
@@ -748,7 +779,6 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       //document.write(strVarCss);
       document.head.insertAdjacentHTML("beforeend", strVarCss);
 
-
       $(document).on("click", ".expandToFullscreen, .reduceFromFullscreen", function(event) {
         toggleFullScreen();  
       });
@@ -756,7 +786,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           //loadLeafletAndMapFilters();
         showSearchFilter();
       });
-
+      
       clearInterval(waitForJQuery); // Escape the loop
 
       if (param.showsearch == "true") {
@@ -844,7 +874,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       includeCSS3(theroot + 'css/naics.css',theroot);
       
       // customD3loaded
-      if (param.preloadmap != "false" && (param.showheader == "true" || param.display == "map")) {
+      if (param.preloadmap != "false" && (param.showheader == "true" || param.shownav == "true" || param.display == "map")) {
         loadLeafletAndMapFilters();
       }
 
@@ -879,11 +909,11 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       
       //loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
 
-
+      /*
       if (param.display == "everything") {
         //if(param.showbubbles) {
           loadScript(theroot + 'js/d3.v5.min.js', function(results) {
-            loadScript(theroot + '../io/charts/bubble/js/bubble.js', function(results) {
+            loadScript(theroot + '../io/charts/bubble/js/bubble.js', function(results) { // moved to naics.js instead
               // HACK - call twice so rollovers work.
                 //refreshBubbleWidget();
                 //alert("go")
@@ -899,6 +929,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           });
         //}
       } // end everything
+      */
+
     }
   }
 
@@ -907,7 +939,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   
 
   if (param.material_icons != "false") {
-    param.material_icons = "true"; // Could lazy load if showMenu changed to graphic.
+    param.material_icons = "true"; // Could lazy load if showSideTabs changed to graphic.
   }
   if (fullsite || param.material_icons == "true") {
     // This was inside FULL SITE above, but it is needed for menus embedded in external sites.
@@ -932,8 +964,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       link.type = 'text/css';
       link.rel = 'stylesheet';
-      //link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
       link.href = theroot + '../localsite/css/fonts/materialicons/icon.css';
+      //link.href = theroot + 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
       link.id = getUrlID3(link.href,"");
       
       // TO DO: Need to check if icon.css already in page.
@@ -1458,6 +1490,10 @@ addEventListener("load", function(){
   };
   document.querySelector("body").addEventListener('click', function(e) {
     $(".hideOnBodyClick").hide();
+
+    $("#hideMenu").hide(); // Avoids double clicking.
+    $("#showSideTabs").show();
+
     //consoleLog('click ' + Date.now())
     var anchor = getParentAnchor(e.target);
     if(anchor !== null) {
@@ -1664,8 +1700,10 @@ function getState(stateCode) {
 
 
 function showSearchFilter() {
+  let loadFilters = false;
   let headerHeight = $("#headerbar").height(); // Not sure why this is 99 rather than 100
-  if (!$("#filterFieldsHolder").length) { // Filter doesn't exist yet, initial load.
+  closeSideTabs(); // Later search will be pulled into side tab.
+  if (!$("#filterFieldsHolder").length) { // Filter doesn't exist yet, initial map/index.html load.
     if (!$("#bodyFile").length) {
       $('body').prepend("<div id='bodyFile'></div>");
     }
@@ -1674,14 +1712,13 @@ function showSearchFilter() {
     console.log('%cloadLeafletAndMapFilters called by showSearchFilter(). Might cause dup', 'color: red; background: yellow; font-size: 14px');
     loadLeafletAndMapFilters();
     $('html,body').scrollTop(0);
+    loadFilters = true;
   } else {
-
     let filterTop = $("#filterFieldsHolder").offset().top - window.pageYOffset;
-
     console.log("showSearchFilter #filterFieldsHolder offset top: " + filterTop);
     //  || (!$("#headerbar").is(':visible') && filterTop >= 0)
     if ($("#filterFieldsHolder").is(':visible') && (($("#headerbar").is(':visible') && filterTop >= headerHeight) )) { // Might need to allow for coverage by header.
-      console.log("#filterFieldsHolder is visible, hide it.");
+      console.log("Hide #filterFieldsHolder");
       $("#filterFieldsHolder").hide();
       $("#filterFieldsHolder").addClass("filterFieldsHidden");
       //$("#filterbaroffset").hide();
@@ -1689,18 +1726,34 @@ function showSearchFilter() {
     } else {
       // #bodyFile is needed for map/index.html to apply $("#filterFieldsHolder").show()
       // Also prevents search filter from flashing briefly in map/index.html before moving into #bodyFile
-      // 
-      waitForElm('#bodyFile #filterFieldsHolder').then((elm) => {
+        
+      if (document.getElementById("filterFieldContent") == null) { 
+        //alert("load filter.html")
+        let filterFile = "/localsite/map/filter.html";
+        $("#filterFieldsHolder").load(filterFile, function( response, status, xhr ) {
+
+        }); // End $("#filters").load
+
+        loadFilters = true;
+      } else { // Already exists, show filters
+        revealFilters();
+      }
+    }
+
+    if (loadFilters) {
+      waitForElm('#bodyFile #filterFieldContent').then((elm) => {
+        revealFilters();
+        /*
         console.log("show #filterFieldsHolder");
         $("#filterFieldsHolder").show();
         $("#filterFieldsHolder").removeClass("filterFieldsHidden");
         //$("#filterbaroffset").show();
         $(".hideWhenPop").show();
         $('html,body').scrollTop(0);
+        */
       });
     }
     return;
-
 
 
 
@@ -1740,9 +1793,6 @@ function showSearchFilter() {
       $(".hideSearch").show();
       //$(".hideFilters").show(); // X not needed since magnifying glass remains visible now.
       //$("#hideSearch").show();
-      if ($(".settingsPanel").is(':visible')) {
-          hideSettings();
-      }
       if ($("#menuHolder").is(':visible')) {
           $('.hideMetaMenu').trigger("click");
       }
@@ -1752,6 +1802,24 @@ function showSearchFilter() {
       // Could be adjusted to reside left of search filters.
       //$(".quickMenu").hide();
   }
+}
+function closeSideTabs() {
+  $("#sideTabs").hide();
+  $("body").removeClass("bodyRightMargin");
+  if (!$('body').hasClass('bodyLeftMargin')) {
+    $('body').removeClass('mobileView');
+  }
+  //$("#hideMenu").hide();
+  $("#closeSideTabs").hide();
+  $("#showSideTabs").show();
+}
+function revealFilters() {
+  //console.log("show #filterFieldsHolder");
+  $("#filterFieldsHolder").show();
+  $("#filterFieldsHolder").removeClass("filterFieldsHidden");
+  //$("#filterbaroffset").show();
+  $(".hideWhenPop").show();
+  $('html,body').scrollTop(0);
 }
 function showGlobalMap(globalMap) { // Used by community/index.html, green-sah
   $("#nullschoolHeader").show();
@@ -1810,6 +1878,145 @@ function waitForElmKickoff(selector, resolve) {
       subtree: true //Set to true if changes must also be observed in descendants.
   });
 }
-//waitForElm('#tabulator-geotable').then((elm) => {
-//    alert('Element is ready: ' + elm.textContent);
-//});
+
+
+function loadMarkdown(pagePath, divID, target, callback) {
+  // WAIT FOR SCRIPT THAT LOADS README.md Files
+  loadScript(theroot + 'js/d3.v5.min.js', function(results) {
+  //loadScript(theroot + 'js/jquery.min.js', function(results) {
+  loadScript(theroot + 'js/showdown.min.js', function(results) {
+
+    // getPageFolder:
+    let pageFolder = pagePath;
+    if (pageFolder.lastIndexOf('?') > 0) { // Incase slash reside in parameters
+      pageFolder = pageFolder.substring(0, pageFolder.lastIndexOf('?'));
+    }
+    // If there is a period after the last slash, remove the filename.
+    if (pageFolder.lastIndexOf('.') > pageFolder.lastIndexOf('/')) {
+      pageFolder = pageFolder.substring(0, pageFolder.lastIndexOf('/')) + "/";
+    }
+    if (pageFolder == "/") {
+      pageFolder = "";
+    }
+
+    if (pageFolder.indexOf('https://raw.githubusercontent.com/wiki') >= 0) {
+      pageFolder = pageFolder.replace("https://raw.githubusercontent.com/wiki/","https://github.com/") + "/wiki/"; 
+    }
+
+    // Get the levels below root
+    //let foldercount = (location.pathname.split('/').length - 1); // - (location.pathname[location.pathname.length - 1] == '/' ? 1 : 0) // Removed because ending with slash or filename does not effect levels. Increased -1 to -2.
+    
+
+    // Might not be used
+    //alert(location.pathname)
+    //let foldercount = (location.pathname.split('/').length - 1);
+    let foldercount = (pagePath.split('/').length - 1);
+    foldercount = foldercount - 2;
+    let climbcount = foldercount;
+    if(location.host.indexOf('localhost') >= 0) {
+      climbcount = foldercount - 0;
+    }
+    let climbpath = "";
+    for (let i = 0; i < climbcount; i++) {
+      climbpath += "../";
+    }
+    if(climbpath == "") {
+      //climbpath == "./";
+    }
+    if (typeof customD3loaded === 'undefined') {
+      console.log("ALERT - d3 not available yet. This may occur if showdown.min.js is included in page, but not d3.v5.min.js")
+    }
+    d3.text(pagePath).then(function(data) {
+      // Path is replaced further down page. Reactivate after adding menu.
+      var pencil = "<div class='markdownEye' style='display:none;position:absolute;font-size:28px;right:0px;text-decoration:none;opacity:.7'><a href='" + pagePath + "' style='color:#555'>…</a></div>";
+      // CUSTOM About YAML metadata converter: https://github.com/showdownjs/showdown/issues/260
+
+      // Also try adding simpleLineBreaks http://demo.showdownjs.com/
+
+      var converter = new showdown.Converter({tables:true, metadata:true, simpleLineBreaks: true}),
+      html = pencil + converter.makeHtml(data);
+
+      var metadata = converter.getMetadata(true); // returns a string with the raw metadata
+      var metadataFormat = converter.getMetadataFormat(); // returns the format of the metadata
+
+      // This returns YAML and JSON at top of README.md page.
+      if (metadata) {
+        //alert(metadata);
+
+        /*
+        // UNDER DEVELOPMENT
+        // Planning to use one of these:
+        // https://github.com/jeremyfa/yaml.js  (See: https://www.npmjs.com/package/yamljs)
+        // https://github.com/nodeca/js-yaml
+
+        obj = jsYaml.load(metadata, { schema: SEXY_SCHEMA });
+
+        result.setOption('mode', 'javascript');
+        result.setValue(inspect(obj, false, 10));
+
+        convertToHtmlTable(obj);
+
+        html = metadata + html;
+        */
+      }
+      //document.getElementById(divID).innerHTML = html; // Overwrites
+
+      // Append rather than overwrite
+      var thediv = document.getElementById(divID);
+      loadIntoDiv(pageFolder,divID,thediv,html,0,callback);
+
+    });
+  });
+  });
+  //});
+}
+function loadIntoDiv(pageFolder,divID,thediv,html,attempts,callback) {
+  if (thediv) {
+    //alert("loadIntoDiv attempts: " + attempts);
+    var newcontent = document.createElement('div');
+    newcontent.innerHTML = html;
+    while (newcontent.firstChild) {
+        thediv.appendChild(newcontent.firstChild);
+    }
+
+    document.getElementById(divID).style.display = "block";
+    document.getElementById(divID).style.position = "relative"; // So upper right eye icon remains within div.
+    document.getElementById(divID).style.overflow = "auto"; // Prevents text from falling below adjacent float.
+
+    //alert("climbpath works for deeper: " + climbpath);
+    //alert("pageFolder shows path: " + pageFolder);
+    //alert(pagePath);
+
+    // To do: might apply to html parameter above rather than DOM.
+    $("#" + divID + " a[href]").each(function() {
+
+      //if (pagePath.indexOf('../') >= 0) { // If .md file is not in the current directory
+      //$("#" + divID + " a[href]").each(function() {
+      if($(this).attr("href").toLowerCase().indexOf("http") < 0){ // Relative links only        
+          //$(this).attr("href", climbpath + $(this).attr('href'));
+          $(this).attr("href", pageFolder + $(this).attr('href'));
+          //console.log("Showdown link update: " + pageFolder + " plus " + $(this).attr('href'));
+      } 
+      else if (!/^http/.test($(this).attr("href"))) { // Also not Relative link
+          console.log("ALERT Adjust: " + $(this).attr('href'));
+          $(this).attr("href", pageFolder + $(this).attr('href'));
+          //console.log("Showdown link update2: " + pageFolder + " plus " + $(this).attr('href'));
+      }
+      else {
+          //console.log("Showdown link update3 none: " + pageFolder + " plus " + $(this).attr('href'));
+      }
+    })
+    if(callback) callback();
+  } else { // Try again
+    attempts = attempts + 1;
+    if (attempts < 100) {
+      setTimeout( function() {
+        thediv = document.getElementById(divID);
+        loadIntoDiv(pageFolder,divID,thediv,html,attempts,callback);
+      }, 100 );
+    } else {
+      console.log("ALERT: " + divID + " not available in page for showdown to insert text after " + attempts + " attempts.");
+    }
+  }
+
+}

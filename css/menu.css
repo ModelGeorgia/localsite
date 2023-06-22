@@ -456,59 +456,48 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     display: block;
 }
 
-/* For sidecolumn from header.html */
-body {
-    background-color: rgb(250, 250, 250); /* For side nav -- too light in IS */
-    background-colorX: #595959;
-}
-.sidecolumn-inpage #sidecolumnLeft {
+/* For navcolumn from header.html */
+.navcolumn-inpage .sidecolumnLeft {
     position: static !important;
     float:left;
     padding: 0px;
 }
-.sidecolumn-inpage .sidecolumnLeftScroll {
+.navcolumn-inpage .sidecolumnLeftScroll {
     position: relative;
     bottom:auto !important;
     right:0 !important;
 }
 
-#sidecolumn {
-    float: left;
-    width: 200px;
-    height: 100%;
-    padding-right: 10px;
-    background-color: rgb(253, 253, 253);
-    background-color: rgb(99 99 99/50%);
-    position: relative;
-}
-#sidecolumnLeft {
-    padding: 24px;
-    line-height: 24px;
-    width: 178px;
+#navcolumn {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
     width: 220px;
-    font-size: 14px;
-    bottom:0;
-    top:100px;
-    z-index:1; /* allows border highlight to overlap adjacent content area. */
+    padding-right: 0px;
+    background-color: #b1b1b1;
 }
-#sidecolumnLeft {
-	position: fixed;
-	margin-top: 18px;
+.sidecolumnLeft {
+    padding: 24px;
+    line-height: 28px;
+    font-size: 16px;
+    bottom:0;
+    z-index:1; /* allows border highlight to overlap adjacent content area. */
 }
 #cloneRight {
 	position:inherit;
-    line-height: 24px;
-    font-size: 14px;
+    line-height: 34px;
+    font-size: 18px;
 }
-#sidecolumnLeft b, #cloneRight b {
+.sidecolumnLeft b, #cloneRight b {
     color:#333;
+    font-weight:800;
 }
 .sidecolumnLeftScroll {
     position:absolute;
-    top:0px;
+    top:30px;
     bottom:0px;
-    right:24px;
-    left:18px;
+    right:0px;
+    left:0px;
+    padding-left: 10px;
     overflow-y:scroll;
     -webkit-overflow-scrolling: touch;
     -ms-overflow-style: none;  /* IE and Edge */
@@ -519,27 +508,26 @@ body {
   display: none;
 }
 
-#sidecolumnLeft a, #cloneRight a {
+.sidecolumnLeft a, #cloneRight a {
     display:block;
+    padding-left: 15px;
     color: #fff;
     text-decoration: none;
 }
-#sidecolumnLeft a:hover, #cloneRight a:hover {
-	text-decoration: underline;
+.sidecolumnLeft a:hover, .sidecolumnLeft a.active:hover, #cloneRight a:hover {
+	background-color: #333;
+	color: #fff;
+	text-decoration: none;
 }
-#sidecolumnLeft b a {
+.sidecolumnLeft b a {
 	color: #333;
 	font-size: 16px;
 	line-height: 1.8em;
 }
-#sidecolumnLeftX a:hover {
-    border-right: 4px solid #f3f3f3;
-    border-right: 4px solid #000;
-    margin-right: -4px;
-}
-#sidecolumnLeft a.active {
-    border-right: 4px solid #777;
-    margin-left:-20px;
+.sidecolumnLeft a.active {
+    border-right: 4px solid #888;
+    background-color: rgba(33, 33, 33, 0.06);
+    margin-left:-6px;
     padding-left:20px;
 }
 #fullcolumn {
@@ -551,20 +539,20 @@ body {
 }
 @media (max-width: 800px) {
     .content {
-      padding: 30px 22px 30px 25px;
+      padding: 30px 30px 30px 40px;
     }
-    #sidecolumn {
+    #navcolumn {
       display: none;
     }
 }
-.sidecolumn-inpage {
+.navcolumn-inpage {
     position: static !important;
     position: relative;
 }
-.sidecolumn-inpage > #sidecolumnLeft {
+.navcolumn-inpage > .sidecolumnLeft {
     position: static;
 }
-/* End For sidecolumn from header.html */
+/* End For navcolumn from header.html */
 
 /* Settings Menu */
 .settingsPanel select {
@@ -583,13 +571,19 @@ body {
 }
 
 .menuExpanded {
-    min-width: 400px;
     min-height: 200px;
-    display:none;
+    height: 100%;
     color: #cfcfcf;
     background-color: #555;
     box-sizing: border-box;
     position: relative;
+}
+.menuExpanded h2, .menuExpanded h3, .menuExpanded h4 {
+	color: #ccc;
+}
+.menuExpanded a, .menuExpanded a:visited {
+	color: #acb;
+	text-decoration: none;
 }
 .menuExpandedScroll {
     position:absolute;
@@ -635,21 +629,48 @@ body {
     padding-top:5px;
 }
 .setOverflow {
-    overflow: auto;
+    float: left;
     min-width: 120px;
+}
+#sideTabs {
+	width:500px;
+}
+@media (max-width: 1000px) {
+	#sideTabs {
+		width:100%;
+	}
 }
 .rightTopItem {
     padding: 11px 4px 5px 10px;
 }
-
+.rightTopItem > * {
+	pointer-events: none !important;
+}
 #rightTopMenu {
-    position: fixed;
-    right: 0px;
-    top: 100px;
-    z-index: 1001; /* To exceed Leaflet */
     pointer-events: auto; /* Prevents click from reching image, and hover from reaching map below */
     box-shadow: 2px 2px 6px #333;
-    bottom: 0;
+    height: 100%;
+    box-shadow: -8px -2px 8px 1px rgba(0, 0, 0, 0.4);
+}
+#rightTopMenu p {
+	margin-bottom: 6px;
+}
+#rightTopMenu h2 {
+	font-size: 22px;
+	padding-top: 0px;
+	margin-top: 0px;
+	border-bottom: 0px;
+	margin-bottom: 10px;
+	line-height: 32px;
+}
+#rightTopMenu h4 {
+	margin-bottom: 0px;
+	font-weight: 400;
+}
+@media (max-width: 800px) {
+	#rightTopMenu {
+		left: 0px;
+	}
 }
 .rightTopMenuLeft {
     /* top: 48px; */
@@ -657,26 +678,15 @@ body {
 }
 /* Avoid adding .moduleJS to three-dot menu, else font-family not applied to left menu  */
 .rightTopMenuInner { /* lives outside .moduleJS when full header displayed */
-    min-width: 150px;
+    min-width: 110px;
     font-family: 'Open Sans', 'Helvetica Neue', HelveticaNeue, calibri, arial, sans-serif;
+    max-width: 157px;
 }
 .rightTopMenuInner i {
     color: #ddd !important;
 }
 .rightTopMenuInner {
-    background-color: rgba(33, 33, 33, 0.95);
-}
-@media (max-width: 500px) {
-    .rightTopMenuInner {
-        font-size: 24px;
-    }
-    .rightTopMenuInner i {
-        font-size: 30px;
-        padding-top: 10px;
-    }
-    .rightTopMenuInner .rightTopItem {
-        /* border-bottom: 1px solid #aaa; */
-    }
+    background-color: rgba(33, 33, 33, 1);
 }
 .rightTopMenuInner > .active {
   background-color: #555;
@@ -686,23 +696,29 @@ body {
     clear: both;
     width: 100%;
     overflow: auto;
-    padding-left: 20px;
+    padding-left: 16px;
     padding-right: 25px;
     cursor: pointer;
 }
 .rightTopItem:hover {
     background-color: #000;
 }
+.rightTopItem.active {
+    background-color: #555;
+}
 .rightTopItem i {
-    width:40px;
+    width:37.5px;
     min-height: 36px;
     float: left;
+    font-size: 30px;
+    padding-top: 1px;
 }
 .rightTopItem span {
     color:#fff;
     padding: 5px 3px 8px 2px;
     float:left;
     color: #fff;
+    font-size: 19px;
 }
 .rightTopItem .contactIcon {
     font-size: 30px !important;
@@ -715,5 +731,23 @@ body {
     margin-top: -8px;
     margin-left: -7px;
     margin-right: 5px;
+}
+@media (max-width: 450px) {
+    .rightTopMenuInner {
+        font-size: 24px;
+        width: 70px;
+        max-width: 70px;
+        min-width: 70px;
+    }
+    .rightTopMenuInner i {
+        font-size: 30px;
+        padding-top: 0px;
+    }
+    .rightTopMenuInner .rightTopItem {
+        /* border-bottom: 1px solid #aaa; */
+    }
+    .rightTopItem span {
+    	display: none;
+    }
 }
 /* End Settings Menu */

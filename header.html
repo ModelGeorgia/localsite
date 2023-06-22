@@ -1,3 +1,5 @@
+<!-- header.html -->
+
 <style>
 /*
 Could use these state shapes: https://github.com/coryetzkorn/state-svg-defs
@@ -8,84 +10,118 @@ Could use these state shapes: https://github.com/coryetzkorn/state-svg-defs
 </style>
 <!-- Javascript may also reside in the header.html file. -->
 
-
-<!-- nav.html -->
-
 <div id="logoholderside" class="logoholder" style="display:none; z-index:2"></div>
 
 <div style="display:none">
 
 <div id="sidecolumnContent">
 
-<b><a href="/community">INTRO</a></b>
-<a href="/apps/">Community Apps</a>
-<a href="/community/tools/">Lifecycle Tool Overview</a>
-<a href="/localsite/info/">Industry Comparisons</a>
-<a href="/io/charts">Input-Output Widgets</a>
+<div class="intranet" style="display:none">
+    <b><a href="/docs/">INTRANET</a></b>
+    <a href="/docs/">Intranet Menu</a>
+    <a href="/docs/floorplans/">Floorplans</a>
+    <a href="/docs/admin/">Site Admin</a>
+    <br>
+</div>
 
-<!--
-<a href="/io/coders/">Meetups and Slack</a>
--->
-<a href="/community/start/">Starter Samples</a>
-<br>
+<div class="earth" style="display:none">
+    <b><a href="/community">MODEL</a></b>
+    <a href="/apps/">Location Models</a>
+    <a href="/localsite/info/">Industry Comparisons</a>
+    <a href="/community/tools/">Lifecycle Tool Overview</a>
+    <a href="/io/charts">Input-Output Widgets</a>
 
-<b><a href="/community/projects/">PROJECTS</a></b>
-<a href="/community/projects/#widgets">Open Footprint</a>
-<a href="/localsite/">Localsite Framework</a>
-<a href="/community/projects/#ai">Stability AI Images</a>
-<a href="/community/projects/#pipeline">Data Pipeline</a>
-<a href="/community/projects/#explore">Data Visualization</a>
-<a href="/community/projects/#profile-editor">Profile Editor</a>
-<a href="/community/projects/#google">Google Sheet Editor</a>
-<br>
+    <!--
+    <a href="/io/coders/">Meetups and Slack</a>
+    -->
+    <a href="/community/start/">Starter Samples</a>
+    <br>
 
-
-<!--
-    <a href="../community/tools/#projects">Web Projects</a>
-<a href="../community/interns/">Internships</a>
--->
-
-<!--
-<b>About</b><br>
-
-<a href="../community/tools/#">Overview</a>
--->
-<!-- tools/# tells page not to reload, and avoids jumping down to section. -->
-<!--a href="../community/tools/#objectives">Objectives</a-->
-
-<!--
-<a href="../community/tools/#data">Data Driven</a>
-<a href="../community/tools/#modeling">IO Modeling</a>
-<a href="../community/tools/#charts">Material Flow</a>
-<a href="../community/tools/#regional">Multi-County</a>
-<a href="../community/tools/#local">Recycling Maps</a>
-<a href="../community/tools/#partners">Partners</a>
--->
+    <b><a href="/community/projects/">PROJECTS</a></b>
+    <a href="/community/projects/#widgets">Open Footprint</a>
+    <a href="/localsite/">Localsite Framework</a>
+    <a href="/community/projects/#ai">Stability AI Images</a>
+    <a href="/community/projects/#pipeline">Data Pipeline</a>
+    <a href="/community/projects/#explore">Data Visualization</a>
+    <a href="/community/projects/#profile-editor">Profile Editor</a>
+    <a href="/community/projects/#google">Google Sheet Editor</a>
+    <br>
 
 
+    <!--
+        <a href="../community/tools/#projects">Web Projects</a>
+    <a href="../community/interns/">Internships</a>
+    -->
 
-<b><a href="/community/carbon-capture/" hashid="carbon-capture">BEYOND CARBON</a></b>
-<a href="/community/carbon-capture/" hashid="locally">Carbon Capture</a>
-<a href="/community/carbon-capture/#forestry">Fast Forestry</a>
-<a href="/community/carbon-capture/#superwood">Superwood</a>
-<a href="/community/carbon-capture/#flight" hashid="flight">Transforming Flight</a>
-<a href="/community/projects/rail" hashid="rail">Net Positive Rail</a>
-<a href="/community/carbon-capture/#hydrogen">Hydrogen Fuel</a>
-<a href="/community/biotech/" hashid="biotech">Bioeconomy</a><!-- Biotech Products -->
-<a href="/community/projects/wood/" hashid="wood">Mass Timber</a>
+    <!--
+    <b>About</b><br>
 
-<a href="/community/projects/nuclear" hashid="nuclear">Nuclear Power</a>
-<a href="/community/projects/mobility" hashid="mobility">Electric Vehicles</a>
-<a href="/community/architecture/" hashid="new-countryside">New&nbsp;Countryside</a>
-<br>
+    <a href="../community/tools/#">Overview</a>
+    -->
+    <!-- tools/# tells page not to reload, and avoids jumping down to section. -->
+    <!--a href="../community/tools/#objectives">Objectives</a-->
+
+    <!--
+    <a href="../community/tools/#data">Data Driven</a>
+    <a href="../community/tools/#modeling">IO Modeling</a>
+    <a href="../community/tools/#charts">Material Flow</a>
+    <a href="../community/tools/#regional">Multi-County</a>
+    <a href="../community/tools/#local">Recycling Maps</a>
+    <a href="../community/tools/#partners">Partners</a>
+    -->
 
 
 
-<!-- Allows scrolling when footer 
-<br><br><br><br><br><br><br><br><br><br><br><br><br>
--->
+    <b><a href="/community/carbon-capture/" hashid="carbon-capture">TECH</a></b>
+    <a href="/community/carbon-capture/" hashid="locally">Carbon Cycling</a>
+    <a href="/community/carbon-capture/#forestry">Fast Forestry</a>
+    <a href="/community/carbon-capture/#superwood">Superwood</a>
+    <a href="/community/carbon-capture/#flight" hashid="flight">Transforming Flight</a>
+    <a href="/community/projects/rail" hashid="rail">Net Positive Rail</a>
+    <a href="/community/carbon-capture/#hydrogen">Hydrogen Fuel</a>
+    <a href="/community/biotech/" hashid="biotech">Bioeconomy</a><!-- Biotech Products -->
+    <a href="/community/projects/wood/" hashid="wood">Mass Timber</a>
+
+    <a href="/community/projects/nuclear" hashid="nuclear">Nuclear Power</a>
+    <a href="/community/projects/mobility" hashid="mobility">Electric Vehicles</a>
+    <a href="/community/architecture/" hashid="new-countryside">New&nbsp;Countryside</a>
+    <br>
+</div>
+
+<div class="dreamstudio" style="display:none">
+
+    <a href="https://dreamstudio.ai/generate" class="navlink-generate btn-magenta" style="max-width:180px; text-align:center">Generate Images</a><br>
+
+    <b><a href="/dreamstudio/about/">ABOUT</a></b>
+    <a href="/dreamstudio/about/">DreamStudio</a>
+    <a href="/dreamstudio/studio/">StableStudio</a>
+    <a href="https://stability.ai/stablediffusion">Stable Diffusion</a>
+    <a href="https://stablediffusionweb.com/Visual-ChatGPT">Visual ChatGPT</a>
+    <a href="/dreamstudio/animation/">Animation</a>
+    <br>
+    <!--
+    <b><a href="/dreamstudio/seasons/">STORIES</a></b>
+    <a href="/dreamstudio/seasons/">Story Seasons</a>
+    <a href="/dreamstudio/seasons/mentors/">Core Characters</a>
+    -->
+    <!--a href="/dreamstudio/localsite/">Localsite Framework</a-->
+
+    <b><a href="/dreamstudio/api/">API PLATFORM</a></b>
+    <a href="/dreamstudio/api/start/">Get Started</a>
+    <a href="/dreamstudio/api/features/">API Features</a>
+    <a href="/dreamstudio/api/status/">API Status</a>
+    <br>
+
+    <b><a href="https://stability.ai">NEWS</a></b>
+    <a href="https://stability.ai/about">Stability.ai</a>
+    <a href="https://stability.ai/blog">Announcements</a>
+    <a href="https://stability.ai/blog">Press Articles</a>
+    <a href="https://dreamstudio.ai/support">Contact Us</a>
+    <br>
+</div>
 
 </div>
+
 </div>
-<!-- /nav.html -->
+<!-- /header.html -->
 

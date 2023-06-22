@@ -239,7 +239,7 @@ function initElements() {
         }
         if(!$('#expandPanel').is(":visible")) {
             if(inIframe()) { 
-                $(".expandFromWidget").show();
+                $(".expandFromIFrame").show();
             }
         }
         if (params["logo"]) {
@@ -334,13 +334,6 @@ function getLayerName() {
 
     return getCurrentLayer();
 }
-function hideSettings() {
-    $(".hideSettings").hide();
-    $(".showSettings").show();
-    $(".showSettings").show();
-    $(".showSettingsClick").show();
-    $(".settingsPanel").addClass("column-hidden");
-}
 var loc_hash="";
 function getCurrentLayer() {
     //Sample - #companies:aerospace:runways returns companies
@@ -379,7 +372,6 @@ $(document).on("change", ".sitemode", function(event) {
     }
     sitemode = $(".sitemode").val();
     setSiteMode($(".sitemode").val());
-    hideSettings();
     Cookies.set('sitemode', $(".sitemode").val());
     if ($(".sitemode").val() == "fullnav") {
         $('.showSearchClick').trigger("click");
@@ -413,7 +405,6 @@ function changeSiteLook() {
     layerName = getLayerName();
     consoleLog("changeSiteLook: " + $("#sitelook").val());
     setSiteLook($("#sitelook").val(),layerName);
-    hideSettings();
     //changeLayer(layerName,siteObject,"clearall"); // To load header image
 }
 
@@ -710,7 +701,7 @@ function initEvents() { // Once included file1 is loaded.
             }
         }
         if (showLogin) {
-            $(".showAccountTools").show();
+            //$(".showAccountTools").show();
         }
         // https://www.mapbox.com/mapbox.js/example/v1.0.0/layers/
         //addLayer(L.mapbox.tileLayer('mapbox.streets'), 'Base Map', 1);
@@ -796,16 +787,9 @@ function initEvents() { // Once included file1 is loaded.
             $(".fieldSelector").hide();
             $('#keywordsTB').focus();
         }
-        $('#hideAdvanced').click(function(event) {
+        $(document).on("click","#hideAdvanced", function(event) {
+        //$('#hideAdvanced').click(function(event) {
             hideFieldSelector();
-        });
-
-        $('.expandFromIFrame').click(function(event) {
-            //window.parent.location.href = window.location.href;
-
-            // Open in new tab
-            var win = window.open(window.location.href, '_blank');
-            win.focus();
         });
          
         $('#keywordsTB').click(function(event) {
@@ -849,7 +833,6 @@ function initEvents() { // Once included file1 is loaded.
             if ($(".rightTopMenuInner").is(':visible')) {
                 $(".rightTopMenu").hide();
             } else {        
-                $(".floater").hide();
                 $('.upperRightIcons').show();
                 
                 $(".navTopRight").show();
@@ -898,11 +881,10 @@ function initEvents() { // Once included file1 is loaded.
         // $('.editRow').click was here
 
         $('.contactUs').click(function(event) {
-            //window.location = "https://www.georgia.org/about-us/contact-us/";
-            window.open('https://www.georgia.org/about-us/contact-us/','_blank');
+            alert("The Contact Us link is not active.")
             event.stopPropagation();
         });
-        $('.addthis_button').click(function(event) {
+        $('.shareThis').click(function(event) {
             window.location = "https://www.addthis.com/bookmark.php?v=250&amp;pub=xa-4a9818987bca104e";
             event.stopPropagation();
         });
@@ -910,21 +892,28 @@ function initEvents() { // Once included file1 is loaded.
         /*
         function hideOtherPopOuts() {
             $('.accountPanelClose').trigger("click");
-            hideSettings();
         }
         */
         //$(document).on("click", ".rightTopMenuInner>div", function(event) {
-        function closeExpandedMenus() {
-            $(".rightTopMenuInner>div").removeClass("active");
-            $(event.currentTarget).addClass("active");
-            $(".menuExpanded").hide(); // Hide any open
-            //alert("rightTopMenuInner 3");
-        }
         $(document).on("click", ".showSections", function(event) {
-            closeExpandedMenus();
+            closeExpandedMenus(event.currentTarget);
             //$('.menuExpanded').hide();
-            $(".topicsPanel").show();
-            //alert("showSections clicked2")
+            $("#topicsPanel").show();
+        });
+        $(document).on("click", ".showStories", function(event) {
+            closeExpandedMenus(event.currentTarget);
+            $("#storiesPanel").show();
+        });
+        $(document).on("click", ".showListings", function(event) {
+            closeExpandedMenus(event.currentTarget);
+            if (!$.trim($("#mapList1").html())) { // If the location list is not empty, load the list of types.
+                $("#bigThumbMenuInner").appendTo("#listingsPanel");
+                if (!document.getElementById("#bigThumbMenuInner")) {
+                    let hash = getHash();
+                    showThumbMenu(hash.show, "#listingsPanel");
+                }
+            }
+            $("#listingsPanel").show();
         });
         $(document).on("click", ".showSettings", function(event) {
             $('.menuExpanded').hide();
@@ -932,18 +921,13 @@ function initEvents() { // Once included file1 is loaded.
             //$("#showSettings").hide();
             //$(".showSettings").hide(); // If used, would need to redisplay after changning Style > Header Images
             //$(".showSettingsClick").hide();
-            //$(".hideSettings").show();
             if ($(".settingsPanel").is(':visible')) { 
-                hideSettings();
+
             } else {
                 $(".settingsPanel").show();
                 //$("#rightTopMenu").hide();
             }
             //event.stopPropagation();
-        });
-        $(document).on("click", ".hideSettings", function(event) {
-            //hideSettings();
-            $(".menuExpanded").hide(); // Hide any open
         });
 
         $(document).on("click", ".showPrintOptions, .print_button", function(event) {
@@ -962,7 +946,6 @@ function initEvents() { // Once included file1 is loaded.
             if ($(".moduleJS").width() <= 800) { // Narrow
                 $('.hideApps').trigger("click"); // For mobile
             }
-            hideSettings();
             $(".smartPanel").show(); // Not sure why this is hidden. Wasn't occuring on localhost.
             //$(".showAccount").hide();
             //$(".hideAccount").show(); // hideAccount can be eliminated.
@@ -1126,6 +1109,7 @@ function initEvents() { // Once included file1 is loaded.
             $('.listTable').addClass('listTableMaxHeight');
             event.stopPropagation();
         });
+
         $('.printPage').click(function(event) {
 
             var allowTime = 0;
@@ -1259,13 +1243,13 @@ function initEvents() { // Once included file1 is loaded.
 
         });
 
+        // Not currently in use. To Do: Add an icon to leave an iFrame.
+        $('.expandFromIFrame').click(function(event) {
+            //window.parent.location.href = window.location.href;
 
-        $('.expandFromWidget').click(function(event) {
-            $('.expandFromWidget').hide();
-            // Same as expandFromIFrame()
             // Open in new tab
-            var win = window.open(window.location.href.replace("/widget.html","/../directory/").replace("/widget-local.html","/../directory/"), '_blank');
-            win.focus();       
+            var win = window.open(window.location.href, '_blank');
+            win.focus();
         });
 
         $('.showVideo').click(function(event) {
@@ -1411,10 +1395,10 @@ function initEvents() { // Once included file1 is loaded.
                 $(".embedTag").hide();
             }
         });
-        $("#sectionCategories").click(function(event) {
+        $(document).on("click", "#sectionCategories", function(event) {
             event.stopPropagation();
         });
-        $('.filterUL [data-id="counties"]').click(function(event) {
+        $(document).on("click", ".filterUL [data-id='counties']", function(event) {
             $('.showCountiesTab').trigger("click");
         });
 
@@ -1426,15 +1410,9 @@ function initEvents() { // Once included file1 is loaded.
         // HIDE MENUS WHEN CLICKING ELSEWHERE.  WHEN NO MENUS OPEN, HIDE ENTIRE CONTENT AREA.
         //  .moduleCenter prevents map point click, so we turn off event.stopPropagation();
         // BUG .moduleBackground, here causes heroImage to be clicked twice, shrinking newly expanded.
-        $(".heroImage, .moduleCenter, .sectionBar, .carouselHolder, .moduleVideo").click(function(event) {
+        $(document).on("click", ".heroImage, .moduleCenter, .sectionBar, .carouselHolder, .moduleVideo", function(event) {
             consoleLog("Clicked: " + event.target.id+", Class: "+$(event.target).attr('class'));
             //alert("Clicked: " + event.target.id+", Class: "+$(event.target).attr('class'));
-            $('.mobileTitle').show();
-            if ($(".floater").is(':visible')) {
-                $(".floater").hide(); // Hide open menus
-                $('.mobileTitle').show(); // No reached, hence the line several above.
-                return;
-            }
             if ($(".layerContent").is(':visible')) {
                 // || $(event.target).attr('class') == "video-thumb"
 
@@ -1493,12 +1471,12 @@ function initEvents() { // Once included file1 is loaded.
             // Avoid with .moduleCenter click so clicks reach map points.
             //event.stopPropagation();
         });
-        $('.hideAll').click(function(event) {
+        $(document).on("click", ".hideAll", function(event) {
             toggleHeaderView();
             $(".listOptions").hide(); $('.toggleListOptions').removeClass("expand");
             event.stopPropagation();
         });
-        $('.revealImage').click(function(event) {
+        $(document).on("click", ".revealImage", function(event) {
             if ($('.showImages').is(':visible')) {
                 $(".horizontalButtons .layoutTab").removeClass("active");
                 $('.showImages').addClass("active");
@@ -1523,7 +1501,7 @@ function initEvents() { // Once included file1 is loaded.
             });
             event.stopPropagation();
         });
-        $('.reduceHeader').click(function(event) {
+        $(document).on("click", ".reduceHeader", function(event) {
             $(".siteHeaderSpacer").css('height', 0);
             $(".captionPanel").hide();
             $('.reduceHeader').hide();
@@ -1541,9 +1519,11 @@ function initEvents() { // Once included file1 is loaded.
             $(".heroright").show();
         }
         
-        $(".rightTopItem").click(function(event) {
-            $(".upperRightIcons").hide();
-            $(".rightTopMenu").hide();
+        $(document).on("click", ".rightTopItem", function(event) {
+            console.log("rightTopItem click");
+            $(".rightTopItem").removeClass('active');
+            $target = $(event.target);   
+            $target.addClass('active');
         });
         $("#filterPanel").click(function () { // Since clickThrough is blocked to prevent clicking video.
 

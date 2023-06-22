@@ -1,5 +1,6 @@
 // Site specific settings
 // Maintained in localsite/js/navigation.js
+
 if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 	const page_scripts = document.getElementsByTagName("script");
 	const current_code_path = page_scripts[page_scripts.length-1].src;
@@ -46,57 +47,51 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 	  }
 	}
 
-	// Try inserting a div here before DOM ready to trigger "wait for div" in localsite.js
-
-
-
-	//$(document).ready(function(){
 		
-	 	var modelpath = climbpath;
-	 	if (modelpath == "./") {
-	 		//modelpath = "";
-	 	}
-	 	var modelroot = ""; // For links that start with /
-	 	
-	 	if(location.host.indexOf('localhost') < 0 && location.host.indexOf('model.') < 0 && location.host.indexOf('neighborhood.org') < 0) { // When not localhost or other sites that have a fork of io and community.
-	 		// To do: allow "Input-Output Map" link in footer to remain relative.
-	 		modelpath = "https://model.earth/" + modelpath; // Avoid - gets applied to #headerSiteTitle and hamburger menu
-	 		modelroot = "https://model.earth";
-	 	}
-
+ 	var modelpath = climbpath;
+ 	if (modelpath == "./") {
+ 		//modelpath = "";
+ 	}
+ 	var modelroot = ""; // For links that start with /
+ 	
+ 	if(location.host.indexOf('localhost') < 0 && location.host.indexOf('model.') < 0 && location.host.indexOf('neighborhood.org') < 0) { // When not localhost or other sites that have a fork of io and community.
+ 		// To do: allow "Input-Output Map" link in footer to remain relative.
+ 		modelpath = "https://model.earth/" + modelpath; // Avoid - gets applied to #headerSiteTitle and hamburger menu
+ 		modelroot = "https://model.earth";
+ 	}
+	function closeExpandedMenus(menuClicked) {
+        $(".rightTopMenuInner div").removeClass("active");
+        $(menuClicked).addClass("active");
+        $(".menuExpanded").hide(); // Hide any open
+        //alert("rightTopMenuInner 3");
+    }
 	function applyNavigation() { // Called by localsite.js so local_app path is available.
 		// To do: fetch the existing background-image.
-		if (param.startTitle == "Code for America" ||  location.host.indexOf('codeforamerica') >= 0) {
-			showLeftIcon = true;
-			param.titleArray = []
-			param.headerLogo = "<img src='/localsite/img/logo/partners/code-for-america.png' style='width:110px;margin:10px 10px 10px 0;'>";
-			document.title = "Code for America - " + document.title
-			// BUGBUG - error in console
-			//changeFavicon("https://lh3.googleusercontent.com/HPVBBuNWulVbWxHAT3Nk_kIhJPFpFObwNt4gU2ZtT4m89tqjLheeRst_cMnO8mSrVt7FOSlWXCdg6MGcGV6kwSyjBVxk5-efdw")
-		} else if (param.startTitle == "Code for Atlanta" ||  location.host.indexOf('atlanta') >= 0) {
-			showLeftIcon = true;
-			param.titleArray = []
-			param.headerLogo = "<img src='https://scienceatl.org/wp-content/uploads/2020/04/code.png' style='width:150px;'>";
-			document.title = "Code for Atlanta - " + document.title
-			// BUGBUG - error in console
-			//changeFavicon("https://lh3.googleusercontent.com/HPVBBuNWulVbWxHAT3Nk_kIhJPFpFObwNt4gU2ZtT4m89tqjLheeRst_cMnO8mSrVt7FOSlWXCdg6MGcGV6kwSyjBVxk5-efdw")
-		// localhost will be removed from the following. Currently allows Georgia branding during testing.
-		// location.host.indexOf('localhost') >= 0 || 
-		} else if (location.host.indexOf("lifecycle.tools") >= 0) {
-			param.titleArray = ["lifecycle","tools"];
-			param.headerLogoSmall = "<img src='/localsite/img/logo/partners/neighborhood-icon.png' style='width:40px;opacity:0.7'>"
-			showClassInline(".lifecycle");
-			earthFooter = true;
-		} else if (location.host.indexOf("dreamstudio") >= 0) {
+		console.log("location.host: " + location.host + " " + location.host.indexOf("locations.pages.dev"));
+		if (location.href.indexOf("dreamstudio") >= 0 || param.startTitle == "DreamStudio") {
 			//showLeftIcon = true;
 			$(".siteTitleShort").text("DreamStudio");
 			param.titleArray = [];
-			param.headerLogo = "<a href='https://dreamstudio.com'><img src='https://dreamstudio.com/dreamstudio/img/logo/dreamstudio.png' style='height:23px'></a>";
-			param.headerLogoNoText = " ";
-		} else if (location.host.indexOf("nxtwave") >= 0) {
-			param.titleArray = ["Nxt","Wave"];
-			$(".siteTitleShort").text("NxtWave");
-		} else if (param.startTitle == "Georgia.org" || location.host.indexOf("georgia.org") >= 0 ) {
+			//param.headerLogo = "<a href='https://dreamstudio.com'><img src='https://dreamstudio.com/dreamstudio/img/logo/dreamstudio-text.png' style='height:23px'></a>";
+			
+			let siteRoot = "";
+			if (location.host.indexOf("localhost") >= 0) {
+				siteRoot = "/dreamstudio";
+			}
+			param.headerLogo = "<a href='" + siteRoot + "/'><img src='/storyboard/img/logo/ds/favicon.png' style='float:left;width:38px;margin-right:7px'><img src='/storyboard/img/logo/ds/dreamstudio-text.png' alt='DreamStudio' style='height:22px; margin-top:9px'></a>";
+			param.headerLogoNoText = "<img src='/storyboard/img/logo/ds/favicon.png' style='float:left;width:38px;margin-right:7px'>";
+			if (location.host.indexOf("dreamstudio") >= 0) {
+				//param.headerLogo = param.headerLogo.replace(/\/dreamstudio\//g,"\/");
+			}
+			changeFavicon("/localsite/img/logo/apps/dreamstudio.png");
+			showClassInline(".dreamstudio");
+			if (location.host.indexOf('localhost') >= 0) {
+				//showClassInline(".earth");
+			}
+		// 
+		} else if ((location.host.indexOf('localhost') >= 0 && navigator && navigator.brave) || param.startTitle == "Georgia.org" || location.host.indexOf("georgia") >= 0 || location.host.indexOf("locations.pages.dev") >= 0) {
+			// The localsite repo is open to use by any state or country.
+			// Georgia Economic Development has been a primary driver of development.
 			// Show locally for Brave Browser only - insert before:  ) || false
 			// && navigator && navigator.brave
 			if (!param.state) {
@@ -107,29 +102,22 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 			showLeftIcon = true;
 			$(".siteTitleShort").text("Model Georgia");
 			param.titleArray = [];
-			param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA.png' style='width:130px;padding-top:4px'></a>";
+			param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA.png' style='width:140px;padding-top:4px'></a>";
 			param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA-notext.png' style='width:50px;padding-top:0px;margin-top:-1px'></a>";
 			if (document.title) {
 		 		document.title = "Georgia.org - " + document.title;
 		 	} else {
 		 		document.title = "Georgia.org";
 		 	}
-			
 			changeFavicon("/localsite/img/logo/states/GA-favicon.png");
-
-			// BUGBUG - This needs to be css insert rather than being applied before README loads
+			if (location.host.indexOf('localhost') >= 0 || location.host.indexOf("intranet") >= 0 || location.host.indexOf("locations.pages.dev") >= 0) {
+				showClassInline(".intranet");
+			}
 			showClassInline(".georgia");
+			if (location.host.indexOf("intranet") < 0 && location.host.indexOf("locations.pages.dev") < 0) { // Since intranet site does not include community submodule
+				showClassInline(".earth");
+			}
 			$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
-
-			// TEMP
-			setTimeout( function() {
-				showClassInline(".georgia");
-				$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
-			}, 1500);
-			setTimeout( function() {
-				showClassInline(".georgia");
-				$('#headerOffset').css('display', 'block'); // Show under site's Drupal header
-			}, 3500);
 
 			earthFooter = true;
 
@@ -142,7 +130,6 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 			changeFavicon("/localsite/img/logo/partners/neighborhood-icon.png")
 			showClassInline(".neighborhood");
 			earthFooter = true;
-		// location.host.indexOf('localhost') >= 0 || 
 		} else if (!Array.isArray(param.titleArray) && (location.host.indexOf("democracy.lab") >= 0)) {
 			showLeftIcon = true;
 			$(".siteTitleShort").text("Democracy Lab");
@@ -163,8 +150,8 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 				param.titleArray = ["model","earth"]
 				document.title = "Model Earth - " + document.title
 			}
-			param.headerLogoSmall = "<img src='/localsite/img/logo/partners/model-earth.png' style='width:34px; margin-right:2px'>";
-			changeFavicon(modelpath + "../localsite/img/logo/partners/model-earth.png")
+			param.headerLogoSmall = "<img src='/localsite/img/logo/earth/model-earth.png' style='width:34px; margin-right:2px'>";
+			changeFavicon(modelpath + "../localsite/img/logo/earth/model-earth.png")
 			showClassInline(".earth");
 			console.log(".earth display");
 			earthFooter = true;
@@ -178,58 +165,54 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 			earthFooter = false;
 			console.log("param.footer " + param.footer);
 		}
-		if (param["show"] == "mockup") {
-			if(location.host.indexOf("georgia") >= 0) {
-				$('#headerLocTitle').html("West Central Georgia");
-	 		//$('#headerLocTitle').html("<span class='arrownext' style='margin:10px 10px 0 10px'></span><span style='float:left'> West Central Georgia</span>");
-	 	}
-	 	// Hack, since called too early for header
-	 	$('.mock-up').css('display', 'block');
-		}
 
-
-
-
-	 	$("body").wrapInner( "<div id='fullcolumn'></div>"); // Creates space for sidecolumn
-	 	if(document.getElementById("sidecolumn") == null) {
-	 		$("body").prepend( "<div id='sidecolumn' class='hideprint' style='display:none'><div id='sidecolumnLeft'><div class='sidecolumnLeftScroll'><div class='hideSide close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><div id='cloneLeftTarget'></div></div></div></div>\r" );
-	 	} else {
-	 		// TODO - change to fixed when side reaches top of page
-	 		console.log("navigation.js report: sidecolumn already exists")
-	 		$("#sidecolumn").addClass("sidecolumn-inpage");
-	 	}
+	 	$("body").wrapInner( "<div id='fullcolumn'></div>"); // Creates space for navcolumn
+	 	
 	 	
 	 	$("body").addClass("flexbody"); // For footer to stick at bottom on short pages
 	 	$("body").wrapInner("<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
 	 	// min-height allows header to serve as #filterbaroffset when header.html not loaded
 	 	// pointer-events:none; // Avoid because sub-divs inherite and settings dropdowns are then not clickable.
 
-	 	// Puts space above flexmain for sidecolumn to be visible after header  
-	 	$("body").prepend("<div id='local-header' class='flexheader hideprint' style='min-height:100px; display:none'></div>\r");
-		
 		if(document.getElementById("bodyFile") == null) {
 			$("#fullcolumn").prepend("<div id='bodyFile'></div>\r");
 		}
 
+		if(document.getElementById("navcolumn") == null) {
+	 		$("body").prepend( "<div id='navcolumn' class='hideprint sidecolumnLeft' style='display:none'><div class='hideSide close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><div class='sidecolumnLeftScroll'><div id='cloneLeftTarget'></div></div></div>\r" );
+	 	} else {
+	 		// TODO - change to fixed when side reaches top of page
+	 		console.log("navigation.js report: navcolumn already exists")
+	 		$("#navcolumn").addClass("navcolumn-inpage");
+	 	}
+
 	 	$(document).on("click", "#showSide", function(event) {
 			//$("#showSide").hide();
-			if ($("#sidecolumn").is(':visible')) {
+			if ($("#navcolumn").is(':visible')) {
 				//$("#showSide").css("opacity","1");
-				$("#sidecolumn").hide();
+				$("#navcolumn").hide();
 				$("#showSide").show();
-				//////$("#filterFieldsHolder").addClass("leftOffset");
+				$('body').removeClass('bodyLeftMargin'); // Creates margin on right for fixed sidetabs.
+				if (!$('body').hasClass('bodyRightMargin')) {
+		        	$('body').removeClass('mobileView');
+		    	}
 			} else {
 				$("#fullcolumn #showSide").hide();
 				//////$("#filterFieldsHolder").removeClass("leftOffset");
-				$("#sidecolumn").show();
+				$('body').addClass('bodyLeftMargin'); // Creates margin on right for fixed sidetabs.
+		        $('body').addClass('mobileView');
+				$("#navcolumn").show();
 			}
 			let headerFixedHeight = $("#headerLarge").height();
 			$('#cloneLeft').css("top",headerFixedHeight + "px");
 		});
 	 	$(document).on("click", ".hideSide", function(event) {
-			$("#sidecolumn").hide();
+			$("#navcolumn").hide();
 			$("#showSide").show();
-			//$("#filterFieldsHolder").addClass("leftOffset");
+			$('body').removeClass('bodyLeftMargin'); // Creates margin on right for fixed sidetabs.
+			if (!$('body').hasClass('bodyRightMargin')) {
+	        	$('body').removeClass('mobileView');
+	    	}
 		});
 	 	if (param["showapps"] && param["showapps"] == "false") {
 	 		$(".showApps").hide();
@@ -269,45 +252,71 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 
 				if (param.header) headerFile = param.header;
 
-				if (earthFooter && param.showMenu != "false") { // Sites includieng modelearth and neighborhood
-				 	$(".showMenu").show(); // Before load headerFile for faster display.
+				if (earthFooter && param.showSideTabs != "false") { // Sites includieng modelearth and neighborhood
+				 	$(".showSideTabs").show(); // Before load headerFile for faster display.
 				}
 
 				// headerFile contains only navigation
 				$("#local-header").load(headerFile, function( response, status, xhr ) {
 
-						console.log("Doc is ready, header file loaded, place #cloneLeft into #sidecolumn")
+						console.log("Doc is ready, header file loaded, place #cloneLeft into #navcolumn")
 
-						
-						waitForElm('#sidecolumn').then((elm) => { // #sidecolumn is appended by this navigation.js script, so typically not needed.
-							//$("#cloneLeft").clone().appendTo($("#sidecolumn"));
+						waitForElm('#navcolumn').then((elm) => { // #navcolumn is appended by this navigation.js script, so typically not needed.
+							//$("#cloneLeft").clone().appendTo($("#navcolumn"));
 							//$("#cloneLeft").show(); // Still hidden, just removing the div that prevents initial exposure.
-						
+							if(location.host.indexOf("intranet") >= 0) {
+						        $("#sidecolumnContent a").each(function() {
+						          $(this).attr('href', $(this).attr('href').replace(/\/docs\//g,"\/"));
+						        });
+						    }
+						    if(location.host.indexOf("dreamstudio") >= 0) {
+						        $("#sidecolumnContent a").each(function() {
+						          $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
+						        });
+						    }
+
 							let colEleLeft = document.querySelector('#sidecolumnContent');
 							let colCloneLeft = colEleLeft.cloneNode(true)
 							colCloneLeft.id = "cloneLeft";
 							$("#cloneLeftTarget").append(colCloneLeft);
-						});
-						waitForElm('#topicsMenu').then((elm) => {
-							let colEleRight = document.querySelector('#sidecolumnContent');
-							let colCloneRight = colEleRight.cloneNode(true)
-							colCloneRight.id = "cloneRight";
-							$("#topicsMenu").append(colCloneRight);
+
+							waitForElm('#topicsMenu').then((elm) => {
+								let colEleRight = document.querySelector('#sidecolumnContent');
+								let colCloneRight = colEleRight.cloneNode(true)
+								colCloneRight.id = "cloneRight";
+								$("#topicsMenu").prepend(colCloneRight);
+								
+								if (location.host.indexOf('dreamstudio') >= 0 || location.href.indexOf('dreamstudio') >= 0) {
+									let storiesFile = "https://dreamstudio.com/seasons/episodes.md";
+									//console.log("location.href index: " + location.href.indexOf("/dreamstudio/"));
+									if(location.host.indexOf('localhost') >= 0) {
+										storiesFile = "/dreamstudio/seasons/episodes.md";
+									} else if (location.href.indexOf("dreamstudio") >= 0) {
+										storiesFile = "/seasons/episodes.md";
+									}
+									waitForElm('#storiesDiv').then((elm) => {
+										// TO DO - Lazy load elsewhere, and avoid if already loaded
+										loadMarkdown(storiesFile, "storiesDiv", "_parent");
+										console.log("after storiesFile")
+									});
+								}
+							});
+
 						});
 
 				 		// Move filterbarOffset and filterEmbedHolder immediately after body tag start.
 				 		// Allows map embed to reside below intro text and additional navigation on page.
 
-				 		//if (param.showMenu != "false") { // brig
+				 		//if (param.showSideTabs != "false") { // brig
 				 		
 				 		if (location.host.indexOf('localhost') >= 0) {
 				 			console.log("LOCAL ONLY - Show menu icon for localhost")
-				 			$(".showMenu").show();
+				 			$(".showSideTabs").show();
 				 			$(".upperIcons .earth").show();
 				 			setTimeout( function() {
-								$(".showMenu").show();
-				 				$(".upperIcons .earth").show();
-				 				$(".earth").show();
+								$(".showSideTabs").show();
+				 				//$(".upperIcons .earth").show();
+				 				//$(".earth").show();
 							}, 1000);
 				 		}
 				 		$("#filterEmbedHolder").insertAfter("#headeroffset");
@@ -377,58 +386,71 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 					// Equivalent to checking for #headerbar, but using #localsiteDetails since template pages already have a #headerbar.
 					waitForElm('#localsiteDetails').then((elm) => {
 						//console.log("climbpath value: " + climbpath);
-					 	if (!param.headerLogo && param.headerLogoSmall) {
-					 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
-					 	} else if (param.headerLogo) {
-					 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
-					 	} else if (param.favicon) {
-					 		let imageUrl = climbpath + ".." + param.favicon;
-						 	$('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
-							$('#headerLogo').css('background-repeat', 'no-repeat');
-						}
 
-						if (param.headerLogoSmall) {
-							$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall+ "</a>");
-						} else if (param.headerLogoNoText) {
-							$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoNoText + "</a>");
-						} else if (param.headerLogo) {
-							$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
-						}
-						/*
-				 		//$('#headerLogo').css('background-size', '70% 70%');
+						waitForElm('#localsiteDetails').then((elm) => {
+						 	if (!param.headerLogo && param.headerLogoSmall) {
+						 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
+						 	} else if (param.headerLogo) {
+						 		//alert("Display param.headerLogo")
+						 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
+						 	} else if (param.favicon) {
+						 		let imageUrl = climbpath + ".." + param.favicon;
+							 	$('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
+								$('#headerLogo').css('background-repeat', 'no-repeat');
+							}
+						});
 
-				 		$('#headerLogo').css('margin-left', '20px');
+						// Resides in map/filter.html
+						waitForElm('#logoholderbar').then((elm) => { // Note, #logoholderbar becomes available after #localsiteDetails
+							if (param.headerLogoSmall) {
+								$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall+ "</a>");
+							} else if (param.headerLogoNoText) {
+								$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoNoText + "</a>");
+							} else if (param.headerLogo) {
+								$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
+							}
+						});
 
-				 		//$('#headerLogo').css('background-size', '70% 70%');
-				 		$('#headerLogo').css('background-position', 'center');
-						*/
-
-						$(document).on("click", ".showMenu", function(event) {
-							console.log("Clicked .showMenu 4");
-							//if (location.host.indexOf('localhost') >= 0) {
-								//if ($("#rightTopMenuVisibility").is(':visible') && $("#rightTopMenu").is(':visible')) { // Didn't work, issue seemed to be with #rightTopMenu
-				 				if ($("#rightTopMenu").css('display') != "none") {
-				 					console.log("Clicked .showMenu - visible so hide");
-				 					$("#rightTopMenuVisibility").hide();
-				 					$("#rightTopMenu").hide();
-				          		} else {
-				          			loadScript('/localsite/js/settings.js', function(results) {}); // For "Settings" popup
-				          			$("#rightTopMenuVisibility").show();
-							 		$("#rightTopMenu").show();
-				 				}
-				 			//} else {
-							//	$("#menuHolder").show();
-							//	$("#menuHolder").css('margin-right','0px')
-							//}
+						$(document).on("click", ".showTheMenu", function(event) { // Seasons
+							console.log("Clicked .showTheMenu");
+		          			$(".navLinks").show();
+					 		//$("#showSideTabs").hide();
+					 		//$("#hideMenu").show();
 							event.stopPropagation();
+						});
+
+						$(document).on("click", ".showSideTabs", function(event) {
+							console.log("Clicked .showSideTabs");
+		          			loadScript('/localsite/js/settings.js', function(results) {}); // For "Settings" popup
+
+		          			if(location.href.indexOf("/seasons") >= 0) {
+		          				closeExpandedMenus(".showStories");
+            					$("#storiesPanel").show();
+		          			}
+		          			$('body').addClass('bodyRightMargin'); // Creates margin on right for fixed sidetabs.
+		          			$('body').addClass('mobileView');
+		          			$("#sideTabs").show();
+					 		$("#showSideTabs").hide();
+					 		$("#hideMenu").show();
+							event.stopPropagation();
+						});
+						
+						$(document).on('click', '.closeParent', function () {
+							$(this).parent().fadeOut();
+						    event.stopPropagation();
+						});
+						$(document).on("click", ".closeSideTabs", function(event) {
+							closeSideTabs();
 						});
 						$(document).on("click", ".showEarth", function(event) {
 							if ($("#nullschoolHeader").is(':visible')) {
 								$("#nullschoolHeader").hide();
 								//$("#globalMapHolder").show();
 								$("#hero_holder").show();
+								closeSideTabs();
 							} else {
 								//$("#globalMapHolder").hide(); // Home page nullschool map.
+								closeSideTabs();
 								$("#hero_holder").hide();
 								// Add a setting to choose map: Temperatures or just wind
 								// Big blue: https://earth.nullschool.net/#current/wind/surface/level/orthographic=-35.06,40.67,511
@@ -437,7 +459,6 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 							}
 						});
 						$(document).click(function(event) { // Hide open menus
-							//$('#rightTopMenu').hide();
 							if($("#menuHolder").css('display') !== 'none') {
 				            	$("#menuHolder").hide(); // Since menu motion may freeze when going to another page.
 				            	if (!$(event.target).parents("#menuHolder").length) {
@@ -476,7 +497,7 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 
 
 								// /localsite/img/icon/sidemenu.png  // width:15px;height:14px
-				 					//<div class="showMenu" style="displayX:none; float:left;font-size:24px; color:#999;">
+				 					//<div class="showSideTabs" style="displayX:none; float:left;font-size:24px; color:#999;">
 				 		}
 
 				 		// Only apply if id="/icon?family=Material+Icons" is already in DOM.
@@ -558,63 +579,64 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 			} else {
 				footerClimbpath = climbpath;
 			}
-
 			$("#local-footer").load(footerFile, function( response, status, xhr ) {
 				console.log("footerFile: " + footerFile);
 				let pageFolder = getPageFolder(footerFile);
-				//alert("footerClimbpath: " + footerClimbpath);
-				//alert("pageFolder: " + pageFolder);
-
-				//var pathToFooter = 
-
 				// Append footerClimbpath to relative paths
 				makeLinksRelative("local-footer", footerClimbpath, pageFolder);
-				//makeLinksRelative("footer",footerClimbpath,footerFilePath); // Not working on second level pages.
-
 			});
 		}
 
 	 	// SIDE NAV WITH HIGHLIGHT ON SCROLL
 
 	 	// Not currently using nav.html, will likely use later for overrides.  Primary side nav resides in header.
-	 	if (1==2 && param["sidecolumn"]) {
+	 	if (1==2 && param["navcolumn"]) {
 	 		// Wait for header to load?
 
-			let targetColumn = "#sidecolumn";
+			let targetColumn = "#navcolumn";
 			$(targetColumn).load( modelpath + "../localsite/nav.html", function( response, status, xhr ) {
 
 				activateSideColumn();
 			});
 		}
 		// END SIDE NAV WITH HIGHLIGHT ON SCROLL
+	} // end applyNavigation function
 
-	} // end function
-	//});
 
 	$(document).ready(function () {
-			$(document).on("click", ".hideMenu", function(event) {
-				$("#menuHolder").show();
-				$("#menuHolder").css('margin-right','-250px');
-				//$("#listingMenu").appendTo($(this).parent().parent());
-				event.stopPropagation();
-			});
-			$(document).on("click", ".hideAdvanced", function(event) {
-				hideAdvanced();
-			});
-			$(document).on("click", ".hideThumbMenu", function(event) {
-				$("#bigThumbPanelHolder").hide();
-				$(".showApps").removeClass("filterClickActive");
-			});
-			$(document).on("click", ".filterBubble", function(event) {
-				console.log('filterBubble click')
-			    event.stopPropagation(); // To keep location filter open when clicking
-			});
+		//alert("word")
+		$(document).on("click", ".hideMenu", function(event) {
+			$("#menuHolder").show();
+			$("#menuHolder").css('margin-right','-250px');
+			//$("#listingMenu").appendTo($(this).parent().parent());
+			event.stopPropagation();
+		});
+		$(document).on("click", ".hideAdvanced", function(event) {
+			console.log("hideAdvanced")
+			hideAdvanced();
+		});
+		$(document).on("click", ".hideThumbMenu", function(event) {
+			$("#bigThumbPanelHolder").hide();
+			$(".showApps").removeClass("filterClickActive");
+		});
+		$(document).on("click", ".filterBubble", function(event) {
+			console.log('filterBubble click')
+		    event.stopPropagation(); // To keep location filter open when clicking
+		});
 	});
 
 	function showClassInline(theclass) {
 
-		$(theclass).css('display', 'inline');
+		//$(theclass).css('display', 'inline');
 
+		// Load when body head becomes available, faster than waiting for all DOM .js files to load.
+        waitForElm('head').then((elm) => {
+        	var div = $("<style />", {
+            	html: theclass + ' {display: inline !important}'
+            }).appendTo("head");
+        });
+
+		/*
 		setTimeout( function() {
 			$(theclass).css('display', 'inline');
 		}, 1000);
@@ -630,6 +652,7 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 			setTimeout( function() {
 			$(theclass).css('display', 'inline');
 		}, 30000);
+		*/
 	}
 
 	function hideAdvanced() {
@@ -647,14 +670,14 @@ if(typeof page_scripts == 'undefined') {  // initial navigation.js load
 	}
 	function activateSideColumn() {
 				// Make paths relative to current page
-		 		$("#sidecolumn a[href]").each(function() {
+		 		$("#navcolumn a[href]").each(function() {
 		 			if($(this).attr("href").toLowerCase().indexOf("http") < 0) {
 		 				if($(this).attr("href").indexOf("/") != 0) { // Don't append if starts with /
 		 					$(this).attr("href", climbpath + $(this).attr('href'));
 			      		}
 			  		}
 			    })
-		 		$("#sidecolumn img[src]").each(function() {
+		 		$("#navcolumn img[src]").each(function() {
 		 			if($(this).attr("src").indexOf("/") != 0) { // Don't append if starts with /
 			      		$(this).attr("src", climbpath + $(this).attr('src'));
 			  		}

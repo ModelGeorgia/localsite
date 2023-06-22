@@ -96,30 +96,39 @@ $(document).ready(function () {
 		//$(".si-btn").show();
 	}
 	
-	if(location.host.indexOf('localhost') >= 0) {
-		console.log("Loaded Harmonized System (HS) codes - harmonized-system.txt");
-	}
-
+	// The following can be reactivated
+    /*
+    alert(local_app.modelearth_root() + '/localsite/js/d3.v5.min.js'); // Is model.earth used to avoid CORS error? Better to avoid and move harmonized-system.txt in localsite repo.
     loadScript(local_app.modelearth_root() + '/localsite/js/d3.v5.min.js', function(results) {
 
-        // This avoids cross domain CORS error
-        d3.text(local_app.community_data_root() + 'global/hs/harmonized-system.txt').then(function(data) {
-            let catLines = d3.csvParseRows(data);
-            //alert(catLines.length)
-            for(var i = 0; i < catLines.length; i++) {
-                catArray.push([catLines[i][0], catLines[i][1]]);
-            }
+        // This avoids cross domain CORS error      
+        
+            d3.text(local_app.community_data_root() + 'global/hs/harmonized-system.txt').then(function(data) {
+                if(location.host.indexOf('localhost') >= 0) {
+                    console.log("Loaded Harmonized System (HS) codes - harmonized-system.txt");
+                }
+                let catLines = d3.csvParseRows(data);
+                //alert(catLines.length)
+                for(var i = 0; i < catLines.length; i++) {
+                    catArray.push([catLines[i][0], catLines[i][1]]);
+                }
 
-            //catLines.forEach(function(element) {
-            //  //catArray.push([element.substr(0,4), element.substr(5)]);
-            //  catArray.push([element[0], element.[1]]);
-            //});
-            ////$('#mainCats > div:nth-child(11)').trigger("click"); // Specific category
+                //catLines.forEach(function(element) {
+                //  //catArray.push([element.substr(0,4), element.substr(5)]);
+                //  catArray.push([element[0], element.[1]]);
+                //});
+                ////$('#mainCats > div:nth-child(11)').trigger("click"); // Specific category
 
-            productList("01","99","Harmonized System (HS) Product Categories")
+                productList("01","99","Harmonized System (HS) Product Categories")
 
-        });
+            });
+        
+
+        // Would this be usable? Old, find newer perhaps
+        // https://github.com/FengJun-dev/harmonized-system
     });
+    */
+
 
     /*
     // cross domain CORS error
@@ -250,17 +259,11 @@ $(document).ready(function () {
        	$(".fieldSelector").hide();
        	event.stopPropagation();
     });
-    // $(document).on("click", ".filterClick", function(event) { // Does not work here, perhaps jquery is not loaded prior to DOM.
-    $(".filterClick").click(function(e) {
-        //alert(".filterClick")
-        console.log("temp close #rightTopMenu - use function instead")
-        $('#rightTopMenu').hide(); // Temp here, call the function that closes open menus instead. Where is it?
-    });
 
-    // Odd: $(document).on("click" does not work here, perhaps jquery is not loaded prior to DOM.
+    // Odd: $(document).on("click" did not work here, perhaps jquery is not loaded prior to DOM.
     // But why would surrounding $(document).ready work?
-    //$(document).on("click", "#filterClickLocation", function(event) {
-    $("#filterClickLocation").click(function(e) {
+    $(document).on("click", "#filterClickLocation", function(event) {
+    //$("#filterClickLocation").click(function(e) { // This does not work on localhost
         //let hash = getHash();
     	//if (!hash.mapview) {
     	//	// These will trigger call to filterClickLocation() and map display.
@@ -270,6 +273,7 @@ $(document).ready(function () {
 	    //		goHash({'mapview':'country'});
 	    //	}
     	//} else {
+            console.log("Call filterClickLocation()");
     		filterClickLocation();
     	//}
         //event.stopPropagation();
@@ -389,9 +393,20 @@ $(document).ready(function () {
     	}
     	$('#keywordFields').hide();
     	$('#topPanel').hide();
-        //$('#rightTopMenu').hide();
 	});
-	
+    $(document).on("click", "#showSide, #navcolumn", function(event) {
+        event.stopPropagation();
+    });
+	$(document).on("click", "body", function(event) {
+        if ($("#navcolumn").is(":visible") && window.innerWidth < 600) { 
+            $('#navcolumn').hide();
+            $("#showSide").show();
+            $('body').removeClass('bodyLeftMargin');
+            if (!$('body').hasClass('bodyRightMargin')) {
+                $('body').removeClass('mobileView');
+            }
+        }
+    });
 
 	function hideNonListPanels() {
         updateHash({"mapview":""});
@@ -1986,7 +2001,7 @@ function thumbClick(show,path) {
 		goHash(hash,"name,loc"); // Remove name and loc (loc is not used yet)
 	}
 }
-function displayBigThumbnails(attempts, activeLayer, layerName) {
+function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
 
     // Setting param.state in navigation.js passes to hash here for menu to use theState:
     let hash = getHash();
@@ -1997,7 +2012,6 @@ function displayBigThumbnails(attempts, activeLayer, layerName) {
     if (theState.length > 2) {
         theState = theState.substring(0,2);
     }
-
 	if (!$('.bigThumbUl').length) {
         if (!activeLayer) {
             activeLayer = "industries"; // Since Tab defaults to "Local Topics". Will change to site-wide search later.
@@ -2126,8 +2140,8 @@ function displayBigThumbnails(attempts, activeLayer, layerName) {
 	            }
 	        }
 	    }
-        $("#honeycombPanel").prepend("<div class='hideThumbMenu close-X' style='float:right;'>✕</div>");
-	    $(".bigThumbMenu").append("<div class='bigThumbMenuInner'>" + sectionMenu + "</div>");
+        $("#honeycombPanel").prepend("<div class='hideThumbMenu close-X' style='position:absolute; right:0px; top:0px;'><i class='material-icons' style='font-size:32px'>&#xE5CD;</i></div>");
+	    $(insertInto).append("<div id='bigThumbMenuInner' class='bigThumbMenuInner'>" + sectionMenu + "</div>");
 
         if (theState == "GA") {
 	    // if (hash.state && hash.state.split(",")[0].toUpperCase() == "GA") {
@@ -2135,12 +2149,17 @@ function displayBigThumbnails(attempts, activeLayer, layerName) {
 	    }
 	    //$("#honeycombMenu").append("<ul class='bigThumbUl'>" + sectionMenu + "</ul>");
 	    $("#iconMenu").append(iconMenu);
-	    $("#bigThumbPanelHolder").show();
+        if (insertInto == "#bigThumbMenu") {
+	       $("#bigThumbPanelHolder").show();
+        }
 	    $("#honeyMenuHolder").show(); // Might be able to remove display:none on this
 
-	    $(".thumbModule").append($("#bigThumbPanelHolder")); // For GDX
+        // 
+	    //$(".thumbModule").append($("#bigThumbPanelHolder"));
 	} else if ($("#bigThumbPanelHolder").css("display") == "none") {
-		$("#bigThumbPanelHolder").show();
+        if (insertInto == "#bigThumbMenu") {
+		  $("#bigThumbPanelHolder").show();
+        }
 	} else {
 		$("#bigThumbPanelHolder").hide();
         $(".showApps").removeClass("filterClickActive");
@@ -2267,10 +2286,13 @@ function initSiteObject(layerName) {
         }
 	    let layerObject = (function() {
 
+            if(!localObject.layers) {
+                console.log("Error: no localObject.layers");
+            }
             $.getJSON(layerJson, function (layers) {
 
-                console.log("The localObject.layers");
-                console.log(localObject.layers);
+                //console.log("The localObject.layers");
+                //console.log(localObject.layers);
 
                 // Create an object of objects so show.hash is the layers key
                 $.each(layers, function (i) {
@@ -2323,7 +2345,8 @@ function initSiteObject(layerName) {
 
           				$("#showAppsText").text("Local Topics");
           				$("#appSelectHolder .showApps").addClass("filterClickActive");
-						showThumbMenu(hash.show);
+                        $("#bigThumbMenuInner").appendTo("#bigThumbMenu");
+						showThumbMenu(hash.show, "#bigThumbMenu");
                         $('html,body').animate({
                         	//- $("#filterFieldsHolder").height()  
                             scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
@@ -2340,7 +2363,7 @@ function initSiteObject(layerName) {
                 	// alert($("#fullcolumn").width()) = null
                 	if ($("body").width() >= 800) {
 
-                		//showThumbMenu(hash.show);
+                		//showThumbMenu(hash.show, "#bigThumbMenu");
                 	}
             	}
                 //return layerObject;
@@ -2352,13 +2375,19 @@ function initSiteObject(layerName) {
 	//}
 } // end initSiteObject
 
-function showThumbMenu(activeLayer) {
+function showThumbMenu(activeLayer, insertInto) {
 	$("#menuHolder").css('margin-right','-250px');
-	$("#bigThumbPanelHolder").show();
+    if (insertInto == "#bigThumbMenu") {
+	   $("#bigThumbPanelHolder").show();
+    }
 	if (!$(".bigThumbMenuContent").length) {
-		displayBigThumbnails(0, activeLayer, "main");
+		displayBigThumbnails(0, activeLayer, "main", insertInto);
 	}
 	$('.showApps').addClass("active");
+    if (insertInto != "#bigThumbMenu") {
+        $("#bigThumbPanelHolder").hide();
+        $(".showApps").removeClass("filterClickActive");
+    }
 }
 function callInitSiteObject(attempt) { 
     //alert("callInitSiteObject")
@@ -2368,11 +2397,6 @@ function callInitSiteObject(attempt) {
     }
 	if (typeof local_app !== 'undefined') { // wait for local_app
 		initSiteObject("");
-        console.log("localObject.layers");
-        console.log(localObject.layers);
-		// Not available here since async in initSiteObject()
-		//showThumbMenu(hash.show;
-		//return layerObject.layers; // Not always returning yet
         return;
 	} else if (attempt < 100) {
 		setTimeout( function() {
@@ -2488,7 +2512,7 @@ function hashChanged() {
 
             //$("#tableSide").hide();
 
-            if ($("#sidecolumn .catList").is(":visible")) {
+            if ($("#navcolumn .catList").is(":visible")) {
                 $("#selected_states").hide();
             }
 
@@ -2575,7 +2599,7 @@ function hashChanged() {
         console.log("Recenter map " + mapCenter)
 		*/
 
-        //showThumbMenu(hash.show);
+        //showThumbMenu(hash.show, "#bigThumbMenu");
 	}
 	if (hash.state) {
         $(".showforstates").show();
