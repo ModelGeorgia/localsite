@@ -258,23 +258,6 @@ input.filterClick[type="text"] {
         margin:40px 0 0 40px;
     }
 }
-/*
-.si-wrapper div {
-    position: absolute;
-    top: 0 !important;
-    bottom: 0 !important;
-    right: 0;
-    width: 18px;
-    margin: 0;
-    border: 0;
-    padding: 3px;
-    background: none;
-}
-*/
-.si-btn {
-    display: block;
-    background-color: #fff;
-}
 .close-X {
   cursor:pointer;
   padding:14px 26px 15px 26px;
@@ -373,7 +356,7 @@ input.filterClick[type="text"] {
   font-family: 'Roboto Condensed', sans-serif;
   text-decoration: none;
 }
-#listingsPanel .bigThumbText {
+#listingsPanelScroll .bigThumbText {
   color: #fff;
 }
 .bigThumb:hover .bigThumbText {
@@ -492,7 +475,6 @@ input.filterClick[type="text"] {
   }
   .bigThumbText {
     padding-top: 5px;
-    font-size: 20px;
   }
 
 #county-table {
