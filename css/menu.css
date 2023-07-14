@@ -104,10 +104,10 @@
 	min-width: 200px;
 }
 .sideMenuColumn {
-		z-index: 1;
-        width: 200px;
-		min-width: 160px;
-		background: rgb(238, 238, 238);
+	z-index: 1;
+    width: 200px;
+	min-width: 160px;
+	background: rgb(238, 238, 238);
 }
 @media (min-width: 1401px) {
 	.layerSectionTitle {
@@ -321,8 +321,8 @@
 }
 
 .dropdown-menu {
-		position: absolute;
-		display: none;
+	position: absolute;
+	display: none;
     z-index: 1000;
     float: left;
     min-width: 160px;
@@ -468,11 +468,75 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     right:0 !important;
 }
 
-#navcolumn {
+.navcolumn {
     position: fixed;
-    top: 0; left: 0; bottom: 0;
     width: 220px;
     padding-right: 0px;
+	top:0;
+	left:0;
+	bottom:0;
+}
+.listcolumn {
+    position: fixed;
+    width:380px;
+    padding-right:0px;
+	top:0;
+	left:220px;
+	bottom:0;
+	background-color: #ddd;
+}
+#bodyFileHolder .listcolumn { /* Display next to map */
+	position: relative;
+	float: left;
+	top:auto; left:auto; bottom:auto;
+}
+.pagecolumn {
+	top:54px;
+}
+.pagecolumnLower {
+	top:94px;
+}
+.pagecolumnToTop {
+	top:0px;
+}
+.rightIcons {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	z-index: 999;
+	font-size: 44px;
+	text-shadow: 1px 1px 4px #fff;
+}
+.bothSideIcons {
+  top:0px;
+  z-index:10000;
+}
+.sideIconsLower {
+  top:92px;
+}
+@media (max-width: 600px) {
+	.pagecolumnLower {
+		top:64px;
+	}
+	.sideIconsLower {
+	 	top:62px;
+	}
+}
+#showSide {
+	pointer-events: auto;
+	cursor: pointer;
+	padding: 9px 12px 2px 10px;
+	height: 37px;
+ 	opacity: .3;
+ 	z-index: 1001;
+}
+#showSide:hover {
+  opacity: .7;
+}
+@media (max-width: 1100px) {
+	#showSide {
+		margin-left: -23px;
+	}
 }
 .sidecolumnLeft {
     padding: 24px;
@@ -485,6 +549,18 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 	position:inherit;
     line-height: 34px;
     font-size: 18px;
+}
+#navcolumn .navcolumnIndent {
+	margin-left: 25px;
+}
+#navcolumnTitle {
+	padding-left: 25px;
+	margin-right: 10px;
+	margin-bottom: 11px;
+	font-weight: 800;
+	font-size: 16px;
+	text-transform: uppercase;
+    line-height: 1.2em;
 }
 #listLeft b, .sidecolumnLeft b, #cloneRight b {
     color:#333;
@@ -502,24 +578,27 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 .sidecolumnLeftScroll {
     position:absolute;
-    top:30px;
+    top:0px; /* was 30px */
     bottom:0px;
     right:0px;
     left:0px;
-    padding-left: 10px;
     overflow-y:scroll;
     -webkit-overflow-scrolling: touch;
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
     padding-bottom: 500px; /* Allows for footer */
+    padding-top: 30px;
 }
 .sidecolumnLeftScroll::-webkit-scrollbar {
   display: none;
 }
+.sidecolumnLeftScrollLower {
+	padding-top: 70px;
+}
 
-.catList div, .sidecolumnLeft a, #cloneRight a {
+.sidecolumnLeft a, #cloneRight a {
     display:block;
-    padding-left: 15px;
+    padding-left: 25px;
     text-decoration: none;
 }
 .catList div:hover, .sidecolumnLeft a:hover, .sidecolumnLeft a.active:hover, #cloneRight a:hover {
@@ -528,10 +607,14 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 	text-decoration: none;
 	cursor: pointer;
 }
+.catList > div {
+	padding-left: 25px;
+}
 .sidecolumnLeft b a {
 	color: #333;
 	font-size: 16px;
 	line-height: 1.8em;
+	padding-left: 25px;
 }
 .sidecolumnLeft a.active {
     border-right: 4px solid #888;
@@ -545,7 +628,34 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 .liteDiv a {
 	color: #333;
 }
-
+.greyDiv { /* Mix of light and dark text */
+	color: #fff;
+	background-color: #b1b1b1;
+}
+.greyDiv a, .greyDiv a:visited {
+	color: #fff;
+}
+.greyDiv b, .greyDiv .maincat, .greyDiv b a, .greyDiv b a:visited {
+	color: #333;
+}
+.greyDiv b a:hover, .greyDiv b a:visited:hover {
+	color: #fff;
+}
+.navcolumnClear {
+	background-color: initial;
+	border: 0px;
+	font-size: 18px;
+	width: 100%;
+	max-width: 300px;
+}
+@media (max-width: 800px) {
+	.navcolumnClear {
+		background-color: #aaa;
+	}
+}
+.navcolumnClear b a, .navcolumnClear b a:visited {
+	color: #fff;
+}
 #fullcolumn {
     overflow: auto;
     position: relative;
@@ -567,6 +677,14 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 .navcolumn-inpage > .sidecolumnLeft {
     position: static;
+}
+.navcolumnBar {
+	width: 100%;
+	overflow: auto;
+	background-color: #aaa;
+	position: absolute;
+	top: 0;
+	display: none;
 }
 /* End For navcolumn from header.html */
 
@@ -593,6 +711,8 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     background-color: #555;
     box-sizing: border-box;
     position: relative;
+    line-heightX: 0.9em;
+    font-family: Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif; /* avoiding 'Nunito Sans' for menu */
 }
 .menuExpanded h2, .menuExpanded h3, .menuExpanded h4 {
 	color: #ccc;

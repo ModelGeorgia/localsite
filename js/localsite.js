@@ -275,6 +275,7 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
     }
     hash = mix(addToHash,hash); // Gives priority to addToHash
 
+    consoleLog("updateHash2 cat: " + hash.cat)
     if (removeFromHash) {
       if (typeof removeFromHash == "string") {
         removeFromHash = removeFromHash.split(",");
@@ -429,20 +430,29 @@ function get_localsite_root3() { // Also in two other places
             return (theroot);
 }
 
-// Called from header.html files
-function toggleFullScreen() {
-  if (document.fullscreenElement) { // Already fullscreen
+function toggleFullScreen(alsoToggleHeader) {
+  if (document.fullscreenElement && !alsoToggleHeader) { // Already fullscreen and not small header
     consoleLog("Already fullscreenElement");
+    if (alsoToggleHeader) {
+      hideHeaderBar();
+    }
     if (document.exitFullscreen) {
-      consoleLog("Attempt to exit fullscreen")
+      consoleLog("Exit fullscreen")
       document.exitFullscreen();
-      $('.reduceFromFullscreen').hide();
-      $('.expandToFullscreen').show();
+      if (alsoToggleHeader) {
+        showHeaderBar();
+        $('.reduceSlider').hide();
+        $('.expandSlider').show();
+      } else {
+        $('.reduceFromFullscreen').hide();
+        $('.expandToFullscreen').show();
+      }
       return;
     }
   }
   if ((document.fullScreenElement && document.fullScreenElement !== null) ||    
    (!document.mozFullScreen && !document.webkitIsFullScreen)) {
+    // EXPAND
     // Only if video is not visible. Otherwise become black.
     $('.moduleBackground').css({'z-index':'0'});   
     $('.expandFullScreen span').text("Shrink");
@@ -454,10 +464,18 @@ function toggleFullScreen() {
     } else if (document.documentElement.webkitRequestFullScreen) {  
       document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);  
     }
-    $('.expandToFullscreen').hide();
-    $('.reduceFromFullscreen').show(); 
-  } else {
     
+    if (alsoToggleHeader) { // Use only small header
+      hideHeaderBar();
+      $("#filterFieldsHolder").addClass("filterFieldsHolderFixed");
+      $(".pagecolumn").removeClass("pagecolumnLower");
+      $('.expandSlider').hide();
+      $('.reduceSlider').show();
+    } else {
+      $('.expandToFullscreen').hide();
+      $('.reduceFromFullscreen').show();
+    }
+  } else {
     $('.moduleBackground').css({'z-index':'-1'}); // Allows video to overlap.
     $('.expandFullScreen span').text("Expand");
     if (document.cancelFullScreen) {  
@@ -467,8 +485,17 @@ function toggleFullScreen() {
     } else if (document.webkitCancelFullScreen) {  
       document.webkitCancelFullScreen();  
     }
-    $('.reduceFromFullscreen').hide();
-    $('.expandToFullscreen').show();
+    if (alsoToggleHeader) { // Restore taller header bar
+      showHeaderBar();
+      $("#filterFieldsHolder").removeClass("filterFieldsHolderFixed");
+      $(".pagecolumn").addClass("pagecolumnLower");
+      $(".pagecolumn").removeClass("pagecolumnToTop");
+      $('.reduceSlider').hide();
+      $('.expandSlider').show();
+    } else {
+      $('.reduceFromFullscreen').hide();
+      $('.expandToFullscreen').show();
+    }
   }
 }
 
@@ -598,6 +625,12 @@ function loadLocalTemplate() {
     });
   });
 }
+function hideHeaderBar() {
+  //$('#headerbar').addClass("headerbarhide");
+  $('#local-header').hide();
+  $('#headerbar').hide();
+  $('.bothSideIcons').removeClass('sideIconsLower');
+}
 function showHeaderBar() {
   //$('.headerOffset').show(); 
   $('#headerbar').show();
@@ -647,18 +680,28 @@ function loadLeafletAndMapFilters() {
       });
     });
   }
-  loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
-    includeCSS3(theroot + 'css/leaflet.css',theroot);
-    loadScript(theroot + 'js/leaflet.js', function(results) {
-      loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Could skip when map does not use material icon colors
-        loadScript(theroot + 'js/map.js', function(results) {
-          // Loads map-filters.js
-          loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
-        });
-      });
+  // Everything uses map.js to fetch if the dataset (from show value) has a map.
+  // When we fetch .json before map.js, remove everything here if it does not need map.js
+  if (param.display == "map" || param.display == "everything") {
+    loadScript(theroot + 'js/map.js', function(results) { // Load list before map
+
     });
 
-  });
+    /*
+    loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
+      includeCSS3(theroot + 'css/leaflet.css',theroot);
+      loadScript(theroot + 'js/leaflet.js', function(results) {
+        loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Could skip when map does not use material icon colors
+          loadScript(theroot + 'js/map.js', function(results) {
+            // Loads map-filters.js (moved to map.js)
+            //loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
+          });
+        });
+      });
+
+    });
+    */
+  }
 }
 // WAIT FOR JQuery
 loadScript(theroot + 'js/jquery.min.js', function(results) {
@@ -699,12 +742,13 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         } else if(document.getElementById("bodyFile") == null) {
           $('body').prepend("<div id='bodyFile'></div>");
         }
+
         if(param.showheader == "true") {
-          $('body').prepend("<div id='showSide' class='showSide' style='top:92px;left:-28px;position:absolute'><i class='material-icons show-on-load' style='font-size:35px; opacity:0.7; background:#fcfcfc; padding-right:3px; border:1px solid #555; border-radius:8px;'>&#xE5D2;</i></div>");
+          $('body').prepend("<div id='sideIcons' class='bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showSide' class='showSide' style='left:-28px;'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border:1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
         }
         
         waitForElm('#fullcolumn').then((elm) => {
-          $("#showSide").prependTo("#fullcolumn"); 
+          //$("#sideIcons").prependTo("#fullcolumn"); 
         });
 
         if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
@@ -782,8 +826,11 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       //document.write(strVarCss);
       document.head.insertAdjacentHTML("beforeend", strVarCss);
 
+      $(document).on("click", ".expandSlider, .reduceSlider", function(event) {
+        toggleFullScreen(true);
+      });
       $(document).on("click", ".expandToFullscreen, .reduceFromFullscreen", function(event) {
-        toggleFullScreen();  
+        toggleFullScreen(false);
       });
       $(document).on("click", ".showSearch", function(event) {
           //loadLeafletAndMapFilters();
@@ -891,8 +938,10 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
             });
           } else {
             loadScript(theroot + 'js/d3.v5.min.js', function(results) {
-              loadScript(theroot + 'js/naics.js', function(results) {
-                console.log("everything");
+              waitForVariable('customD3loaded', function() {
+                loadScript(theroot + 'js/naics.js', function(results) {
+                  console.log("everything");
+                });
               });
             });
           }
@@ -938,9 +987,14 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   } else if (param.showsearch == "true") {
     loadSearchFilterIncludes();
 
-    // TODO: Switch to just this, which loads map-filters.js for the tab click events.
+    // DONE, but not tested: Switched to just this, which loads map-filters.js for the tab click events.
+    console.log("loadScript called from localst.js")
+    loadScript(theroot + 'js/map.js', function(results) { // Load list before map
+    });
+    // This is already in the above
     //loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
 
+    /*
     // TODO: Then remove these dependencies and lazy load these when switching to the above and tabs are clicked.
     loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
       includeCSS3(theroot + 'css/leaflet.css',theroot);
@@ -953,6 +1007,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         });
       });
     });
+    */
   } else if (param.showapps == "true") {
     loadLocalTemplate();
     loadSearchFilterIncludes(); // Could load less then all 4 css files.
@@ -977,7 +1032,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       })
 
       // Loading font
-      var link = document.createElement('link'),
+      let link = document.createElement('link'),
           head = document.getElementsByTagName('head')[0];
 
       link.addEventListener('load', function() {
@@ -990,15 +1045,17 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       link.type = 'text/css';
       link.rel = 'stylesheet';
-      link.href = theroot + '../localsite/css/fonts/materialicons/icon.css';
-      //link.href = theroot + 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
+      link.href = theroot + 'css/fonts/materialicons/icon.css';
+      // Haven't tested if this external URL works with multiple load prevention.
+      //link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
       link.id = getUrlID3(link.href,"");
       
-      // TO DO: Need to check if icon.css already in page.
-      head.appendChild(link);
-      $(document).ready(function () {
-        //body.appendChild(link); // Doesn't get appended
-      });
+      if (!document.getElementById(link.id)) { // Prevents multiple loads.
+        head.appendChild(link);
+        $(document).ready(function () {
+          //body.appendChild(link); // Doesn't get appended
+        });
+      }
     }();
   }
 
@@ -1162,7 +1219,7 @@ function loadMapFiltersJS(theroot, count) {
     //alert("localsite_map " + localsite_map)
     //loadScript(theroot + 'https://cdn.jsdelivr.net/npm/vue', function(results) { // Need to check if function loaded
       loadScript(theroot + 'js/map-filters.js', function(results) {});
-
+      //alert("loadMapFiltersJS says D3 is ready for map-filters.js");
       if (document.getElementById("/icon?family=Material+Icons")) {
           $(".show-on-load").removeClass("show-on-load");
       }
@@ -1874,6 +1931,16 @@ function loadIframe(iframeName, url) {
   return true;
 }
 
+function waitForVariable(variable, callback) {
+  var interval = setInterval(function() {
+    if (window[variable]) {
+      clearInterval(interval);
+      callback();
+    }
+    console.log('waitForVariable ' + variable);
+  }, 40);
+}
+
 // TO DO: Optimize by checking just the nodes in the mutations
 // https://stackoverflow.com/questions/5525071/how-to-wait-until-an-element-exists
 function waitForElm(selector) {
@@ -1906,11 +1973,34 @@ function waitForElmKickoff(selector, resolve) {
 }
 
 
-function loadMarkdown(pagePath, divID, target, callback) {
+function loadMarkdown(pagePath, divID, target, attempts, callback) {
+  if (typeof attempts === 'undefined') {
+    attempts = 1;
+  }
   // WAIT FOR SCRIPT THAT LOADS README.md Files
   loadScript(theroot + 'js/d3.v5.min.js', function(results) {
   //loadScript(theroot + 'js/jquery.min.js', function(results) {
   loadScript(theroot + 'js/showdown.min.js', function(results) {
+
+  if (typeof customD3loaded !== 'undefined' && typeof showdownLoaded !== 'undefined') { // Ready
+  } else if (attempts < 300) { // Wait and try again
+    setTimeout( function() {
+      //consoleLog("try loadMarkdown again")
+      loadMarkdown(pagePath, divID, target, attempts+1, callback); // Do we need , callback here?
+    }, 30 );
+    return;
+  } else {
+    consoleLog("ERROR: loadMarkdown exceeded " + attempts + " attempts.");
+    if (typeof customD3loaded === 'undefined') {
+      consoleLog("REASON customD3loaded undefined");
+    }
+    if (typeof showdownLoaded === 'undefined') {
+      consoleLog("REASON showdownLoaded undefined");
+    }
+    return;
+  }
+
+  //waitForElm(customD3loaded).then((elm) => {
 
     // getPageFolder:
     let pageFolder = pagePath;
@@ -1932,10 +2022,10 @@ function loadMarkdown(pagePath, divID, target, callback) {
     // Get the levels below root
     //let foldercount = (location.pathname.split('/').length - 1); // - (location.pathname[location.pathname.length - 1] == '/' ? 1 : 0) // Removed because ending with slash or filename does not effect levels. Increased -1 to -2.
     
-
     // Might not be used
     //alert(location.pathname)
-    //let foldercount = (location.pathname.split('/').length - 1);
+    ////let foldercount = (location.pathname.split('/').length - 1);
+    /*
     let foldercount = (pagePath.split('/').length - 1);
     foldercount = foldercount - 2;
     let climbcount = foldercount;
@@ -1949,12 +2039,14 @@ function loadMarkdown(pagePath, divID, target, callback) {
     if(climbpath == "") {
       //climbpath == "./";
     }
-    if (typeof customD3loaded === 'undefined') {
-      console.log("ALERT - d3 not available yet. This may occur if showdown.min.js is included in page, but not d3.v5.min.js")
-    }
+    */
     d3.text(pagePath).then(function(data) {
       // Path is replaced further down page. Reactivate after adding menu.
-      var pencil = "<div class='markdownEye' style='display:none;position:absolute;font-size:28px;right:0px;text-decoration:none;opacity:.7'><a href='" + pagePath + "' style='color:#555'>…</a></div>";
+      let pencil = "<div class='markdownEye' style='position:absolute;font-size:28px;right:0px;top:-25px;text-decoration:none;opacity:.7'><a href='" + pagePath + "' style='color:#555'>…</a></div>";
+      if(location.host.indexOf('localhost') < 0) {
+        pencil = "";
+      }
+
       // CUSTOM About YAML metadata converter: https://github.com/showdownjs/showdown/issues/260
 
       // Also try adding simpleLineBreaks http://demo.showdownjs.com/

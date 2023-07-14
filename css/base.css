@@ -42,8 +42,19 @@ body {
   color: #333;
   line-heightX:0; /* prevents gaps betweet images, but 0 caused text to overlap on start and nav icons. */
 }
+.bodyIconMargin {
+  margin-left: 64px;
+}
 .bodyLeftMargin {
   margin-left: 220px;
+}
+.bodyLeftMarginFull {
+  margin-left: 600px;
+}
+@media (max-width: 500px) {
+  .bodyLeftMargin {
+    margin-left: 0px;
+  }
 }
 .bodyRightMargin {
   margin-right: 500px;
@@ -56,7 +67,7 @@ body {
     margin-right: 0px;
   }
 }
-@media (max-width: 1250px) {
+@media (max-width: 1450px) { /* 1250px */
   .mobileView .hideMobile {
     display: none;
   }
@@ -66,14 +77,15 @@ body {
   .mobileView .fullMobile {
     width: 100%;
   }
+  .mobileView .floatright {
+    width: 100%;
+    margin-left: 0px;
+    float: none;
+  }
 }
 @media (max-width: 1500px) {
   .mobileView .hideMobileSooner {
     display: none;
-  }
-  .mobileView .containerLayout {
-      margin-left: 0px;
-      width: 100%;
   }
 }
 .rightside, .floatright {
@@ -370,7 +382,7 @@ summary::-webkit-details-marker {
 }
 .contentpadding {
   padding-top: 25px;
-  padding-left: 50px;
+  padding-left: 64px; /* was 50 */
   padding-right: 40px;
   padding-bottom: 45px;
 }
@@ -484,7 +496,9 @@ summary::-webkit-details-marker {
   .pageColumnOverflow {
     width:100%;
   }
-
+  .pageColumnInside {
+    margin-right: 0px;
+  }
 }
 .contentArea {
     margin: 0px; padding: 0px; 
@@ -532,7 +546,12 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   */ /* thicker, darker */
   font-weight: 600;
 }
-
+.darkDivText {
+  color: #ccc;
+}
+.darkDivText a:link, .darkDivText a:visited {
+  color: #acb;
+}
 #hero-content {
   padding: 45px 60px 40px 60px;
 }
@@ -555,6 +574,11 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   padding: 30px 50px 25px 50px;
   margin-bottom: 30px;
   color: #fff;
+}
+@media (max-width: 1400px) {
+  .bodyLeftMargin #hero-rect, .bodyRightMargin #hero-rect {
+      max-width: 450px;
+  }
 }
 #hero-rect h3 {
   color: #fff;
@@ -599,7 +623,7 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
     margin-bottom:8px;
 }
 .btn:link, .btn:visited, .contentpadding .btn:link, .contentpadding .btn:visited {
-  color: #fff;
+  color: #fff !important; /* Quick hack, allows .darkDivText a:visited to be overwritten in .sidelistHolder map box */
   text-decoration: none;
 }
 #hero-rect .btn:link, #hero-rect .btn:visited {
@@ -682,16 +706,16 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
     background-color: #fff;
     border-color: #ccc;
 }
-.btn-white:hover {
-    background-color: #b9da79;
-    border-color: #b9da79;
-    color: #fff !important;
-}
 .btn-white:link, .contentpadding .btn-white:link {
-  color: #333;
+  color: #333 !important;
 }
 .btn-white:visited, .contentpadding .btn-white:visited {
   color: #333;
+}
+.btn-white:hover, .btn-white:link:hover, .contentpadding .btn-white:link:hover, .btn-white:visited:hover, .contentpadding .btn-white:visited:hover {
+    background-color: #a6c36e;
+    border-color: #a6c36e;
+    color: #fff !important;
 }
 @media (max-width: 500px) {
   .btn {
@@ -765,22 +789,11 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   width:100%;
   */
 }
-#showSide {
-	pointer-events: auto;
-	cursor: pointer;
-	padding: 9px 12px 2px 10px;
-	height: 37px;
-  opacity: .3;
-  z-index: 1001;
-}
-#showSide:hover {
-  opacity: .7;
-}
 .close-X-sm {
   cursor:pointer;
   padding:5px 9px 12px 12px;
   font-size:18px;
-  color:#444;
+  color:#ddd;
   /* If code appear instead of x, check if some other font is being applied. Try activating this line to fix (copied from an x that worked).
   font-family: 'Nunito Sans', Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   */
@@ -863,7 +876,7 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   background-position: center;
   background-repeat: no-repeat;
   background-sizeX: cover;
-  background-position: 0 100px; /* adjust for page banner - BUGBUG */
+  background-position: 0 54px; /* Under #mapFilters #filterFields headerbar */
   background-size: 100% auto;
   borderX: 2px solid blue;
 
@@ -876,13 +889,14 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 }
 @media(max-width:800px) {
   .bgimg {
-    width: 200%; /* taller on mobile */
+    widthX: 200%; /* taller on mobile */
   }
 }
 /* Turn off parallax scrolling for tablets and phones */
 @media only screen and (max-device-width: 1024px) {
   .bgimg {
       background-attachment: scroll;
+      background-position: 0 0; /* Prevents space above img */
   }
 }
 .herocenter {
@@ -1050,7 +1064,7 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   height: auto;
 }
 .bodyLeftMargin .headerbar, .bodyLeftMargin .filterFieldsHolderFixed {
-  left: 220px;
+  /* left: 220px; */
 }
 .headerbar a:link, .headerbar a:visited {
     color: #777;
@@ -1065,12 +1079,6 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
     border-bottom: 1px solid rgb(238,238,238/95%); /* #eee */
     border-bottom: 1px solid rgb(238,238,238);
   }
-}
-.darkDivText {
-  color: #ccc;
-}
-.darkDivText a:link, .darkDivText a:visited {
-  color: #acb;
 }
 .headerbarhide {
   display: none !important;
@@ -1147,13 +1155,25 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   height: 64px;
   min-width: 58px;
   text-align: center;
-  padding: 16px 12px 2px 12px;
+  padding: 5px 26px 2px 12px;
   cursor: pointer;
+  color: #888;
 }
 .iconPadding:hover {
-  background-color: #000;
+  color: #222;
+}
+.darkDivText .iconPadding:hover {
   color: #fff;
 }
+
+#goatIcons .iconPadding {
+    height: 64px;
+    min-width: 58px;
+    text-align: center;
+    padding: 16px 12px 2px 12px;
+    cursor: pointer;
+}
+
 .upperIcons > div:hover {
   cursor: pointer;
 }

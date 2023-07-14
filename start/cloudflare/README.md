@@ -1,6 +1,6 @@
 # Cloudflare Setup
 
-Cloudflare provides free and easy DNS management, proxy service for fast page loading, https routing using one CertifytheWeb cert [in IIS](https://model.earth/setup) for multiple domains.  Using CNAME records, you can point one domain at multiple Github repos. ([See step 6](../../start/)). Or you can pull multiple repos into one Cloudflare site using a Github [.submodules file](../submodules/).
+Cloudflare provides free and easy DNS management, proxy service for fast page loading, https routing using one CertifytheWeb cert [in IIS](https://model.earth/setup) for multiple domains.  Using CNAME records, you can point one domain at multiple Github repos. ([See step 6](../../start/steps/)). Or you can pull multiple repos into one Cloudflare site using a Github [.submodules file](../submodules/).
 
 You may want to leave off the proxy service for some domains. (With the proxy on, sometimes you'll need to  use the Cloudflare cache clearing button to view recent file changes.)
 
@@ -68,6 +68,7 @@ https://yourdomain.com/#go=$2
 ### CloudFlare Firewall
 Create a firewall rule to block IP's that attempt to hack a website. Websites check for hack attempts and send an email to admins with information such as the url, IP address, and url history. Since CloudFlare uses a proxy address, the IP address reported by the email is the CloudFlare proxy IP. CloudFlare includes the following header values which can be used to display non-proxied addresses: cf-connecting-ip, cf-connecting-ipv6, and x-forwarded-for. The code that checks for hack attempts checks for these header values and includes them in the email. Use the non-proxied IP addresses to create a firewall rule to block those IPs in CloudFlare. These same non-proxied IPs should be added to the Windows Firewall.
 
+1. Perform a [Whois lookup](https://www.whois.com/whois/) for the IP address that you want to block to see what country the IP address is assigned to. In most cases, the IP address will be outside of the U.S. If it is inside the U.S., use your best judgement to determine whether to block the IP address or not, such as the amount of hack attempts from the IP address. Ensure that the IP address is not associated with CloudFlare (in case you accidently copied the CloudFlare proxied address from the hack attempt email notification). 
 1. Login to the CloudFlare dashboard, then select the account and website. A firewall rule will need to be added to each website running on CloudFlare
 1. Select Security > WAF > Firewall rules.
 1. Select Create a firewall rule.
@@ -97,12 +98,12 @@ Create or access the list when creating the firewall rule (see above) or use the
 1. To Add or Remove IPs to an existing list:
     1. Click on the Edit link for the list.
     1. Click the Add Items button or select one or more IPs to delete and select the Remove button.
-    1. Enter a single IP address or an address range (in CIDR format - see below) and an optional description. Addresses can also be added [using a CSV file](https://developers.cloudflare.com/fundamentals/global-configurations/lists/create-dashboard/#add-items-using-a-csv-file). Refer to the [IP CSV format](https://developers.cloudflare.com/fundamentals/global-configurations/lists/ip-lists/) for more information. A CSV file may be easier to use rather than entering IP addresses manually. 
+    1. Enter a single IP address or an address range (in CIDR format - see below) and an optional description. Addresses can also be added [using a CSV file](https://developers.cloudflare.com/fundamentals/global-configurations/lists/create-dashboard/#add-items-using-a-csv-file). Refer to the [IP CSV format](https://developers.cloudflare.com/fundamentals/global-configurations/lists/ip-lists/) for more information. A CSV file may be easier to use rather than entering IP addresses manually and a single csv file can be used to update each account's blocked IP list easily. If you change or delete one or more entries in the CSV file, it may be easier to select all of the existing IPs in the list on CloudFlare, delete them, and then re-upload the file. The upload CSV process will only add entries that are not already in the list, it won't delete existing entries.
     1. Enter additional IP addresses as needed.
     1. When all the IP addresses have been entered, click the Add to list button to save the IP addresses to the list.
 
 #### Specifying an IP address range using CIDR format
-Typically, when entering an ip address range, the range should be something like: 111.222.333.0 - 111.222.333.255. Depending on the hack attempt you may need to widen the range to something like 111.222.333.0 - 111.222.336.255. Cloudflare requires IP address ranges to be entered in CIDR format. If you are not familiar with the CIDR format, search the internet for "ip address range in cidr notation". As an example, the [IPv4 Address to CIDR Notation](https://www.meridianoutpost.com/resources/etools/network/convert-ip-to-CIDR.php) page can be used to convert from/to IP addresses to CIDR format.
+Typically, when entering an ip address range, the range should be something like: 111.222.333.0 - 111.222.333.255. Depending on the hack attempt you may need to widen the range to something like 111.222.333.0 - 111.222.336.255. Cloudflare requires IP address ranges to be entered in CIDR format. If you are not familiar with the CIDR format, search the internet for "ip address range in cidr notation". As an example, the [IPv4 Address to CIDR Notation](https://www.ipaddressguide.com/cidr) page can be used to convert from IP addresses to CIDR format and vice-versa.
 
 
 Reference:

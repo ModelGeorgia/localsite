@@ -98,10 +98,6 @@
     width: 18px;
     height: 18px;
   }
-  .swiper-pagination-bullet-active {
-    width: 14px;
-    height: 14px;
-  }
 }
 /*
 .swiper-button-prev {
@@ -266,9 +262,9 @@
   left: 0;
   position: absolute;
   top: 0;
-  bottom: 0;
+  bottom: 50px;
   width: 80px;
-  height: 100%;
+  height: 85%;
   background-size: 57px;
   background-repeat: no-repeat;
   background-position: center;
@@ -277,9 +273,9 @@
   right: 0;
   position: absolute;
   top: 0;
-  bottom: 0;
+  bottom: 50px;
   width: 80px;
-  height: 100%;
+  height: 85%;
   background-size: 57px;
   background-repeat: no-repeat;
   background-position: center;
@@ -297,6 +293,19 @@
   background-position: center;
   opacity: 0;
 }
+.swiper-button-play-lower, .swiper-button-pause-lower {
+  positionX: relative;
+  width: 30px;
+  height: 30px;
+  margin-top: 8px;
+  margin-rightX: 10px;
+  opacity: 1;
+  left: auto;
+  right: auto;
+  top: 1;
+  bottom: auto;
+  z-index: 20;
+}
 .swiper-button-pause {
   background-image: url(/localsite/img/plyr/pause.png);
 }
@@ -310,6 +319,14 @@
   transition: all .5s ease-out;
   cursor: pointer;
 }
+
+.plyr__control--overlaid {
+  position: absolute;
+  top: 48.5%;
+  left: 49.5%;
+  right: auto;
+}
+
 .showPauseQuick {
   opacity: .8;
   transition: 2s ease-out; /* no effect, jumps off */
