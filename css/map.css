@@ -57,6 +57,7 @@
     position: relative;
     border-bottom: 1px solid #777;
     margin: 4px;
+    background-color: #ddd;
   }
   .sidelist .detailTitle {
     line-height: 1.1em;
@@ -201,14 +202,12 @@
   #hublist {
     overflow: auto; /* allows Expand button to remain at bottom */
     width:56%;
+    scrollbar
   }
   #mapHolder {
-    padding: 20px;
+    padding-left: 20px;
     width: 44%;
     z-index: 10; /* to exceed right column in external site */
-    /* Show box for testing scroll */
-    /* border: 1px solid #ccc; */
-
     position: relative;
     float:right;
   }
@@ -290,8 +289,10 @@
     z-index: 1;
     top: 95px;
     bottom: auto;
-    widthX: 480px; /* Reset in dual-map.js */
+    width: 100%;
   }
+
+  /*
   @media (min-width: 1400px) {
     .mapHolderFixed {
       min-width: 600px;
@@ -307,6 +308,8 @@
       width: 380px;
     }
   }
+  */
+
   #sidemapbar {
     position: relative;
     color: #555;
@@ -459,14 +462,15 @@ label { /* override Drupal */
 #listcolumn {
   display: flex; /* displays flex-items (children) inline */
   flex-direction: column; /* stacks them vertically */
-  heightX: 100%; /* Forced bottom off screen */
+  box-shadow: 4px 2px 8px 1px rgba(0, 0, 0, 0.4);
+  z-index: 999;
 }
 .listHeader {
   padding: 10px;
   background-color: #bbb;
 }
 .listTitle {
-  font-size: 32px;
+  font-size: 23px;
   margin:0px;
   border-bottom:0px
 }
@@ -478,12 +482,12 @@ label { /* override Drupal */
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
-#listinfo {
+#listInfo {
   flex-shrink: 0;
-  padding: 20px;
-  min-heightX: 250px; /* Bug, how to fit content? */
-  background-color: #333;
+  padding: 12px 20px 12px 26px;
+  background-color: #d3d3d3;
   color: #fff;
+  width: 100%;
 }
 @media (max-width: 800px) {
   .legendLink {
@@ -492,6 +496,12 @@ label { /* override Drupal */
   .listTitle {
     font-size: 26px;
   }
+}
+#mapInfo {
+  padding: 20px;
+  background-color: #dcdcdc;
+  width: 100%;
+  max-width: 100%;
 }
 .outcomesbox span {
   float:right;
