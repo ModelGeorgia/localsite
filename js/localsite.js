@@ -4,6 +4,8 @@
 
 // Localsite Path Library - A global namespace singleton
 // Define a new object if localsite library does not exist yet.
+let localStart = Date.now();
+consoleLog("start localsite");
 var local_app = local_app || (function(module){
     let _args = {}; // private, also worked as []
     let localsite_repo;
@@ -69,12 +71,9 @@ var local_app = local_app || (function(module){
             }
             
             if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
-              // Omit known hosts of "localsite" repo here.
-
-              //theroot = "https://model.earth/localsite/";
               theroot = hostnameAndPort + "/localsite/";
-              consoleLog("myScript.src hostname and port: " + extractHostnameAndPort(myScript.src));
-              consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
+              //consoleLog("myScript.src hostname and port: " + extractHostnameAndPort(myScript.src));
+              //consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
             }
             if (location.host.indexOf('localhost') >= 0) {
               // For testing embedding without locathost repo in site theroot. Rename your localsite folder.
@@ -240,18 +239,29 @@ function loadParams(paramStr,hashStr) {
 }
 function mix(incoming, target) { // Combine two objects, priority to incoming. Delete blanks indicated by incoming.
    //target2 = $.extend(true, {}, target); // Clone/copy object without entanglement
-   
-   target2 = extend(true, target, incoming); // Clone/copy object without entanglement, subsequent overrides first.
-   
+   //console.log("mix incoming and default (target). Incoming has priority.");
+   //console.log(incoming);
+   //console.log(target);
+   if (window.jQuery) {
+    target2 = $.extend(true, target, incoming); // Clone/copy object without entanglement, subsequent overrides first.
+   } else {
+    // This non-JQuery extend results in "Uncaught (in promise) RangeError: Maximum call stack size exceeded" with map.js mix(dp,defaults)
+    target2 = extend(true, target, incoming); // Clone/copy object without entanglement, subsequent overrides first.
+   }
+
    for(var key in incoming) {
      if (incoming.hasOwnProperty(key)) {
         if (incoming[key] === null || incoming[key] === undefined || incoming[key] === '') {
           delete target2[key];
         } else {
-          target2[key] = incoming[key];
+          // Already set by extend above.
+          //target2[key] = incoming[key];
         }
      }
-   }   return target2;
+   }
+   //console.log("mixed output");
+   //console.log(target2);
+   return target2;
 }
 function getHash() { // Includes hiddenhash
     return (mix(getHashOnly(),hiddenhash));
@@ -268,14 +278,13 @@ function getHashOnly() {
       return b;
     })(window.location.hash.substr(1).split('&'));
 }
-function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids triggering hash change event.
+function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids triggering hash change event. Also called by goHash, which does trigger hash change event.
     let hash = {}; // Limited to this function
     if (addToExisting != false) {
       hash = getHashOnly(); // Include all existing. Excludes hiddenhash.
     }
     hash = mix(addToHash,hash); // Gives priority to addToHash
 
-    consoleLog("updateHash2 cat: " + hash.cat)
     if (removeFromHash) {
       if (typeof removeFromHash == "string") {
         removeFromHash = removeFromHash.split(",");
@@ -300,7 +309,7 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
 }
 function goHash(addToHash,removeFromHash) {
   consoleLog("goHash ")
-  consoleLog(addToHash)
+  console.log(addToHash)
   updateHash(addToHash,true,removeFromHash); // true = Include all of existing hash
   triggerHashChangeEvent();
 }
@@ -344,18 +353,17 @@ function loadScript(url, callback)
       //script.onreadystatechange = callback; // This apparently is never called by Brave, but needed for some of the other browsers.
       script.onreadystatechange = function() { // Cound eliminate these 3 lines and switch back to the line above.
         consoleLog("loadScript ready: " + url); // This apparently is never called by Brave.
-            callback();
-        }
+        callback();
+      }
       //script.onload = callback;
       script.onload = function() {
-            consoleLog("loadScript loaded: " + url); // Once the entire file is processed.
-            callback();
-        } 
-
-        //$(document).ready(function () { // Only needed if appending to body
-         var head = document.getElementsByTagName('head')[0];
-         head.appendChild(script);
-        //});
+        consoleLog("loadScript loaded: " + url); // Once the entire file is processed.
+        callback();
+      }
+      //$(document).ready(function () { // Only needed if appending to body
+       var head = document.getElementsByTagName('head')[0];
+       head.appendChild(script);
+      //});
         
   } else {
     consoleLog("loadScript script already available: " + url + " via ID: " + urlID);
@@ -412,15 +420,10 @@ function get_localsite_root3() { // Also in two other places
               //theroot = "https://map.georgia.org/localsite/";
               theroot = hostnameAndPort + "/localsite/";
             }
-            
             if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
-              // Omit known hosts of "localsite" repo here.
-
-              // This is called on http://localhost/. Is it called when embedding on other domains?
-              //theroot = "https://model.earth/localsite/";
               theroot = hostnameAndPort + "/localsite/";
-              console.log("theroot: " + theroot);
-              consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
+              //console.log("theroot: " + theroot);
+              //consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
             }
             if (location.host.indexOf('localhost') >= 0) {
               // Enable to test embedding without locathost repo in site theroot. Rename your localsite folder.
@@ -525,11 +528,10 @@ function clearHash(toClear) {
 var consoleLogHolder = ""; // Hold until div available in DOM
 function consoleLog(text,value) {
   if (value) {
-    console.log(text, value);
+    console.log((Date.now() - localStart)/1000 + ": " + text, value);
   } else {
-    console.log(text);
+    console.log((Date.now() - localStart)/1000 + ": " + text);
   }
-
   //var dsconsole = document.getElementById("log_display textarea");
   //let dsconsole = document.getElementById("log_display > textarea");
   let dsconsole = document.getElementById("logText");
@@ -682,27 +684,11 @@ function loadLeafletAndMapFilters() {
       });
     });
   }
-  // Everything uses map.js to fetch if the dataset (from show value) has a map.
-  // When we fetch .json before map.js, remove everything here if it does not need map.js
-  if (param.display == "map" || param.display == "everything") {
-    loadScript(theroot + 'js/map.js', function(results) { // Load list before map
+  if ((param.display == "map" || param.display == "everything") && param.show) {
+    // Later we could omit map.js from info page unless dp.dataset or googleDocID.
+    loadScript(theroot + 'js/map.js', function(results) {
 
     });
-
-    /*
-    loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
-      includeCSS3(theroot + 'css/leaflet.css',theroot);
-      loadScript(theroot + 'js/leaflet.js', function(results) {
-        loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Could skip when map does not use material icon colors
-          loadScript(theroot + 'js/map.js', function(results) {
-            // Loads map-filters.js (moved to map.js)
-            //loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
-          });
-        });
-      });
-
-    });
-    */
   }
 }
 // WAIT FOR JQuery
@@ -1015,6 +1001,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
     loadSearchFilterIncludes(); // Could load less then all 4 css files.
     loadScript(theroot + 'js/navigation.js', function(results) {
     });
+  } else {
+    includeCSS3(theroot + 'css/base.css',theroot);
   }
 
   //} else { // Show map or list without header
@@ -1054,9 +1042,12 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       
       if (!document.getElementById(link.id)) { // Prevents multiple loads.
         head.appendChild(link);
+        consoleLog("head.appendChild link for font");
         $(document).ready(function () {
-          //body.appendChild(link); // Doesn't get appended
+          //body.appendChild(link); // Doesn't get appended. Error: body is not defined
         });
+      } else {
+        consoleLog("link.id " + link.id);
       }
     }();
   }
@@ -1937,9 +1928,11 @@ function waitForVariable(variable, callback) {
   var interval = setInterval(function() {
     if (window[variable]) {
       clearInterval(interval);
+      consoleLog('waitForVariable found ' + variable);
       callback();
+      return;
     }
-    console.log('waitForVariable ' + variable);
+    consoleLog('waitForVariable waiting ' + variable);
   }, 40);
 }
 
@@ -1948,6 +1941,7 @@ function waitForVariable(variable, callback) {
 function waitForElm(selector) {
     return new Promise(resolve => {
         if (document.querySelector(selector)) {
+            consoleLog("waitForElm found " + selector);
             return resolve(document.querySelector(selector));
         }
         if (document.body) {
@@ -1961,6 +1955,7 @@ function waitForElm(selector) {
     });
 }
 function waitForElmKickoff(selector, resolve) {
+  consoleLog("waitForElm waiting " + selector);
   const observer = new MutationObserver(mutations => {
       if (document.querySelector(selector)) {
           resolve(document.querySelector(selector));
@@ -2044,7 +2039,7 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
     */
     d3.text(pagePath).then(function(data) {
       // Path is replaced further down page. Reactivate after adding menu.
-      let pencil = "<div class='markdownEye' style='position:absolute;font-size:28px;right:0px;top:-25px;text-decoration:none;opacity:.7'><a href='" + pagePath + "' style='color:#555'>…</a></div>";
+      let pencil = "<div class='markdownEye' style='position:absolute;font-size:28px;right:0px;top:0px;text-decoration:none;opacity:.7'><a href='" + pagePath + "' style='color:#555'>…</a></div>";
       if(location.host.indexOf('localhost') < 0) {
         pencil = "";
       }
@@ -2138,5 +2133,5 @@ function loadIntoDiv(pageFolder,divID,thediv,html,attempts,callback) {
       console.log("ALERT: " + divID + " not available in page for showdown to insert text after " + attempts + " attempts.");
     }
   }
-
 }
+consoleLog("end localsite");

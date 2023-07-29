@@ -159,6 +159,13 @@
                 </div>
               </div>
 
+              <div class="local" style="display:none">
+                <div class="showDesktop rightTopItem">
+                    <i class="material-icons menuTopIcon">&#xE1B1;</i>
+                    <span>Desktop</span>
+                </div>
+              </div>
+
               <!--
               <div class="contactUs rightTopItem">
                   <i class="material-icons menuTopIcon contactIcon">&#xE0E1;</i>
@@ -189,7 +196,7 @@
 
               <div class="local" style="display:none">
               <div class="showAccountTools rightTopItem" style="displayX:none">
-                  <div class="showAccount user-0">
+                  <div class="showAccount user-1">
                       <i class="material-icons menuTopIcon">&#xE7FD;</i>
                       <span>Account</span>
                   </div>
@@ -407,6 +414,14 @@
         </div>
         <!-- End Settings Panel -->
 
+        <!-- Desktop Panel -->
+        <div id="desktopPanel" class="menuExpanded topMenuOffset" style="display:none; font-size: 18.5px;">
+          <div class="menuExpandedScroll always-show-scroll">
+              <div id="desktopDiv"><h1>Desktop</h1></div>
+              <br><br><br>
+          </div>
+        </div>
+        <!-- /Stories Panel -->
 
         <!-- Print Options -->
         <div class="printOptionsHolderWide menuExpanded topMenuOffset" style="display:none">
@@ -733,12 +748,13 @@
       </div>
       -->
     
-      <div id="locationFilterHolder">
+      <div id="locationFilterHolder" style="position: relative;">
             
-            <div class="hideAdvanced close-X" style="float:right; margin-top:-20px">&#10005;
-            </div>
+        <div class="hideAdvanced close-X" style="position:absolute;top:0;right:0">&#10005;
+        </div>
 
-            <div class="stateFilters input-output" style="float:left; display:none" class="mock-up earth">
+        <div style="padding-right:40px">
+        <div class="stateFilters input-output" style="float:left;display:none" class="mock-up earth">
 
               <select id="country_select" style="float:left">
                 <option value="earth">Earth</option>
@@ -751,7 +767,7 @@
 
               <b><!--States--></b>
               <div id="state_select_holder" class="earth" style="display:none;float:left">
-                <select id="state_select" name="state">
+                <select id="state_select" name="state" style="max-width:300px;">
                  <option value="">States and Territories...</option>
 <!-- Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 <option value="AL" stateid="1" lat="32.7396" lon="-86.8435" km="131174">Alabama</option>
@@ -833,14 +849,12 @@
 
               </div>
             </div>
+      </div>
 
         <!-- GOOGLE ADDRESS AUTOCOMPLETE -->
         <!-- USES "Google Autocomplete" javascript in map-filters.js 
         Currently flacky.  Works after returning to page, sometimes.          
         -->
-        <style>
-
-        </style>
         <div id="app">
 
           <div id="local_auto_complete" class="localX" style="display:none">
@@ -1086,7 +1100,6 @@ Displayed by hashChanged() in map-filters.js
           <a onClick="goHash({'go':'manufacturing','show':''}); return false;" href="./#go=manufacturing">Manufacturing</a> | 
           <a onClick="goHash({'go':'parts','show':''}); return false;" href="./#go=parts">Parts Manufacturing</a> 
           <span class="local" style="display:none"> | 
-          <a onClick="goHash({'go':'','show':'suppliers'}); return false;" href="./#show=suppliers">PPE Suppliers</a> | 
           </span>
           <a style="display:none" onClick="goHash({'geomap':'true'}); return false;" href="./#geomap=US13">County&nbsp;Map</a>
           <br>
@@ -1444,33 +1457,6 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
   </div>
   <!-- /INDUSTRIES -->
 
-  <div style="display:none;margin:20px 10px 20px 17px; min-width:195px; line-height: 1.5em;" class="layerclass ppe suppliers">
-    <div class="catList" id="industryCatList">
-      <div class="all_categories">All Categories</div>
-      <div title="Air Purifying Machines">Air Purifying Machines</div>
-      <div title="Face Shields">Face Shields</div>
-      <div title="Gloves">Gloves</div>
-      <div title="Hair Covers">Hair Covers</div>
-      <div title="Hand Sanitizer">Hand Sanitizer</div>
-      <div title="Hospital Beds">Hospital Beds</div>
-      <div title="Masks">Masks</div>
-      <div title="Negative Pressure Machines">Negative Pressure Machines</div>
-      <div title="No-Touch Thermometers">No-Touch Thermometers</div>
-      <div title="Protective Barriers">Protective Barriers</div>
-      <div title="Regular Thermometers">Regular Thermometers</div>
-      <div title="Safety Goggles">Safety Goggles</div>
-      <div title="Sanitation Units">Sanitation Units</div>
-      <div title="Sanitizing Spray">Sanitizing Spray</div>
-      <div title="Sanitizing Wipes">Sanitizing Wipes</div>
-      <div title="Shoe Covers">Shoe Covers</div>
-      <div title="Surgical Gowns">Surgical Gowns</div>
-      <div title="Surgical Masks">Surgical Masks</div>
-      <div title="Tyvek Suits">Tyvek Suits</div>
-      <div title="Ventilators">Ventilators</div>
-      <div title="Warehouse" class="suppliers_pre" style="display:none">Warehouse</div>
-    </div>
-  </div>
-
   <div style="display:none;margin:20px 10px 20px 17px; min-width:195px; line-height: 1.5em;" class="layerclass vax">
     <div class="catList" id="industryCatList">
       <div>All Categories</div>
@@ -1640,20 +1626,16 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 
       </div>
 
-
-      
-
-
     </div><!-- /hublist -->
 
-<div class="litePanelFadeOut">
-            <div id="changeHublistHeight" style="cursor:pointer;float:left;display:none">
-              <div class="btn btn-success">Show All</div>
-            </div>
-            
-            <div class='viewAllLink' style='display:none;float:left'><a class='btn btn-white' onclick='goHash({},["name","loc","cat","subcat"]); return false;' href='#show=" + param["show"] + "'>View All</a></div>
-            
-          </div>
+    <div class="litePanelFadeOut">
+      <div id="changeHublistHeight" style="cursor:pointer;float:left;display:none">
+        <div class="btn btn-success">Show All</div>
+      </div>
+      
+      <div class='viewAllLink' style='display:none;float:left'><a class='btn btn-white' onclick='goHash({},["name","loc","cat","subcat"]); return false;' href='#show=" + param["show"] + "'>View All</a></div>
+    </div>
+
 
 
     <a name="gomap"></a>
@@ -1678,19 +1660,9 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
           </div>
 
         </div>
-
-        <div id="disclaimerText" class="layerclass ppe suppliers" style="display:none;margin-right:20px;font-size: 12px;">
-          <b>Disclaimer:</b>  The Georgia Department of Economic Development (GDEcD) is collecting information from Georgia companies that indicate they are producing essential medical supplies in response to the COVID-19 pandemic. GDEcD is sharing these companies’ information with Georgia’s units of local government and other potential in-state buyers of these essential medical supplies merely as a courtesy. The following product information and addresses were submitted by private companies to GDEcD, and this list does not constitute an endorsement of any particular company or product by the State or by GDEcD.  GDEcD does not make any representations or warranties as to the accuracy of this information, or as to the quality or quantity of the products offered by these companies. Buyers use this information at their own risk.  Buyers are encouraged to contact the companies directly, for product specifications, delivery options, and other information required for executing a purchase.  Buyers are cautioned to make their own determinations regarding supplier responsibility, including but not limited to assessing whether the supplier has appropriate financial, organization and operational capacity, appropriate legal authority to do business in Georgia, a satisfactory record of integrity, and an acceptable performance record on past contracts.<br><br>
-        </div>
-
-        
-
       </div>
 
       <!-- Below Map -->
-
-      
-
 
     </div>
   

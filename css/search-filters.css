@@ -37,8 +37,9 @@
 #locationFilterHolder {
   box-shadow: 0px 0px 5px 1px #ddd;
   overflow:auto;
-  padding:20px 0 20px 40px;
+  padding: 10px 0 20px 65px;
 }
+
 @media (prefers-color-scheme: dark) {
   #filterFieldsHolder {
     /* background-color: #333; */
@@ -76,11 +77,14 @@
 }
 @media (max-width: 1100px) {
   #filterFieldsMain {
-      padding-left: 40px;
-  } 
+    padding-left: 40px;
+  }
+  #locationFilterHolder {
+    padding-left: 40px;
+  }
 }
 .bodyLeftMargin #filterFieldsMain, .bodyLeftMarginList #filterFieldsMain  {
-    padding-left: 10px;
+    padding-left: 15px;
 }
 #filterLocations, #honeycombPanel {
   background-color: #fcfcfc; /* fcfcfc not visible to Brave darkmode, but #eee too dark in light mode */
@@ -127,6 +131,7 @@
     color: #686868;
     text-shadow: none;
     float: left;
+    z-index: 1;
 }
 input.filterClick[type="text"] { 
     outline: none; /* prevents jagged edge when clicking to use search field. */
