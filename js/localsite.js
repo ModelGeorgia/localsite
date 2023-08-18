@@ -283,8 +283,19 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
     if (addToExisting != false) {
       hash = getHashOnly(); // Include all existing. Excludes hiddenhash.
     }
-    hash = mix(addToHash,hash); // Gives priority to addToHash
+    
+    const newObj = {}; // For removal of blank keys in addToHash
+    Object.entries(addToHash).forEach(([k, v]) => {
+      if (v === Object(v)) {
+        newObj[k] = removeEmpty(v);
+        delete hash[k];
+        delete hiddenhash[k];
+      } else if (v != null) {
+        newObj[k] = addToHash[k];
+      }
+    });
 
+    // Secondary way to remove, using a string
     if (removeFromHash) {
       if (typeof removeFromHash == "string") {
         removeFromHash = removeFromHash.split(",");
@@ -295,6 +306,8 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
       }
     }
     
+    hash = mix(newObj,hash); // Gives priority to addToHash
+
     var hashString = decodeURIComponent($.param(hash)); // decode to display commas in URL
     var pathname = window.location.pathname.replace(/\/\//g, '\/')
     var queryString = "";
@@ -527,6 +540,7 @@ function clearHash(toClear) {
 
 var consoleLogHolder = ""; // Hold until div available in DOM
 function consoleLog(text,value) {
+  let thetime = (Date.now() - localStart)/1000;
   if (value) {
     console.log((Date.now() - localStart)/1000 + ": " + text, value);
   } else {
@@ -550,10 +564,12 @@ function consoleLog(text,value) {
 
     } else {
       //dsconsole.innerHTML += (text + "\n");
-      let content = document.createTextNode(text + "\n");
+      let content = document.createTextNode(thetime + ": " + text + "\n");
       dsconsole.appendChild(content);
     }
     //dsconsole.scrollTop(dsconsole[0].scrollHeight - dsconsole.height() - 17); // Adjusts for bottom alignment
+    dsconsole.scrollTo({ top: dsconsole.scrollHeight, behavior: 'smooth'});
+
   } else {
 
     if (value) {
@@ -565,14 +581,11 @@ function consoleLog(text,value) {
 }
 
 function loadLocalTemplate() {
-  //let bodyFile = theroot + "info/template-main.html #insertedText";
-  let bodyFile = theroot + "info/template-main.html";
-  //alert("Before template Loaded: " + bodyFile);
-
-  let bodyFileDiv = "#bodyFile";
-  //bodyFileDiv = "body";
-  waitForElm(bodyFileDiv).then((elm) => {
-    $(bodyFileDiv).load(bodyFile, function( response, status, xhr ) {
+  console.log("loadLocalTemplate()");
+  let datascapeFile = theroot + "info/template-main.html";
+  let datascapeFileDiv = "#datascape";
+  waitForElm(datascapeFileDiv).then((elm) => {
+    $(datascapeFileDiv).load(datascapeFile, function( response, status, xhr ) {
       //$("#insertedTextSource").remove(); // For map/index.html. Avoids dup header.
 
       //$('img').each(function() {
@@ -585,7 +598,7 @@ function loadLocalTemplate() {
       elemDiv.innerHTML = "testing";
       document.body.appendChild(elemDiv);
 
-      console.log("Template Loaded: " + bodyFile);
+      console.log("Template Loaded: " + datascapeFile);
       if (typeof relocatedStateMenu != "undefined") {
         relocatedStateMenu.appendChild(state_select); // For apps hero
         $(".stateFilters").hide();
@@ -653,18 +666,21 @@ function loadSearchFilterIncludes() {
   }
 }
 function loadLeafletAndMapFilters() {
-  //alert("param.showheader " + param.showheader)
+  console.log("loadLeafletAndMapFilters() param.showheader " + param.showheader)
   //if (param.shownav) {
   if (param.showheader != "false" || param.showsearch == "true") {
     loadScript(theroot + 'js/navigation.js', function(results) {
-      waitForElm('body').then((elm) => {
+      $(document).ready(function () {
+      // Apparently this is NOT triggered when backing up and reloading. Reload must be hit a second time.
+      // But navigation.js won't be in the DOM if we don't waitForElm('body'). Used $(document).ready above instead.
+      //waitForElm('body').then((elm) => {
         console.log("body is now available"); // If missing header persists, remove waitForElm('body') here (line above annd closure)
         // Puts space above flexmain for navcolumn to be visible after header
         $("body").prepend("<div id='local-header' class='flexheader noprint' style='display:none'></div>\r");
         waitForElm('#local-header').then((elm) => {
           $("#local-header").prependTo("#fullcolumn"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
+          $("#local-header").show();
         
-        });
         // Might need to add a check here. Occasional:
         // Uncaught ReferenceError: applyNavigation is not defined
 
@@ -676,11 +692,13 @@ function loadLeafletAndMapFilters() {
 
         //});
 
-        //setTimeout( function() {
+        /// BUGBUG
+        setTimeout( function() {
+          //  console.log("applyNavigation() after 200 ms delay"); // 10 ms returned error on both CloudFlare and locally.
+          //applyNavigation();
+        }, 200 ); // Bugbug - better to wait for a div to be available. Try inserting from within navigation.js before DOM ready.
+        });
 
-        //  console.log("applyNavigation() after 200 ms delay"); // 10 ms returned error on CloudFlare, but fine locally.
-          applyNavigation();
-        //}, 200 ); // Bugbug - better to wait for a div to be available. Try inserting from within navigation.js before DOM ready.
       });
     });
   }
@@ -693,7 +711,6 @@ function loadLeafletAndMapFilters() {
 }
 // WAIT FOR JQuery
 loadScript(theroot + 'js/jquery.min.js', function(results) {
-
   var waitForJQuery = setInterval(function () { // Waits for $ within jquery.min.js file to become available.
 
     if (typeof $ != 'undefined') {
@@ -722,22 +739,17 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
         // LOAD HTML TEMPLATE - Holds search filters and maps
         // View html source: https://model.earth/localsite/map
-        // Consider pulling in HTML before DOM is loaded, then send to page once #bodyFile is available.
+        // Consider pulling in HTML before DOM is loaded, then send to page once #datascape is available.
 
        if (param.insertafter && $("#" + param.insertafter).length) {
-          $("#" + param.insertafter).append("<div id='bodyFile'></div>");
-        //} else if (!$("#bodyFile").length) {
-        } else if(document.getElementById("bodyFile") == null) {
-          $('body').prepend("<div id='bodyFile'></div>");
+          $("#" + param.insertafter).append("<div id='datascape'></div>");
+        } else if(document.getElementById("datascape") == null) {
+          $('body').prepend("<div id='datascape'></div>");
         }
 
         if(param.showheader == "true") {
-          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showSide' class='showSide' style='left:-28px;'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border:1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
+          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border:1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
         }
-        
-        waitForElm('#fullcolumn').then((elm) => {
-          //$("#sideIcons").prependTo("#fullcolumn"); 
-        });
 
         if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
           //if (param.templatepage != "true") { // Prevents dup header on map/index.html - Correction, this is needed. param.templatepage can probably be removed.
@@ -756,7 +768,6 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         if (param.display == "everything") {
           let infoFile = theroot + "info/template-charts.html #template-charts"; // Including #template-charts limits to div within page, prevents other includes in page from being loaded.
           //console.log("Before template Loaded infoFile: " + infoFile);
-          //alert("Before template Loaded: " + bodyFile);
           $("#infoFile").load(infoFile, function( response, status, xhr ) {
             console.log("Info Template Loaded: " + infoFile);
             $("#industryFilters").appendTo("#append_industryFilters");
@@ -776,14 +787,14 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       }); // End body ready
 
       $(document).ready(function () {
-        /*! jQuery & Zepto Lazy v1.7.6 - http://jquery.eisbehr.de/lazy - MIT&GPL-2.0 license - Copyright 2012-2017 Daniel 'Eisbehr' Kern */
-        //!function(t,e){"use strict";function r(r,a,i,u,l){function f(){L=t.devicePixelRatio>1,i=c(i),a.delay>=0&&setTimeout(function(){s(!0)},a.delay),(a.delay<0||a.combined)&&(u.e=v(a.throttle,function(t){"resize"===t.type&&(w=B=-1),s(t.all)}),u.a=function(t){t=c(t),i.push.apply(i,t)},u.g=function(){return i=n(i).filter(function(){return!n(this).data(a.loadedName)})},u.f=function(t){for(var e=0;e<t.length;e++){var r=i.filter(function(){return this===t[e]});r.length&&s(!1,r)}},s(),n(a.appendScroll).on("scroll."+l+" resize."+l,u.e))}function c(t){var i=a.defaultImage,o=a.placeholder,u=a.imageBase,l=a.srcsetAttribute,f=a.loaderAttribute,c=a._f||{};t=n(t).filter(function(){var t=n(this),r=m(this);return!t.data(a.handledName)&&(t.attr(a.attribute)||t.attr(l)||t.attr(f)||c[r]!==e)}).data("plugin_"+a.name,r);for(var s=0,d=t.length;s<d;s++){var A=n(t[s]),g=m(t[s]),h=A.attr(a.imageBaseAttribute)||u;g===N&&h&&A.attr(l)&&A.attr(l,b(A.attr(l),h)),c[g]===e||A.attr(f)||A.attr(f,c[g]),g===N&&i&&!A.attr(E)?A.attr(E,i):g===N||!o||A.css(O)&&"none"!==A.css(O)||A.css(O,"url('"+o+"')")}return t}function s(t,e){if(!i.length)return void(a.autoDestroy&&r.destroy());for(var o=e||i,u=!1,l=a.imageBase||"",f=a.srcsetAttribute,c=a.handledName,s=0;s<o.length;s++)if(t||e||A(o[s])){var g=n(o[s]),h=m(o[s]),b=g.attr(a.attribute),v=g.attr(a.imageBaseAttribute)||l,p=g.attr(a.loaderAttribute);g.data(c)||a.visibleOnly&&!g.is(":visible")||!((b||g.attr(f))&&(h===N&&(v+b!==g.attr(E)||g.attr(f)!==g.attr(F))||h!==N&&v+b!==g.css(O))||p)||(u=!0,g.data(c,!0),d(g,h,v,p))}u&&(i=n(i).filter(function(){return!n(this).data(c)}))}function d(t,e,r,i){++z;var o=function(){y("onError",t),p(),o=n.noop};y("beforeLoad",t);var u=a.attribute,l=a.srcsetAttribute,f=a.sizesAttribute,c=a.retinaAttribute,s=a.removeAttribute,d=a.loadedName,A=t.attr(c);if(i){var g=function(){s&&t.removeAttr(a.loaderAttribute),t.data(d,!0),y(T,t),setTimeout(p,1),g=n.noop};t.off(I).one(I,o).one(D,g),y(i,t,function(e){e?(t.off(D),g()):(t.off(I),o())})||t.trigger(I)}else{var h=n(new Image);h.one(I,o).one(D,function(){t.hide(),e===N?t.attr(C,h.attr(C)).attr(F,h.attr(F)).attr(E,h.attr(E)):t.css(O,"url('"+h.attr(E)+"')"),t[a.effect](a.effectTime),s&&(t.removeAttr(u+" "+l+" "+c+" "+a.imageBaseAttribute),f!==C&&t.removeAttr(f)),t.data(d,!0),y(T,t),h.remove(),p()});var m=(L&&A?A:t.attr(u))||"";h.attr(C,t.attr(f)).attr(F,t.attr(l)).attr(E,m?r+m:null),h.complete&&h.trigger(D)}}function A(t){var e=t.getBoundingClientRect(),r=a.scrollDirection,n=a.threshold,i=h()+n>e.top&&-n<e.bottom,o=g()+n>e.left&&-n<e.right;return"vertical"===r?i:"horizontal"===r?o:i&&o}function g(){return w>=0?w:w=n(t).width()}function h(){return B>=0?B:B=n(t).height()}function m(t){return t.tagName.toLowerCase()}function b(t,e){if(e){var r=t.split(",");t="";for(var a=0,n=r.length;a<n;a++)t+=e+r[a].trim()+(a!==n-1?",":"")}return t}function v(t,e){var n,i=0;return function(o,u){function l(){i=+new Date,e.call(r,o)}var f=+new Date-i;n&&clearTimeout(n),f>t||!a.enableThrottle||u?l():n=setTimeout(l,t-f)}}function p(){--z,i.length||z||y("onFinishedAll")}function y(t,e,n){return!!(t=a[t])&&(t.apply(r,[].slice.call(arguments,1)),!0)}var z=0,w=-1,B=-1,L=!1,T="afterLoad",D="load",I="error",N="img",E="src",F="srcset",C="sizes",O="background-image";"event"===a.bind||o?f():n(t).on(D+"."+l,f)}function a(a,o){var u=this,l=n.extend({},u.config,o),f={},c=l.name+"-"+ ++i;return u.config=function(t,r){return r===e?l[t]:(l[t]=r,u)},u.addItems=function(t){return f.a&&f.a("string"===n.type(t)?n(t):t),u},u.getItems=function(){return f.g?f.g():{}},u.update=function(t){return f.e&&f.e({},!t),u},u.force=function(t){return f.f&&f.f("string"===n.type(t)?n(t):t),u},u.loadAll=function(){return f.e&&f.e({all:!0},!0),u},u.destroy=function(){return n(l.appendScroll).off("."+c,f.e),n(t).off("."+c),f={},e},r(u,l,a,f,c),l.chainable?a:u}var n=t.jQuery||t.Zepto,i=0,o=!1;n.fn.Lazy=n.fn.lazy=function(t){return new a(this,t)},n.Lazy=n.lazy=function(t,r,i){if(n.isFunction(r)&&(i=r,r=[]),n.isFunction(i)){t=n.isArray(t)?t:[t],r=n.isArray(r)?r:[r];for(var o=a.prototype.config,u=o._f||(o._f={}),l=0,f=t.length;l<f;l++)(o[t[l]]===e||n.isFunction(o[t[l]]))&&(o[t[l]]=i);for(var c=0,s=r.length;c<s;c++)u[r[c]]=t[0]}},a.prototype.config={name:"lazy",chainable:!0,autoDestroy:!0,bind:"load",threshold:500,visibleOnly:!1,appendScroll:t,scrollDirection:"both",imageBase:null,defaultImage:"data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",placeholder:null,delay:-1,combined:!1,attribute:"data-src",srcsetAttribute:"data-srcset",sizesAttribute:"data-sizes",retinaAttribute:"data-retina",loaderAttribute:"data-loader",imageBaseAttribute:"data-imagebase",removeAttribute:!0,handledName:"handled",loadedName:"loaded",effect:"show",effectTime:0,enableThrottle:!0,throttle:250,beforeLoad:e,afterLoad:e,onError:e,onFinishedAll:e},n(t).on("load",function(){o=!0})}(window);
-        
         /*! jQuery & Zepto Lazy v1.7.10 - http://jquery.eisbehr.de/lazy - MIT&GPL-2.0 license - Copyright 2012-2018 Daniel 'Eisbehr' Kern */
+        // Used by data-src attr. DS earth.
+        
         !function(t,e){"use strict";function r(r,a,i,u,l){function f(){L=t.devicePixelRatio>1,i=c(i),a.delay>=0&&setTimeout(function(){s(!0)},a.delay),(a.delay<0||a.combined)&&(u.e=v(a.throttle,function(t){"resize"===t.type&&(w=B=-1),s(t.all)}),u.a=function(t){t=c(t),i.push.apply(i,t)},u.g=function(){return i=n(i).filter(function(){return!n(this).data(a.loadedName)})},u.f=function(t){for(var e=0;e<t.length;e++){var r=i.filter(function(){return this===t[e]});r.length&&s(!1,r)}},s(),n(a.appendScroll).on("scroll."+l+" resize."+l,u.e))}function c(t){var i=a.defaultImage,o=a.placeholder,u=a.imageBase,l=a.srcsetAttribute,f=a.loaderAttribute,c=a._f||{};t=n(t).filter(function(){var t=n(this),r=m(this);return!t.data(a.handledName)&&(t.attr(a.attribute)||t.attr(l)||t.attr(f)||c[r]!==e)}).data("plugin_"+a.name,r);for(var s=0,d=t.length;s<d;s++){var A=n(t[s]),g=m(t[s]),h=A.attr(a.imageBaseAttribute)||u;g===N&&h&&A.attr(l)&&A.attr(l,b(A.attr(l),h)),c[g]===e||A.attr(f)||A.attr(f,c[g]),g===N&&i&&!A.attr(E)?A.attr(E,i):g===N||!o||A.css(O)&&"none"!==A.css(O)||A.css(O,"url('"+o+"')")}return t}function s(t,e){if(!i.length)return void(a.autoDestroy&&r.destroy());for(var o=e||i,u=!1,l=a.imageBase||"",f=a.srcsetAttribute,c=a.handledName,s=0;s<o.length;s++)if(t||e||A(o[s])){var g=n(o[s]),h=m(o[s]),b=g.attr(a.attribute),v=g.attr(a.imageBaseAttribute)||l,p=g.attr(a.loaderAttribute);g.data(c)||a.visibleOnly&&!g.is(":visible")||!((b||g.attr(f))&&(h===N&&(v+b!==g.attr(E)||g.attr(f)!==g.attr(F))||h!==N&&v+b!==g.css(O))||p)||(u=!0,g.data(c,!0),d(g,h,v,p))}u&&(i=n(i).filter(function(){return!n(this).data(c)}))}function d(t,e,r,i){++z;var o=function(){y("onError",t),p(),o=n.noop};y("beforeLoad",t);var u=a.attribute,l=a.srcsetAttribute,f=a.sizesAttribute,c=a.retinaAttribute,s=a.removeAttribute,d=a.loadedName,A=t.attr(c);if(i){var g=function(){s&&t.removeAttr(a.loaderAttribute),t.data(d,!0),y(T,t),setTimeout(p,1),g=n.noop};t.off(I).one(I,o).one(D,g),y(i,t,function(e){e?(t.off(D),g()):(t.off(I),o())})||t.trigger(I)}else{var h=n(new Image);h.one(I,o).one(D,function(){t.hide(),e===N?t.attr(C,h.attr(C)).attr(F,h.attr(F)).attr(E,h.attr(E)):t.css(O,"url('"+h.attr(E)+"')"),t[a.effect](a.effectTime),s&&(t.removeAttr(u+" "+l+" "+c+" "+a.imageBaseAttribute),f!==C&&t.removeAttr(f)),t.data(d,!0),y(T,t),h.remove(),p()});var m=(L&&A?A:t.attr(u))||"";h.attr(C,t.attr(f)).attr(F,t.attr(l)).attr(E,m?r+m:null),h.complete&&h.trigger(D)}}function A(t){var e=t.getBoundingClientRect(),r=a.scrollDirection,n=a.threshold,i=h()+n>e.top&&-n<e.bottom,o=g()+n>e.left&&-n<e.right;return"vertical"===r?i:"horizontal"===r?o:i&&o}function g(){return w>=0?w:w=n(t).width()}function h(){return B>=0?B:B=n(t).height()}function m(t){return t.tagName.toLowerCase()}function b(t,e){if(e){var r=t.split(",");t="";for(var a=0,n=r.length;a<n;a++)t+=e+r[a].trim()+(a!==n-1?",":"")}return t}function v(t,e){var n,i=0;return function(o,u){function l(){i=+new Date,e.call(r,o)}var f=+new Date-i;n&&clearTimeout(n),f>t||!a.enableThrottle||u?l():n=setTimeout(l,t-f)}}function p(){--z,i.length||z||y("onFinishedAll")}function y(t,e,n){return!!(t=a[t])&&(t.apply(r,[].slice.call(arguments,1)),!0)}var z=0,w=-1,B=-1,L=!1,T="afterLoad",D="load",I="error",N="img",E="src",F="srcset",C="sizes",O="background-image";"event"===a.bind||o?f():n(t).on(D+"."+l,f)}function a(a,o){var u=this,l=n.extend({},u.config,o),f={},c=l.name+"-"+ ++i;return u.config=function(t,r){return r===e?l[t]:(l[t]=r,u)},u.addItems=function(t){return f.a&&f.a("string"===n.type(t)?n(t):t),u},u.getItems=function(){return f.g?f.g():{}},u.update=function(t){return f.e&&f.e({},!t),u},u.force=function(t){return f.f&&f.f("string"===n.type(t)?n(t):t),u},u.loadAll=function(){return f.e&&f.e({all:!0},!0),u},u.destroy=function(){return n(l.appendScroll).off("."+c,f.e),n(t).off("."+c),f={},e},r(u,l,a,f,c),l.chainable?a:u}var n=t.jQuery||t.Zepto,i=0,o=!1;n.fn.Lazy=n.fn.lazy=function(t){return new a(this,t)},n.Lazy=n.lazy=function(t,r,i){if(n.isFunction(r)&&(i=r,r=[]),n.isFunction(i)){t=n.isArray(t)?t:[t],r=n.isArray(r)?r:[r];for(var o=a.prototype.config,u=o._f||(o._f={}),l=0,f=t.length;l<f;l++)(o[t[l]]===e||n.isFunction(o[t[l]]))&&(o[t[l]]=i);for(var c=0,s=r.length;c<s;c++)u[r[c]]=t[0]}},a.prototype.config={name:"lazy",chainable:!0,autoDestroy:!0,bind:"load",threshold:500,visibleOnly:!1,appendScroll:t,scrollDirection:"both",imageBase:null,defaultImage:"data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",placeholder:null,delay:-1,combined:!1,attribute:"data-src",srcsetAttribute:"data-srcset",sizesAttribute:"data-sizes",retinaAttribute:"data-retina",loaderAttribute:"data-loader",imageBaseAttribute:"data-imagebase",removeAttribute:!0,handledName:"handled",loadedName:"loaded",effect:"show",effectTime:0,enableThrottle:!0,throttle:250,beforeLoad:e,afterLoad:e,onError:e,onFinishedAll:e},n(t).on("load",function(){o=!0})}(window);
         $(function() {
               $('.lazy').Lazy(); // Lazy load all divs with class .lazy
         });
+        
       });
 
       $(window).on('hashchange', function() { // Avoid window.onhashchange since overridden by map and widget embeds  
@@ -821,7 +832,6 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         toggleFullScreen(false);
       });
       $(document).on("click", ".showSearch", function(event) {
-          //loadLeafletAndMapFilters();
         showSearchFilter();
       });
       
@@ -912,8 +922,12 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       includeCSS3(theroot + 'css/naics.css',theroot);
       
       // customD3loaded
-      if (param.preloadmap != "false" && (param.showheader == "true" || param.shownav == "true" || param.display == "map")) {
-        loadLeafletAndMapFilters();
+      if (param.preloadmap != "false" && (param.showheader == "true" || param.shownav == "true" || param.display == "map" || param.display == "everything")) {
+        loadScript(theroot + 'js/navigation.js', function(results) {
+          //if (param.shownav == "true" || param.display == "map" || param.display == "everything") {
+            loadLeafletAndMapFilters();
+          //}
+        });
       }
 
       //includeCSS3(theroot + 'css/bootstrap.darkly.min.css',theroot);
@@ -1062,9 +1076,111 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       console.log('%cALERT: JQUERY NOT YET AVAILABLE! JQuery probably needs to be added to calling page.', 'color: red; background: yellow; font-size: 14px');    
     }
   }
-      
-}, 10); // End block, could move to end of jQuery loadScript.
+  
 
+  // NULLSCHOOL
+  $(document).on("click", "#earthClose", function(event) { // ZOOM IN
+    $("#nullschoolHeader").hide();
+    $("#hero_holder").show();
+    event.stopPropagation();
+  });
+  $(document).on("click", "#earthZoom .leaflet-control-zoom-in", function(event) { // ZOOM IN
+    zoomEarth(200);
+    event.stopPropagation();
+  });
+  $(document).on("click", "#earthZoom .leaflet-control-zoom-out", function(event) { // ZOOM IN
+    zoomEarth(-200);
+    event.stopPropagation();
+  });
+  function zoomEarth(zoomAmount) {
+    if (!localObject.earth) {
+      let earthSrc = document.getElementById("mainframe").src; // Only returns the initial cross-domain uri.
+      localObject.earth = getEarthObject(earthSrc.split('#')[1]);
+    }
+    // Add 100 to orthographic map zoom
+    let orthographic = localObject.earth.orthographic.split(",");
+    localObject.earth.orthographic = orthographic[0] + "," + orthographic[1] + "," + (+orthographic[2] + zoomAmount);
+    
+    /*
+    let theMonth = 6;
+    let theDay = 1;
+    let theHour = 0;
+
+    let monthStr = String(theMonth).padStart(2, '0');
+    let dayStr = String(theDay).padStart(2, '0');
+    let hourStr = String(theHour).padStart(2, '0');
+    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
+    */
+
+    let earthUrl = "https://earth.nullschool.net/#";
+    if (localObject.earth.date) {
+      earthUrl += localObject.earth.date + "/" + localObject.earth.time + "/";
+    } else {
+      earthUrl += "current/";
+    }
+    earthUrl += localObject.earth.mode + "/overlay=" + localObject.earth.overlay + "/orthographic=" + localObject.earth.orthographic;
+    loadIframe("mainframe", earthUrl);
+    //loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
+  }
+  function getEarthObject(url) {
+    console.log("map.js getEarthObject " + url);
+    if (url == undefined) {
+      console.log("BUG - getEarthObject url undefined");
+      return;
+    }
+    let urlPart = url.split('/');
+    let params = {};
+    if (urlPart.length > 6) { // URL contains date and time
+      params.date = urlPart[0] + "/" + urlPart[1] + "/" + urlPart[2];
+      params.time = urlPart[3];
+      params.mode = urlPart[4] + "/" + urlPart[5] + "/" + urlPart[6];
+    } else {
+      params.mode = urlPart[1] + "/" + urlPart[2] + "/" + urlPart[3];
+    }
+    for (let i = 4; i < urlPart.length; i++) {
+        if(!urlPart[i])
+            continue;
+        if (i==0 && urlPart[i].indexOf("=") == -1) {
+          params[""] = urlPart[i];  // Allows for initial # params without =.
+          continue;
+        }
+        let hashPair = urlPart[i].split('=');
+        params[decodeURIComponent(hashPair[0]).toLowerCase()] = decodeURIComponent(hashPair[1]);
+     }
+     return params;
+  }
+  function delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
+  }
+  async function loopMap() {
+    await delay(200);
+    let theMonth = 6;
+    let theDay = 1;
+    let theHour = 0;
+    while (theDay <= 20) {
+      let monthStr = String(theMonth).padStart(2, '0');
+      let dayStr = String(theDay).padStart(2, '0');
+      let hourStr = String(theHour).padStart(2, '0');
+      $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
+
+      loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
+      await delay(1000);
+
+      $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " 12:00 GMT (7 AM EST)");
+      loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/1200Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
+      await delay(1000);
+
+      theDay += 1;
+      //theHour += 2;   
+    }
+  }
+  $(document).ready(function () {
+    // Run animation - add a button for this
+    //loopMap();
+  });
+  // END NULLSCHOOL
+
+}, 10); // End block, could move to end of jQuery loadScript.
 
 }); // End JQuery loadScript
 
@@ -1208,6 +1324,7 @@ function getUrlID3(url,theroot) {
 }
 
 function loadMapFiltersJS(theroot, count) {
+  console.log("loadMapFiltersJS");
   if (typeof customD3loaded !== 'undefined' && typeof localsite_map !== 'undefined') {
     //alert("localsite_map " + localsite_map)
     //loadScript(theroot + 'https://cdn.jsdelivr.net/npm/vue', function(results) { // Need to check if function loaded
@@ -1323,7 +1440,7 @@ function extractHostnameAndPort(url) {
     }
     //find & remove "?" and parameters
     hostname = hostname.split('?')[0];
-    console.log("extractHostnameAndPort hostname: " + hostname);
+    //console.log("extractHostnameAndPort hostname: " + hostname);
     return hostname;
 }
 
@@ -1780,13 +1897,15 @@ function showSearchFilter() {
   let headerHeight = $("#headerbar").height(); // Not sure why this is 99 rather than 100
   closeSideTabs(); // Later search will be pulled into side tab.
   if (!$("#filterFieldsHolder").length) { // Filter doesn't exist yet, initial map/index.html load.
-    if (!$("#bodyFile").length) {
-      $('body').prepend("<div id='bodyFile'></div>");
+    if (!$("#datascape").length) {
+      $('body').prepend("<div id='datascape'></div>");
     }
     //loadLocalTemplate(); // Loaded a second time on community page
     loadSearchFilterIncludes();
-    console.log('%cloadLeafletAndMapFilters called by showSearchFilter(). Might cause dup', 'color: red; background: yellow; font-size: 14px');
-    loadLeafletAndMapFilters();
+    loadScript(theroot + 'js/navigation.js', function(results) {
+      console.log('%cloadLeafletAndMapFilters called by showSearchFilter(). Might cause dup', 'color: red; background: yellow; font-size: 14px');
+      loadLeafletAndMapFilters();
+    });
     $('html,body').scrollTop(0);
     loadFilters = true;
   } else {
@@ -1800,8 +1919,8 @@ function showSearchFilter() {
       //$("#filterbaroffset").hide();
       ////$("#pageLinksHolder").hide();
     } else {
-      // #bodyFile is needed for map/index.html to apply $("#filterFieldsHolder").show()
-      // Also prevents search filter from flashing briefly in map/index.html before moving into #bodyFile
+      // #datascape is needed for map/index.html to apply $("#filterFieldsHolder").show()
+      // Also prevents search filter from flashing briefly in map/index.html before moving into #datascape
         
       if (document.getElementById("filterFieldContent") == null) { 
         //alert("load filter.html")
@@ -1816,8 +1935,14 @@ function showSearchFilter() {
       }
     }
 
+    let expandIcon = '<div class="hideNarrow" style="position:absolute;z-index:10000">' +
+            '<div class="closeSideTabs expandToFullscreen iconPadding" style="border:0px;"><i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D0;</i></div>' +
+            '<div class="closeSideTabs reduceFromFullscreen iconPadding" style="display:none; border:0px;"><i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D1;</i></div>' +
+        '</div>';
+    //$('#datascape').prepend(expandIcon);
+
     if (loadFilters) {
-      waitForElm('#bodyFile #filterFieldContent').then((elm) => {
+      waitForElm('#datascape #filterFieldContent').then((elm) => {
         revealFilters();
         /*
         console.log("show #filterFieldsHolder");
@@ -2134,4 +2259,5 @@ function loadIntoDiv(pageFolder,divID,thediv,html,attempts,callback) {
     }
   }
 }
+
 consoleLog("end localsite");

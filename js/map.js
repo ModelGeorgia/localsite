@@ -1,7 +1,7 @@
-// DISPLAYS THREE LEAFLET MAPS
-// 1. EXPANDABLE MAP IN TOP SEARCH FILTERS
-// 2. ITEM LOCATIONS ON LARGE MAP
-// 3. LOCATION DETAILS ON SIDE MAP
+// DISPLAYS TWO LEAFLET MAPS
+// 1. ITEM LOCATIONS ON LARGE MAP
+// 2. LOCATION DETAILS ON SIDE MAP
+// Top geomap is displayed by map-filters.js
 
 // RenderMap calls addIcons
 
@@ -13,9 +13,11 @@ var sideTopOffsetEnabled = true;
 var sideTopOffsetEnabledBig = false;
 
 if(typeof styleObject=='undefined'){ var styleObject={}; } // https://docs.mapbox.com/mapbox-gl-js/style-spec/root/
+console.log("map.js styleObject.layers");
 styleObject.layers = [];
 
-var layerControls = {}; // Object containing one control for each map on page.
+if(typeof layerControls=='undefined'){ var layerControls = {}; }// Object containing one control for each map on page.
+
 if(typeof hash === 'undefined') {
   // Need to figure out where already declared.
   // Avoid putting var in front, else "Identifier 'hash' has already been declared" error occurs here: http://localhost:8887/localsite/map/
@@ -126,17 +128,25 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
 
   // Could display a very small loading indicator
 
-  let theState = $("#state_select").find(":selected").val();
-  if (!theState && param["state"]) {
+  let theState;
+  if (param["state"]) {
     theState = param["state"].toUpperCase();
   }
-  if (theState != "") {
-    let kilometers_wide = $("#state_select").find(":selected").attr("km");
-    //zoom = 1/kilometers_wide * 1800000;
-    zoom = zoomFromKm(kilometers_wide,theState);
-    dp.latitude = $("#state_select").find(":selected").attr("lat");
-    dp.longitude = $("#state_select").find(":selected").attr("lon");
-  }
+  waitForElm('#state_select').then((elm) => {
+
+    if (theState != "") {
+      //  = $("#state_select").find(":selected").val()
+      let kilometers_wide = $("#state_select").find(":selected").attr("km");
+      //zoom = 1/kilometers_wide * 1800000;
+      zoom = zoomFromKm2(kilometers_wide,theState);
+      dp.latitude = $("#state_select").find(":selected").attr("lat");
+      dp.longitude = $("#state_select").find(":selected").attr("lon");
+      //alert("dp.longitude " + dp.longitude)
+
+      // The above loads async. 
+      // May need to check if map1 and map2 are already loaded if not always recentering.
+    }
+  });
 
   dp.listLocation = false; // Hides Waze direction link in list, remains in popup.
 
@@ -400,8 +410,8 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
     
         dp.markerType = "google";
         dp.color = "#393";
-        dp.latColumn = "Latitude";
-        dp.lonColumn = "Longitude";
+        dp.latColumn = "latitude"; // Only works when lowercase, despite Google Sheet column being uppercase
+        dp.lonColumn = "longitude";
 
       } else if (show == "solidwaste") {
         dp.listTitle = "Georgia Solid Waste (2023)";
@@ -543,14 +553,17 @@ function loadMap1(calledBy, show, dp_incoming) { // Called by this page. Maybe s
         dp.nameColumn = "name";
         dp.latColumn = "latitude";
         dp.lonColumn = "longitude";
+        dp.categories = {"Yes": {"title":"EV or Batteries","color":""}, "No": {"title":"ICE Specific","color":""}};
+        // , "null": {"title":"Either","color":""}
         dp.catColumn = "EV Industry";
         dp.showWhenStatus = "null"
         // Temp, prior to change from Google API 2 to 3
         //dp.dataset = "https://model.earth/georgia-data/automotive/automotive.csv";
         dp.datastates = "GA";
         // Dark green map points indicate electric vehicle parts manufacturing.<br>
-        dp.mapInfo = "From 2020 to 2022 Georgia added more than 20 EV-related projects. <a href='https://www.georgiatrend.com/2022/07/29/electric-revolution/'>Learn&nbsp;more</a><br>Dark Green: Electric Vehicle (EV) Industry<br>Lite Green: Potential EV Parts Manufacturer<br>Dark Blue: Internal Combustion Engine (ICE)";
-        dp.listInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing'>Google Sheet</a> to submit updates. <a href='/localsite/info/input/'>Contact Us</a> to become an editor. Learn about <a href='../../community/projects/mobility/'>data&nbsp;sources</a>.";
+        dp.mapInfo = "From 2020 to 2022 Georgia added more than 20 EV-related projects. <a href='https://www.georgiatrend.com/2022/07/29/electric-revolution/'>Learn&nbsp;more</a>";
+        // <br>Dark Green: Electric Vehicle (EV) Industry<br>Lite Green: Potential EV Parts Manufacturer<br>Dark Blue: Internal Combustion Engine (ICE)
+        dp.listInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing' target='vehicles_data'>Google Sheet</a> to submit updates. <a href='/localsite/info/input/'>Contact Us</a> to become an editor. Learn about <a href='../../community/projects/mobility/'>data&nbsp;sources</a>.";
         dp.valueColumn = "ev industry";
         dp.valueColumnLabel = "EV Industry";
         dp.markerType = "google";
@@ -798,7 +811,7 @@ function initialHighlight(hash) {
 $(document).on("click", "#show_county_colors", function(event) {
   let hash = getHash();
   let layerName = hash.state.split(",")[0].toUpperCase() + " Counties";
-  overlays[layerName].eachLayer(function (layer) {  
+  geoOverlays[layerName].eachLayer(function (layer) {  
     //if(layer.feature.properties.COUNTYFP == '121') { // Fulton County
       layer.setStyle({fillColor :'blue', fillOpacity:.5 }) 
       // Or call a function:
@@ -841,6 +854,7 @@ $(document).on("click", ".detail", function(event) { // Provides close-up using 
     if (listingsVisible == 1 || hash.cat) {
       $(".viewAllLink").show();
     }
+    console.log("Zoom to map point " + $(this).attr("latitude"));
     if ($(this).attr("latitude") && $(this).attr("longitude")) {
       centerMapPoint(map1, $(this).attr("latitude"), $(this).attr("longitude")); // Top map
       // Lower map
@@ -1161,7 +1175,7 @@ function showList(dp,map) {
   }
 
   
-
+  // INACTIVE
   if (1==2) {
     // ADD DISTANCE
     dp.data.forEach(function(element) {
@@ -1564,12 +1578,12 @@ function showList(dp,map) {
           for (let subcat of subcatArray) {
               if (elementRaw[subcatColumn]) {
                 subcat = subcat.toLowerCase();
-                console.log("Row subcategories: " + elementRaw[subcatColumn] + " - Looking for: " + subcat);
+                //console.log("Row subcategories: " + elementRaw[subcatColumn] + " - Looking for: " + subcat);
                 // Do a split and trim instead
                 let rowSubcats = elementRaw[subcatColumn].split(',');
                 rowSubcats = rowSubcats.map(element => {return element.trim().toLowerCase();}); // Trim and lowercase all array values
                 if (rowSubcats.includes(subcat)) {
-                  console.log("found cat's subcat '" + subcat + "' in Subcategory column content: " + elementRaw[subcatColumn]);
+                  //console.log("found cat's subcat '" + subcat + "' in Subcategory column content: " + elementRaw[subcatColumn]);
                   foundMatch++;
                 }
               }
@@ -2063,7 +2077,8 @@ function showList(dp,map) {
     $("#listcolumnList").html(shortout);
 
     // Show the side columns
-    $("#showSide").hide();
+    $("#showNavColumn").hide();
+    $("#showSideInBar").show();
     $("#listcolumn").show();
     showListBodyMargin();
 
@@ -2205,15 +2220,15 @@ function showList(dp,map) {
 $(document).on("click", ".showList", function(event) {
   $("#listcolumn").show();
   if ($("#navcolumn").is(":hidden")) {
-    // Display showSide in bar
-    $("#showSide").hide();
+    // Display showNavColumn in bar
+    $("#showNavColumn").hide();
     $("#showSideInBar").show();
   }
   showListBodyMargin();
   $(".showList").hide();
 });
 function showListBodyMargin() {
-  if(document.getElementById("bodyFileHolder") == null) {
+  if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded
     $('body').addClass('bodyLeftMarginList');
     if ($("#navcolumn").is(":visible") && $("#listcolumn").is(":visible")) {
       $('#listcolumn').removeClass('listcolumnOnly');
@@ -2261,7 +2276,7 @@ function renderCatList(catList,cat) {
               catList[catKey].title = arrayEntry[name];
             } else {
               // Multiple keys split by commas
-              console.log("catKey " + + " Does not exist in listings for category: " + arrayEntry[name]);
+              //console.log("catKey " + catKey + " Does not exist in listings for category: " + arrayEntry[name]);
             }
           }
       }
@@ -2316,7 +2331,7 @@ function renderCatList(catList,cat) {
     }
     let fullcolumnWidth = $('#fullcolumn').width();
     if (fullcolumnWidth > 500) {
-      showSide();
+      showNavColumn();
     }
   }
 }
@@ -2343,21 +2358,6 @@ function linkify(inputText) { // https://stackoverflow.com/questions/37684/how-t
 
   return replacedText;
 }
-
-// For stateImpact colors
-var colorTheStateCarbon = "#fcc"; // pink
-var colorTheCountry = "#ccf" // lite blue
-loadScript(theroot + 'js/d3.v5.min.js', function(results) { // Allows lists to be displayed before maps
-  // TODO: Apply the colors after list loaded
-  /*
-  colorTheStateCarbon = d3.scaleThreshold()
-      .domain(d3.range(2, 10))
-      .range(d3.schemeBlues[9]);
-  colorTheCountry = d3.scaleThreshold()
-      .domain(d3.range(2, 1000000))
-      .range(d3.schemeBlues[9]);
-  */
-});
 function popMapPoint(dp, map, latitude, longitude, name, color) {
   // Place large icon on side map and zoom
   color = "#666"; // Override incoming
@@ -2717,7 +2717,7 @@ $(window).scroll(function() {
     if (sideTopOffsetEnabled) {
       //$('.sidecolumnLeft').css("top","54px");
     }
-    //$('#showSide').css("top","7px");
+    //$('#showNavColumn').css("top","7px");
 
     if (!$("#filterFieldsHolder").is(':visible')) { // Retain search filters space at top, unless they are already hidden
       $('#headerLarge').hide();
@@ -2760,7 +2760,7 @@ $(window).scroll(function() {
           //$('.sidecolumnLeft').css("top","54px");
         }
         //alert("#headerbar hide")
-        //$('#showSide').css("top","7px");
+        //$('#showNavColumn').css("top","7px");
         if (!$("#filterFieldsHolder").is(':visible')) { // Retain search filters space at top, unless they are already hidden
           $('#headerLarge').hide();
         }
@@ -2873,31 +2873,6 @@ $(window).resize(function() {
   $("#filterbaroffset").height($("#filterFieldsHolder").height() + "px");
 });
 
-// To do: try moving back to map=filters.js
-function updateGeoFilter(geo) {
-  $(".geo").prop('checked', false);
-  if (geo && geo.length > 0) {
-
-    //locationFilterChange("counties");
-    let sectors = geo.split(",");
-      for(var i = 0 ; i < sectors.length ; i++) {
-        $("#" + sectors[i]).prop('checked', true);
-      }
-
-  }
-  console.log('ALERT: Change to support multiple states as GEO. Current geo: ' + geo)
-  if (geo && geo.length > 4) // Then county or multiple states - Bug
-  {
-      $(".state-view").hide();
-      $(".county-view").show();
-      //$(".industry_filter_settings").show(); // temp
-  } else {
-      $(".county-view").hide();
-      $(".state-view").show();
-      //$(".industry_filter_settings").hide(); // temp
-  }
-}
-
 //////////////////
 // CHOROPLETH MAP
 
@@ -2925,91 +2900,11 @@ function styleShape(feature) {
 }
 */
 
-function styleShape(feature) { // Called FOR EACH topojson row
-
-  let hash = getHash(); // To do: pass in as parameter
-  //console.log("feature: ", feature)
-
-  var fillColor = 'rgb(51, 136, 255)'; // 
-  // For hover '#665';
-  
-  // REGION COLORS: See community/start/map/counties.html for colored region sample.
-
-  /*
-    dp.data.forEach(function(datarow) { // For each county row from the region lookup table
-      if (datarow.county_num == feature.properties.COUNTYFP) {
-        fillColor = color(datarow.io_region);
-      }
-    })
-  */
-  let stateID = getIDfromStateName(feature.properties.name);
-  let fillOpacity = .05;
-  if (hash.geo && hash.geo.includes("US" + feature.properties.STATEFP + feature.properties.COUNTYFP)) {
-      fillColor = 'purple';
-      fillOpacity = .2;
-  } else if (hash.mapview == "country" && hash.state && hash.state.includes(stateID)) {
-      fillColor = 'red';
-      fillOpacity = .2;
-  } else if (hash.mapview == "countries") {
-      let theValue = 2;
-      //console.log("country: " + (feature.properties.name));
-      if (localObject.countries && localObject.countries[feature.id]) {
-        //alert("Country 2020 " + localObject.countries[feature.id]["2020"]);
-        theValue = localObject.countries[feature.id]["2020"];
-      }
-      // TO DO - Adjust for 2e-7
-      theValue = theValue/10000000;
-      fillColor = colorTheCountry(theValue);
-      //console.log("fillColor: " + fillColor + "; theValue: " + theValue + " " + feature.properties.name);
-      fillOpacity = .5;
-  } else if ((hash.mapview == "country" || (hash.mapview == "state" && !hash.state)) && typeof localObject.state != 'undefined') {
-      let theValue = 2;
-       if (localObject.state[getState(stateID)] && localObject.state[getState(stateID)].CO2_per_capita != "No data") {
-        //console.log("state: " + stateID + " " + getState(stateID));
-        //console.log("state: " + stateID + " " + localObject.state[getState(stateID)].CO2_per_capita);
-        theValue = localObject.state[getState(stateID)].CO2_per_capita;
-      }
-      theValue = theValue/4; // Ranges from 0 to 26
-      fillColor = colorTheStateCarbon(theValue);
-      //console.log("fillColor: " + fillColor + "; theValue: " + theValue + " " + feature.properties.name);
-      fillOpacity = .5;
-  } return {
-      weight: 1,
-      opacity: .4,
-      color: fillColor, // '#ccc', // 'white'
-      //dashArray: '3',
-      fillOpacity: fillOpacity,
-      fillColor: fillColor
-  };
-}
-
-function getIDfromStateName(stateName) {
-  let theStateID;
-  $("#state_select option").map(function(index) {
-    if ($("#state_select option").get(index).text == stateName) {
-      theStateID = $("#state_select option").get(index).value.toString();
-    }
-  });
-  return(theStateID);
-}
-function getStateNameFromID(stateID) {
-  if (typeof stateID == "undefined" || stateID.length < 2) { return; }
-  let stateName = ""; // Avoids error when made lowercase
-  $("#state_select option").map(function(index) {
-    if ($("#state_select option").get(index).value == stateID) {
-      stateName = $("#state_select option").get(index).text;
-    }
-  });
-  return(stateName);
-}
-
 // DISPLAY geomap - first of three maps
 
-var geojsonLayer; // Hold the prior letter. We can use an array or object instead.
 var overlays = {};
 var overlays1 = {};
 var overlays2 = {};
-
 
 //Tyring, might be necessary to be outside loadFromSheet for .detail click. Test it inside.
 let map1 = {};
@@ -3105,8 +3000,10 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
   } else if (dp.googleCSV) {
     loadScript(theroot + 'js/d3.v5.min.js', function(results) {
     waitForVariable('customD3loaded', function() {
-    consoleLog("Google data requested");
-    d3.csv(dp.googleCSV).then(function(data) { // One element containing all rows from spreadsheet
+    consoleLog("Google data requested " + dp.googleCSV);
+    //dp.googleCSV = "DISABLEX"
+    d3.csv(dp.googleCSV).then(function(data,error) { // One element containing all rows from spreadsheet
+
       consoleLog("Google data loaded");
       // LOAD GOOGLE SHEET
         //dp.data = makeRowValuesNumeric(data, dp.numColumns, dp.valueColumn);
@@ -3141,6 +3038,14 @@ function loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callba
         } else {
           processOutput(dp,map1,map2,whichmap,whichmap2,basemaps1,basemaps2,function(results){});
         }
+    }, function(error, rows) {
+        consoleLog("ERROR fetching google sheet. " + error);
+        // if not 404, try again here after .5 second settimeout. Display status in browser.
+
+        setTimeout(function() {
+          attempts = attempts + 1;
+          loadFromSheet(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback);
+        }, 500);
     });
     });
     });
@@ -3233,7 +3138,7 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
         dragging: !L.Browser.mobile, 
         tap: !L.Browser.mobile
       });
-      layerControls[whichmap] = L.control.layers(basemaps, overlays).addTo(map); // Init layer checkboxes (add checkbox later)
+      layerControls[whichmap] = L.control.layers(basemaps, overlays, {position: 'bottomleft'}).addTo(map); // Init layer checkboxes (add checkbox later)
       if (whichmap == "map2") {
         basemaps["OpenStreetMap"].addTo(map);
       } else {
@@ -3335,27 +3240,27 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
   //console.log("dataParameters:");
   //console.log(dataParameters);
 
-
-
-  // Didn't help to refresh
-  if (document.querySelector(mapDiv)._leaflet_map) {
-    document.querySelector(mapDiv)._leaflet_map.invalidateSize(); // Refresh map tiles.
-  }
+  // Didn't help to refresh, placed below instead
+  //if (document.querySelector(mapDiv)._leaflet_map) {
+  //  document.querySelector(mapDiv)._leaflet_map.invalidateSize(); // Refresh map tiles.
+  //}
 
   if (whichmap=="map1") {
     map1 = map;
     overlays1[dataTitle] = layerGroup; // Seems hacky, but the layerGroup points at specific map.  Otherwise map2 (the most recent) would be the only one pointed to.
+    map1.invalidateSize(); // Refresh map tiles.
   } else {
     map2 = map;
     overlays2[dataTitle] = layerGroup;
     priorLayer = dataTitle; // Only change after map2
+    map2.invalidateSize(); // Refresh map tiles.
   } 
   
   }); // waitForElm
 }
 
 function processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,callback) {
-  console.log("processOutput");
+  consoleLog("processOutput");
 
   if (typeof map === 'undefined' || !map.length) {
     console.log("processOutput: map not yet defined or populated.");
@@ -3415,13 +3320,13 @@ function processOutput(dp,map,map2,whichmap,whichmap2,basemaps1,basemaps2,callba
         if (dp.zoom) zoomLevel1 = dp.zoom;
         let zoomLevel2 = 7;
 
-        renderMap(dp,map1,"map1","bodyFile",null,zoomLevel1,"google");
+        renderMap(dp,map1,"map1","datascape",null,zoomLevel1,"google");
 
-        waitForElm('#bodyFile #map2').then((elm) => {
+        waitForElm('#datascape #map2').then((elm) => {
           $("#sidemapCard").show();
           $("#list_main").show();
           $("#tableSide").show();
-          renderMap(dp,map2,"map2","bodyFile",null,zoomLevel2,"");
+          renderMap(dp,map2,"map2","datascape",null,zoomLevel2,"");
         });
 
     });
@@ -3871,29 +3776,34 @@ function hashChangedMap() {
   } else if (hash.state && hash.state !== priorHashMap.state) {
     // Why are new map points not appearing
 
-    let dp = {};
-    // Copied from map-filters.js
-    if($("#state_select").find(":selected").val()) {
-      let theState = $("#state_select").find(":selected").val();
-        if (theState != "") {
-          let kilometers_wide = $("#state_select").find(":selected").attr("km");
-          //zoom = 1/kilometers_wide * 1800000;
-  
-          if (theState == "HI") { // Hawaii
-              zoom = 6
-          } else if (kilometers_wide > 1000000) { // Alaska
-              zoom = 4
-          } else {
-              zoom = 7; // For Georgia map
-          }
-          dp.latitude = $("#state_select").find(":selected").attr("lat");
-          dp.longitude = $("#state_select").find(":selected").attr("lon");
-        }
-    } else {
-      console.log("ERROR #state_select not available in hashChangedMap()");
-    }    
-
-    loadMap1("hashChanged() in map.js new state(s) " + hash.state, hash.show, dp);
+    loadScript(theroot + 'js/map-filters.js', function(results) { // map.js depends on map-filters.js
+      waitForElm('#state_select').then((elm) => {
+        let dp = {};
+        // Copied from map-filters.js
+        $("#state_select").val(hash.state.split(",")[0].toUpperCase());
+        if($("#state_select").find(":selected").val()) {
+          let theState = $("#state_select").find(":selected").val();
+            if (theState != "") {
+              let kilometers_wide = $("#state_select").find(":selected").attr("km");
+              //zoom = 1/kilometers_wide * 1800000;
+      
+              if (theState == "HI") { // Hawaii
+                  zoom = 6
+              } else if (kilometers_wide > 1000000) { // Alaska
+                  zoom = 4
+              } else {
+                  zoom = 7; // For Georgia map
+              }
+              dp.latitude = $("#state_select").find(":selected").attr("lat");
+              dp.longitude = $("#state_select").find(":selected").attr("lon");
+              //alert("dp.longitude  " + dp.longitude)
+            }
+        } else {
+          console.log("ERROR #state_select not available in hashChangedMap()2");
+        }    
+        loadMap1("hashChanged() in map.js new state(s) " + hash.state, hash.show, dp);
+      });
+    });
 
   } else if (hash.cat !== priorHashMap.cat) {
 
@@ -3914,7 +3824,7 @@ $(document).ready(function () {
   hashChangedMap();
 });
 
-function zoomFromKm(kilometers_wide, theState) {
+function zoomFromKm2(kilometers_wide, theState) {
   //alert(kilometers_wide) // undefined for the 1st of 3.
   let zoom = 5;
   if (!kilometers_wide) return zoom;
@@ -3936,109 +3846,6 @@ function zoomFromKm(kilometers_wide, theState) {
   }
   return zoom;
 }
-
-// NULLSCHOOL
-$(document).on("click", "#earthClose", function(event) { // ZOOM IN
-  $("#nullschoolHeader").hide();
-  $("#hero_holder").show();
-  event.stopPropagation();
-});
-$(document).on("click", "#earthZoom .leaflet-control-zoom-in", function(event) { // ZOOM IN
-  zoomEarth(200);
-  event.stopPropagation();
-});
-$(document).on("click", "#earthZoom .leaflet-control-zoom-out", function(event) { // ZOOM IN
-  zoomEarth(-200);
-  event.stopPropagation();
-});
-function zoomEarth(zoomAmount) {
-  if (!localObject.earth) {
-    let earthSrc = document.getElementById("mainframe").src; // Only returns the initial cross-domain uri.
-    localObject.earth = getEarthObject(earthSrc.split('#')[1]);
-  }
-  // Add 100 to orthographic map zoom
-  let orthographic = localObject.earth.orthographic.split(",");
-  localObject.earth.orthographic = orthographic[0] + "," + orthographic[1] + "," + (+orthographic[2] + zoomAmount);
-  
-  /*
-  let theMonth = 6;
-  let theDay = 1;
-  let theHour = 0;
-
-  let monthStr = String(theMonth).padStart(2, '0');
-  let dayStr = String(theDay).padStart(2, '0');
-  let hourStr = String(theHour).padStart(2, '0');
-  $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
-  */
-
-  let earthUrl = "https://earth.nullschool.net/#";
-  if (localObject.earth.date) {
-    earthUrl += localObject.earth.date + "/" + localObject.earth.time + "/";
-  } else {
-    earthUrl += "current/";
-  }
-  earthUrl += localObject.earth.mode + "/overlay=" + localObject.earth.overlay + "/orthographic=" + localObject.earth.orthographic;
-  loadIframe("mainframe", earthUrl);
-  //loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-}
-function getEarthObject(url) {
-  console.log("map.js getEarthObject " + url);
-  if (url == undefined) {
-    console.log("BUG - getEarthObject url undefined");
-    return;
-  }
-  let urlPart = url.split('/');
-  let params = {};
-  if (urlPart.length > 6) { // URL contains date and time
-    params.date = urlPart[0] + "/" + urlPart[1] + "/" + urlPart[2];
-    params.time = urlPart[3];
-    params.mode = urlPart[4] + "/" + urlPart[5] + "/" + urlPart[6];
-  } else {
-    params.mode = urlPart[1] + "/" + urlPart[2] + "/" + urlPart[3];
-  }
-  for (let i = 4; i < urlPart.length; i++) {
-      if(!urlPart[i])
-          continue;
-      if (i==0 && urlPart[i].indexOf("=") == -1) {
-        params[""] = urlPart[i];  // Allows for initial # params without =.
-        continue;
-      }
-      let hashPair = urlPart[i].split('=');
-      params[decodeURIComponent(hashPair[0]).toLowerCase()] = decodeURIComponent(hashPair[1]);
-   }
-   return params;
-}
-function delay(time) {
-  return new Promise(resolve => setTimeout(resolve, time));
-}
-async function loopMap() {
-  await delay(200);
-  let theMonth = 6;
-  let theDay = 1;
-  let theHour = 0;
-  while (theDay <= 20) {
-    let monthStr = String(theMonth).padStart(2, '0');
-    let dayStr = String(theDay).padStart(2, '0');
-    let hourStr = String(theHour).padStart(2, '0');
-    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
-
-    loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-    await delay(1000);
-
-    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " 12:00 GMT (7 AM EST)");
-    loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/1200Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-    await delay(1000);
-
-    theDay += 1;
-    //theHour += 2;   
-  }
-}
-$(document).ready(function () {
-  // Run animation - add a button for this
-  //loopMap();
-});
-// END NULLSCHOOL
-
 
 
 // DELETE in 2023 - Not in use

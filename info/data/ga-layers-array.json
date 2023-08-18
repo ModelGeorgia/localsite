@@ -144,8 +144,27 @@
 	},
 	{
 		"menulevel": "1",
+		"item": "renew",
+		"title": "Waste, Water, Energy",
+		"tabtitle": "Waste, Water, Energy",
+		"navtitle": "Waste, Water, Energy",
+		"section": "Waste, Water, Energy",
+		"sectionicon": "<i class='fa fa-recycle'></i>",
+		"provider": "Recycling",
+		"image": "/localsite/img/show/wastewater.jpg",
+		"siteHeaderHeight": "170px",
+		"headericoncolor": "#999",
+		"icon": "<i class='material-icons'>&#xE87A;</i>",
+		"menuaccess": "0",
+		"directlink": "/recycling/georgia/",
+		"footerlogos": "",
+		"caption": "",
+		"states": "GA"
+	},
+	{
+		"menulevel": "1",
 		"item": "farmfresh",
-		"rootfolder": "info",
+		"rootfolder": "map",
 		"title": "Farm Fresh",
 		"tabtitle": "Farm Fresh",
 		"mobiletitle": "Farm Fresh",
@@ -159,7 +178,7 @@
 		"sectionTitle": "leftNav",
 		"topnavaccess": "10",
 		"menuaccess": "0",
-		"directlink": "/localsite/info/#show=farmfresh",
+		"directlink": "/localsite/map/#show=farmfresh",
 		"caption": ""
 	},
 	{

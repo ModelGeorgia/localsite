@@ -1,4 +1,4 @@
-<div id="insertedText">
+<div id="insertedText" style="width:100%">
 
 <!-- Start HTML -->
 
@@ -1154,35 +1154,30 @@ Displayed by hashChanged() in map-filters.js
 
 <div id="nullschoolHeader" style="position:relative; display:none">
 
-  <div id="earthZoom" style="position: absolute; z-index:100; right:20px; bottom:20px">
+  
+  <div id="earthZoom" class="earthZoom" style="position: absolute; z-index:100; right:20px; bottom:20px">
+    <!-- Needs fixing...
     <div id="earthClose" style="padding-left:20px">CLOSE</div>
+    -->
     <div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="#" title="Zoom in" role="button" aria-label="Zoom in">+</a><a class="leaflet-control-zoom-out" href="#" title="Zoom out" role="button" aria-label="Zoom out">−</a></div>
   </div>
+  
 
   <div class="hideMobile">
   <div class="earth georgia" style="display:none">
-  <div id="mainbucket" style="display:none">
+  <div id="mainbucket" class="darkDivText" style="display:none">
 
     <!--
     <a href="../io/charts/"><img src="/community/img/logo/epa-circle.png" style="width:115px;float:left;margin-right:16px;"></a>
     -->
 
-    <div style="padding-top:5px; overflow:auto" class="hideOnProjectsPage">
-      Tools for exploring, documenting and transforming environments through collaborative modeling and real-time engagement.
-
-      <!--
-      Join us in building Product Lifecycle Tools that&nbsp;increase positive environmental impacts through&nbsp;local innovation. -->
-      <br>
-      
+    <div style="padding-top:5px;overflow:auto" class="hideOnProjectsPage">
+      Transforming environments<br>through collaborative modeling.<br>
       <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
-
-      <!--
-        <a href="/localsite/info/" class="linkondark">Explore&nbsp;Impacts</a>
-      -->
-
     </div>
     <div style="display:none" class="projectsPage">
-      Build your school projects and dissertations using USEEIO environmentally-extended data.
+      Build your school projects and dissertations<br>
+      using USEEIO environmentally-extended data.<br>
 
       <a href="/io/learn/" class="btn btn-warning" style="margin-top:10px;">For Research Projects</a>
     </div>
@@ -1201,7 +1196,7 @@ Displayed by hashChanged() in map-filters.js
  https://earth.nullschool.net/#current/wind/surface/currents/overlay=wind/orthographic=-73.52,34.52,1101
   -->
 
-  <div id="globalMapHolder" style="background:#444;"></div>
+  <div id="globalMapHolder" class="earthZoom" style="background:#444;"></div>
   <div id="mapText" style="padding-left:20px"></div>
 
 </div>
@@ -1211,7 +1206,7 @@ Displayed by hashChanged() in map-filters.js
 
 <!-- ../img/hero/hexagon-pattern.png  -->
 
-<div id="log_display" style="display:none" class="localonlyX"><span style='float:left; font-size:10px'>LOG</span><br><textarea id="logText">LogText</textarea></div>
+<div id="log_display" style="display:none" class="localonly"><span style='float:left; font-size:10px'>LOG</span><br><textarea id="logText">LogText</textarea></div>
 
 
 <div class="displayOnload displayMapForLoad" style="display:none;position:relative;overflow:hidden;">

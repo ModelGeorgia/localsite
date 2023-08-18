@@ -103,7 +103,7 @@
      border:none;
      margin-left:30px;
   }
-  .leaflet-touch .leaflet-bar a, #earthZoom .leaflet-bar a {
+  .leaflet-touch .leaflet-bar a, .earthZoom .leaflet-bar a {
     width:38px !important;
     height:38px !important;
     font-size: 26px !important;
@@ -121,11 +121,6 @@
     border:#bbb 2px solid !important;
     line-height: 32px !important;
   }
-  /* no effect
-  .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
-    border:#555 1px solid !important;
-  }
-  */
   .leaflet-top > .info {
     background-color: rgba(33, 33, 33, 0.5);
     color: #fff;
@@ -152,27 +147,24 @@
     overflow: visible;
     
   }
-
-  .leaflet-control-container > div:first-child.leaflet-left {
+  .leaflet-control-container > div:first-child.leaflet-left { /* zoom control position */
     left: auto;
     right: 20px;
   }
-  .leaflet-control-container > div:first-child.leaflet-top {
+  .leaflet-control-container > div:first-child.leaflet-top { /* zoom control position */
     top: auto;
-    bottom: 40px;
+    bottom: 20px;
     z-index: auto;
   }
   /* Layers */
+  /*
   .leaflet-control-container > div:nth-child(2).leaflet-right {
-    /* right: 10px; */
-    /* left: auto; */
     left: 10px;
   }
   .leaflet-control-container > div:nth-child(2).leaflet-top {
-    /* top: 10px; */
-    /* bottom: auto; */
     bottom: 20px;
   }
+  */
   .leaflet-control-container > div:nth-child(4) {
     display: none;
   }
@@ -465,10 +457,11 @@ label { /* override Drupal */
   float:left;
 }
 #listcolumn {
-  display: flex; /* displays flex-items (children) inline */
-  flex-direction: column; /* stacks them vertically */
+  display: flex; /* For column footer #listInfo. Displays flex-items (children) inline */
+  flex-direction: column; /* Stacks children vertically: listHeader, listmain, listInfo */
   box-shadow: 4px 2px 8px 1px rgba(0, 0, 0, 0.4);
   z-index: 999;
+  min-width: 250px;
 }
 .listHeader {
   padding: 10px;

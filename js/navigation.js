@@ -63,6 +63,9 @@ if(location.host.indexOf('localhost') < 0 && location.host.indexOf('model.') < 0
 	modelroot = "https://model.earth";
 }
 
+// INIT
+applyNavigation();
+
 function displayHexagonMenu(layerName, localObject) {
 
   var currentAccess = 0;
@@ -166,11 +169,11 @@ function closeExpandedMenus(menuClicked) {
     $(".menuExpanded").hide(); // Hide any open
     //alert("rightTopMenuInner 3");
 }
-function showSide() {
+function showNavColumn() {
+	console.log("showNavColumn");
 	$("#sideIcons").hide();
 	$("#navcolumn").show();
-	//alert("#navcolumn show");
-	if(document.getElementById("bodyFileHolder") == null) {
+	if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded.
 		if ($("#listcolumn").is(":visible")) {
 			$('body').addClass('bodyLeftMarginFull'); // Creates margin on left for both fixed side columns.
 			$('#listcolumn').removeClass('listcolumnOnly');
@@ -181,7 +184,7 @@ function showSide() {
 		$('#navcolumn').addClass("navcolumnClear");
 		$('body').addClass('bodyLeftMarginNone');
 	} else {
-		$("#fullcolumn #showSide").hide();
+		$("#fullcolumn #showNavColumn").hide();
 		$('body').addClass('bodyLeftMargin'); // Margin on left for fixed nav column.
 		$('body').addClass('mobileView');
 
@@ -233,6 +236,7 @@ function applyNavigation() { // Called by localsite.js so local_app path is avai
 		showLeftIcon = true;
 		$(".siteTitleShort").text("Model Georgia");
 		param.titleArray = [];
+		console.log("local_app.localsite_root() " + local_app.localsite_root()); // https://model.earth was in here: https://map.georgia.org/localsite/map/#show=recyclers
 		param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA.png' style='width:140px;padding-top:4px'></a>";
 		param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + local_app.localsite_root() + "img/logo/states/GA-notext.png' style='width:50px;padding-top:0px;margin-top:-1px'></a>";
 		if (document.title) {
@@ -296,416 +300,461 @@ function applyNavigation() { // Called by localsite.js so local_app path is avai
 		earthFooter = false;
 		console.log("param.footer " + param.footer);
 	}
-
- 	$("body").wrapInner( "<div id='fullcolumn'></div>"); // Creates space for navcolumn
- 	
- 	
- 	$("body").addClass("flexbody"); // For footer to stick at bottom on short pages
- 	$("body").wrapInner("<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
- 	// min-height allows header to serve as #filterbaroffset when header.html not loaded
- 	// pointer-events:none; // Avoid because sub-divs inherite and settings dropdowns are then not clickable.
-
-	if(document.getElementById("bodyFile") == null) {
-		$("#fullcolumn").prepend("<div id='bodyFile'></div>\r");
-	}
-
-	let listColumnElement = "<div id='listcolumn' class='listcolumn pagecolumn sidelist pagecolumnLower' style='display:none'><div class='listHeader'><div class='hideSideList close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><h1 class='listTitle'></h1><div class='listSubtitle'></div><div class='listSpecs'></div></div><div id='listmain'><div id='listcolumnList'></div></div><div id='listInfo' class='listInfo content'></div></div>\r";
-	if(document.getElementById("bodyFileHolder") != null) {
-		$("#bodyFileHolder").prepend(listColumnElement);
-		listColumnElement = "";
-		$('body').removeClass('bodyLeftMarginFull');
-	}
-	if(document.getElementById("navcolumn") == null) {
- 		$("body").prepend("<div id='navcolumn' class='navcolumn pagecolumn pagecolumnLower greyDiv noprint sidecolumnLeft liteDiv' style='display:none'><div class='hideSide close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><div class='navcolumnBar'></div><div class='sidecolumnLeftScroll'><div id='navcolumnTitle' class='maincat'></div><div id='listLeft'></div><div id='cloneLeftTarget'></div></div></div>" + listColumnElement);
- 	} else {
- 		// TODO - change to fixed when side reaches top of page
- 		console.log("navigation.js report: navcolumn already exists")
- 		$("#navcolumn").addClass("navcolumn-inpage");
- 	}
-
- 	$(document).on("click", ".showSide", function(event) {
-		if ($("#navcolumn").is(':hidden')) {
-			showSide();
-		} else {
-			$("#navcolumn").hide();
-			$("#showSide").show();$("#showSideInBar").hide();
-			$('body').removeClass('bodyLeftMargin');
+	// Load when body div becomes available, faster than waiting for all DOM .js files to load.
+   	waitForElm('body').then((elm) => {
+	 	$("body").wrapInner( "<div id='fullcolumn'></div>"); // Creates space for navcolumn
+	 	
+	 	
+	 	$("body").addClass("flexbody"); // For footer to stick at bottom on short pages
+	 	$("body").wrapInner("<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
+	 	// min-height allows header to serve as #filterbaroffset when header.html not loaded
+	 	// pointer-events:none; // Avoid because sub-divs inherite and settings dropdowns are then not clickable.
+	 	if(document.getElementById("datascape") == null) {
+			$("#fullcolumn").prepend("<div id='datascape' class='datascape'></div>\r");
+		}
+ 	});
+	
+	waitForElm('#datascape').then((elm) => {
+		let listColumnElement = "<div id='listcolumn' class='listcolumn pagecolumn sidelist pagecolumnLower' style='display:none'><div class='listHeader'><div class='hideSideList close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><h1 class='listTitle'></h1><div class='listSubtitle'></div><div class='listSpecs'></div></div><div id='listmain'><div id='listcolumnList'></div></div><div id='listInfo' class='listInfo content'></div></div>\r";
+		if(document.getElementById("datascape") != null || document.getElementById("datascape1") != null) {
+			$("#datascape").addClass("datascape");
+			$("#datascape").addClass("datascapeEmbed");
+			$("#fullcolumn > #datascape").removeClass("datascapeEmbed");  // When #datascape is NOT embedded.
 			$('body').removeClass('bodyLeftMarginFull');
+			// Wait for template to be loaded so it doesn't overwrite listcolumn in #datascape.
+			//waitForElm('#insertedText').then((elm) => {
+			waitForElm('#fullcolumn > .datascape').then((elm) => { // When #datascape is NOT embedded.
+				// Place list in left margin for whole page use.
+				$("#datascape").prepend(listColumnElement);
+				listColumnElement = "";
+				//$('body').addClass('bodyLeftMarginFull'); // Avoid here. Places gap on /community
+			});
+			
+		} else {
+			console.log("#datascape not available");
+		}
+		if(document.getElementById("navcolumn") == null) {
+			let prependTo = "#datascape";
+			// BUG #fullcolumn > .datascape does not seem to be loaded yet
+			if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded
+				prependTo = "body";
+			}
+			/// POSSIBLE ISSUE - This might get overwritten
+	 		$(prependTo).prepend("<div id='navcolumn' class='navcolumn pagecolumn pagecolumnLower greyDiv noprint sidecolumnLeft liteDiv' style='display:none'><div class='hideSide close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><div class='navcolumnBar'></div><div class='sidecolumnLeftScroll'><div id='navcolumnTitle' class='maincat'></div><div id='listLeft'></div><div id='cloneLeftTarget'></div></div></div>" + listColumnElement);
+	 	} else {
+	 		// TODO - change to fixed when side reaches top of page
+	 		console.log("navigation.js report: navcolumn already exists")
+	 		$("#navcolumn").addClass("navcolumn-inpage");
+	 	}
+
+	 	$(document).on("click", ".showNavColumn", function(event) {
+	 		console.log(".showNavColumn click");
+			if ($("#navcolumn").is(':hidden')) {
+				showNavColumn();
+			} else {
+				$("#navcolumn").hide();
+				$("#showNavColumn").show();$("#showSideInBar").hide();
+				$('body').removeClass('bodyLeftMargin');
+				$('body').removeClass('bodyLeftMarginFull');
+				if (!$('body').hasClass('bodyRightMargin')) {
+		        	$('body').removeClass('mobileView');
+		    	}
+			}
+			let headerFixedHeight = $("#headerLarge").height();
+			$('#cloneLeft').css("top",headerFixedHeight + "px");
+		});
+		$(document).on("click", ".hideSideList", function(event) {
+	 		hideSide("list");
+		});
+	 	$(document).on("click", ".hideSide", function(event) {
+	 		hideSide("");
+		});
+		function hideSide(which) {
+			console.log("hideSide " + which);
+			if (which != "list") {
+				$("#navcolumn").hide();
+				$('body').removeClass('bodyLeftMarginFull');
+				if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded
+					if ($("#listcolumn").is(':visible')) {
+						$('#listcolumn').addClass('listcolumnOnly');
+						console.log("addClass bodyLeftMarginList");
+						$('body').addClass('bodyLeftMarginList');
+					}
+				}
+			} else {
+				$("#listcolumn").hide();
+				$("#showListInBar").show();
+			}
+			if (!$("#navcolumn").is(':visible') && !$("#listcolumn").is(':visible')) {
+				$("#showNavColumn").show();$("#showSideInBar").hide();
+				$("#sideIcons").show();
+			} else if (!$("#navcolumn").is(':visible') && $("#listcolumn").is(':visible')) {
+				$("#showSideInBar").show();
+			}
+			if (!$("#navcolumn").is(':visible')) {
+				$('body').removeClass('bodyLeftMargin');
+			}
+			if (!$("#listcolumn").is(':visible')) {
+				$('body').removeClass('bodyLeftMarginList');
+			}
+			if (!$("#navcolumn").is(':visible') || !$("#listcolumn").is(':visible')) {
+				$('body').removeClass('bodyLeftMarginFull');
+			}
 			if (!$('body').hasClass('bodyRightMargin')) {
 	        	$('body').removeClass('mobileView');
 	    	}
-		}
-		let headerFixedHeight = $("#headerLarge").height();
-		$('#cloneLeft').css("top",headerFixedHeight + "px");
-	});
-	$(document).on("click", ".hideSideList", function(event) {
- 		hideSide("list");
-	});
- 	$(document).on("click", ".hideSide", function(event) {
- 		hideSide("");
-	});
-	function hideSide(which) {
-		if (which != "list") {
-			$("#navcolumn").hide();
-			$('body').removeClass('bodyLeftMarginFull');
-			if(document.getElementById("bodyFileHolder") == null) {
-				if ($("#listcolumn").is(':visible')) {
-					$('#listcolumn').addClass('listcolumnOnly');
-					$('body').addClass('bodyLeftMarginList');
+	    	// Might not need this with mobile
+
+	    	// Stopped working after reconfuring to load map1 and map2 with same function.
+	    	/*
+			if (document.querySelector('#map1')._leaflet_map) {
+				document.querySelector('#map1')._leaflet_map.invalidateSize(); // Refresh map tiles.
+			}
+			if (document.querySelector('#map2')._leaflet_map) {
+				document.querySelector('#map2')._leaflet_map.invalidateSize(); // Refresh map tiles.
+			}
+			*/
+			// Works instead
+			if ($("#map1").text().trim().length > 1) {
+				if (map1) {
+					map1.invalidateSize(); // Refresh map tiles.
 				}
 			}
-		} else {
-			$("#listcolumn").hide();
-			$("#showListInBar").show();
-		}
-		if ($("#navcolumn").is(':hidden') && $("#listcolumn").is(':hidden')) {
-			$("#showSide").show();$("#showSideInBar").hide();
-			$("#sideIcons").show();
-		} else if ($("#navcolumn").is(':hidden') && $("#listcolumn").is(':visible')) {
-			$("#showSideInBar").show();
-		}
-		if ($("#navcolumn").is(':hidden')) {
-			$('body').removeClass('bodyLeftMargin');
-		}
-		if ($("#listcolumn").is(':hidden')) {
-			$('body').removeClass('bodyLeftMarginList');
-		}
-		if ($("#navcolumn").is(':hidden') || $("#listcolumn").is(':hidden')) {
-			$('body').removeClass('bodyLeftMarginFull');
-		}
-		if (!$('body').hasClass('bodyRightMargin')) {
-        	$('body').removeClass('mobileView');
-    	}
-    	// Might not need this with mobile
-		if (document.querySelector('#map1')._leaflet_map) {
-			document.querySelector('#map1')._leaflet_map.invalidateSize(); // Refresh map tiles.
-		}
-		if (document.querySelector('#map2')._leaflet_map) {
-			document.querySelector('#map2')._leaflet_map.invalidateSize(); // Refresh map tiles.
-		}
-	}
- 	if (param["showapps"] && param["showapps"] == "false") {
- 		$(".showApps").hide();
-		$("#appSelectHolder").hide();
- 	}
- 	if (param["showheader"] && param["showheader"] == "false") {
-
-		//$(".filterPanel").addClass("filterPanel_fixed"); // This cause everything but top nav to disappear.
-		//$(".filterbarOffset").hide();
-		$(".headerOffset").hide();
-		$("#headeroffset").hide();
-		$(".headerOffset").hide();
-		$("#headerbar").addClass("headerbarhide");
-
-		// Insert for map filters since header.html file is not loaded.
-		//$("body").prepend( "<div id='filterbaroffset' style='height:56px; pointer-events:none'></div>");
-
-	// TO DO: Add support for custom headerpath
-
- 	} else {
-
- 		$(".headerOffset").show();
-		$("#headeroffset").show();
-		$(".headerOffset").show();
-
- 		// LOAD HEADER.HTML
- 		//if (earthFooter) {
-	 		let headerFile = modelroot + "/localsite/header.html";
-	 		if (slash_count <= 4) { // Folder is the root of site
-	 			// Currently avoid since "https://model.earth/" is prepended to climbpath above.
-	 			//headerFile = climbpath + "../header.html";
-	 		}
-	 		if (param.headerFile) {
-	 			modelpath = ""; // Use the current repo when custom headerFile provided.
-	 			headerFile = param.headerFile;
-	 		}
-
-			if (param.header) headerFile = param.header;
-
-			//if (earthFooter && param.showSideTabs != "false") { // Sites includieng modelearth and neighborhood
-			// 	$(".showSideTabs").show(); // Before load headerFile for faster display.
-			//}
-
-			// headerFile contains only navigation
-			$("#local-header").load(headerFile, function( response, status, xhr ) {
-				waitForElm('#sidecolumnContent').then((elm) => { // Resides in header.html
-					console.log("Doc is ready, header file loaded, place #cloneLeft into #navcolumn")
-
-					waitForElm('#navcolumn').then((elm) => { // #navcolumn is appended by this navigation.js script, so typically not needed.
-						//$("#cloneLeft").clone().appendTo($("#navcolumn"));
-						//$("#cloneLeft").show(); // Still hidden, just removing the div that prevents initial exposure.
-						if(location.host.indexOf("intranet") >= 0) {
-					        $("#sidecolumnContent a").each(function() {
-					          $(this).attr('href', $(this).attr('href').replace(/\/docs\//g,"\/"));
-					        });
-					    }
-					    if(location.host.indexOf("dreamstudio") >= 0) {
-					        $("#sidecolumnContent a").each(function() {
-					          $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
-					        });
-					    }
-
-						let colEleLeft = document.querySelector('#sidecolumnContent');
-						let colCloneLeft = colEleLeft.cloneNode(true)
-						colCloneLeft.id = "cloneLeft";
-						$("#cloneLeftTarget").append(colCloneLeft);
-
-						waitForElm('#topicsMenu').then((elm) => { // From info/template-main.html
-							let colEleRight = document.querySelector('#sidecolumnContent');
-							let colCloneRight = colEleRight.cloneNode(true)
-							colCloneRight.id = "cloneRight";
-
-          					$("#topicsMenu").prepend(colCloneRight);
-
-							if (location.href.indexOf('desktop') >= 0 || location.host.indexOf('dreamstudio') >= 0 || location.href.indexOf('dreamstudio') >= 0) {
-								let storiesFile = "https://dreamstudio.com/seasons/episodes.md";
-								//console.log("location.href index: " + location.href.indexOf("/dreamstudio/"));
-								if(location.host.indexOf('localhost') >= 0) {
-									storiesFile = "/dreamstudio/seasons/episodes.md";
-								} else if (location.href.indexOf("dreamstudio") >= 0) {
-									storiesFile = "/seasons/episodes.md";
-								}
-								waitForElm('#storiesDiv').then((elm) => {
-									// TO DO - Lazy load elsewhere, and avoid if already loaded
-									loadMarkdown(storiesFile, "storiesDiv", "_parent");
-									console.log("after storiesFile")
-								});
-							}
-						});
-
-					});
-
-			 		// Move filterbarOffset and filterEmbedHolder immediately after body tag start.
-			 		// Allows map embed to reside below intro text and additional navigation on page.
-
-			 		//if (param.showSideTabs != "false") { // brig
-			 		
-			 		$("#filterEmbedHolder").insertAfter("#headeroffset");
-			 		////$(".filterbarOffset").insertAfter("#headeroffset");
-			 		
-			 		//$(".filterbarOffset").insertAfter("#headerLarge");
-
-			 		// Not needed since moved into header.html
-			 		//$(".filterbarOffset").insertAfter("#headeroffset");
-
-			 		//$(".filterbarOffset").insertAfter("#header");
-			 		//$('body').prepend($(".filterbarOffset"));
-
-			 		//$(".filterbarOffset").hide();
-
-			 		// Make paths relative to current page
-			 		// Only updates right side navigation, so not currently necessary to check if starts with / but doing so anyway.
-			 		$("#local-header a[href]").each(function() {
-			 		  if($(this).attr("href").toLowerCase().indexOf("http") < 0) {
-			 		  	if($(this).attr("href").indexOf("/") != 0) { // Don't append if starts with /
-			 		  		//alert($(this).attr('href'))
-				      		$(this).attr("href", modelpath + $(this).attr('href'));
-				        }
-				  	  }
-				    });
-				    $("#local-header img[src]").each(function() {
-			 		  	if($(this).attr("src").toLowerCase().indexOf("http") < 0) {
-			 		  		if($(this).attr("src").indexOf("/") == 0) { // Starts with slash
-			 		  			$(this).attr("src", modelroot + $(this).attr('src'));
-			 		  		} else {
-				      		$(this).attr("src", modelpath + $(this).attr('src'));
-				      	}
-				  	  }
-				    });
-
-				 	if(location.host.indexOf('neighborhood') >= 0) {
-				 		// Since deactivated above due to conflict with header logo in app.
-				 		$('.neighborhood').css('display', 'block');
-				 	}
-				 	if (param.titleArray && !param.headerLogo) {
-				 		if (param.titleArray[1] == undefined) {
-				 			$('#headerSiteTitle').html("");
-				 		} else {
-					 		//let titleValue = "<span style='float:left'><a href='" + climbpath + "' style='text-decoration:none'>";
-					 		let titleValue = "<span style='float:left'><a href='/' style='text-decoration:none'>";
-					 		
-					 		titleValue += "<span style='color: #777;'>" + param.titleArray[0] + "</span>";
-					 		for (var i = 1; i < param.titleArray.length; i++) {
-					 			titleValue += "<span id='titleTwo' style='color:#bbb;margin-left:1px'>" + param.titleArray[i] + "</span>";
-					 		}
-					 		titleValue += "</a></span>";
-					 		$('#headerSiteTitle').html(titleValue);
-					 		let theState = $("#state_select").find(":selected").text();
-					 		if (theState) {
-					 			//$(".locationTabText").text(theState);
-					 		}
-					 	}
-				 	}
-
-				 	if (param.favicon) {
-				 		changeFavicon(param.favicon);
-				 	}
-
-					// WAS LIMITED TO HEADER
-					//$(document).ready(function() { // Needed for info/index.html page. Fast, but could probably use a timeout delay instead since we are already within the header.html load.
-					
-					// Equivalent to checking for #headerbar, but using #localsiteDetails since template pages already have a #headerbar.
-					waitForElm('#localsiteDetails').then((elm) => {
-						//console.log("climbpath value: " + climbpath);
-
-						waitForElm('#localsiteDetails').then((elm) => {
-						 	if (!param.headerLogo && param.headerLogoSmall) {
-						 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
-						 	} else if (param.headerLogo) {
-						 		//alert("Display param.headerLogo")
-						 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
-						 	} else if (param.favicon) {
-						 		let imageUrl = climbpath + ".." + param.favicon;
-							 	$('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
-								$('#headerLogo').css('background-repeat', 'no-repeat');
-							}
-						});
-
-						// Resides in map/filter.html
-						waitForElm('#logoholderbar').then((elm) => { // Note, #logoholderbar becomes available after #localsiteDetails
-							if (param.headerLogoSmall) {
-								$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall+ "</a>");
-							} else if (param.headerLogoNoText) {
-								$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoNoText + "</a>");
-							} else if (param.headerLogo) {
-								$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
-							}
-						});
-
-						
-						// END WAS LIMITED TO HEADER
-						$(".headerOffset").show();
-						//$("#local-header").append( "<div id='filterbaroffset' style='display:none;height:56px; pointer-events:none; display:none'></div>"); // Might stop using now that search filters are in main.
-						if ($("#filterFieldsHolder").length) {
-							//$("#filterbaroffset").css('display','block');
-						}
-
-						// Slight delay
-						setTimeout( function() {
-							if ($("#filterFieldsHolder").length) {
-								$("#filterbaroffset").css('display','block');
-							}
-						}, 200);
-						setTimeout( function() {
-							if ($("#filterFieldsHolder").length) {
-								$("#filterbaroffset").css('display','block');
-							}
-						}, 1000);
-
-						activateSideColumn();
-
-						if (location.host.indexOf('localhost') >= 0 && earthFooter) {
-							showLeftIcon = true;
-						}
-						if (showLeftIcon) {
-							// Move to header
-
-
-								// /localsite/img/icon/sidemenu.png  // width:15px;height:14px
-				 					//<div class="showSideTabs" style="displayX:none; float:left;font-size:24px; color:#999;">
-				 		}
-
-				 		// Only apply if id="/icon?family=Material+Icons" is already in DOM.
-				 		// Running here incase header has not loaded yet when the same runs in localsite.js.
-				 		if (document.getElementById("/icon?family=Material+Icons")) {
-				 			$(".show-on-load").removeClass("show-on-load");
-				 		}
-				 		//$("#headerbar").show();
-				 		//$("#headerbar").css("display:block");
-				 		//alert("okay2")
-				 	});
-
-
-					if (param["showheader"] && param["showheader"] == "false") {
-						// Don't show header
-						$("#headerbar").addClass("headerbarhide");
-					} else {
-						//alert("#headerbar show")
-						//$("#headerbar").show();
-					}
-				});
-			}); // End $("#header").load
-		//}
-	}
-
-	if (param.headerFile) {
-		//$(document).ready(function () {
-		setTimeout( function() {
-			//$('body').prepend($("#local-header"));
-			$('.headerOffsetOne').prepend($("#local-header"));
-
-			//$("#headerLarge").hide();
-		}, 1000);
-		//});
-	}
-
-	/*
-	var link = document.querySelector("link[rel~='icon']");
-	alert("link " + link);
-	if (!link) {
-	    link = document.createElement('link');
-	    link.rel = 'icon';
-	    document.getElementsByTagName('head')[0].appendChild(link);
-	}
-	link.href = 'https://stackoverflow.com/favicon.ico';
-	*/
-
-	if(document.getElementById("footer") == null) {
-		$("body").append( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
-	} else {
-		//$("#footer").addClass("flexfooter");
-		$("#footer").prepend( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
-	}
-	if (location.host.indexOf('localhost') >= 0 && param.showfooter != false && !param.footer) {
-		earthFooter = true; // Need to drive localhost by settings in a file ignored by .gitignore
-	}
-	if (param["showfooter"] && param["showfooter"] == "false") {
-	} else if (earthFooter || param.footer) {
-		var footerClimbpath = "";
-		let footerFile = modelpath + "../localsite/footer.html"; // modelpath remains relative for site desgnated above as having a local copy of io and community.
-		if (param.footer) {
-			footerFile = param.footer; // Custom
-
-			var footerFilePath = location.pathname + footerFile;
-			if (footerFile.indexOf("/") > 0) {
-				footerFilePath = footerFilePath.substr(0, footerFilePath.lastIndexOf("/") + 1); // Remove file name
+			if ($("#map2").text().trim().length > 1) {
+				if (map2) {
+					map2.invalidateSize(); // Refresh map tiles.
+				}
 			}
-
-			console.log("footerFilePath " + footerFilePath);
-
-			var upLevelInstance = (footerFilePath.match(/\.\.\//g) || []).length; // count of ../ in path.
-
-			var climbLevels = ""
-			for (var i = 0; i < upLevelInstance; i++) { // Remove ../ for each found
-				climbLevels = climbLevels + "../";
-			}	 	
-		 	footerClimbpath = climbLevels; // Example: ../
-		 	console.log("footerClimbpath (Levels up to current page): " + footerClimbpath);
-		 	//alert(footerClimbpath)
-		} else {
-			footerClimbpath = climbpath;
 		}
-		$("#local-footer").load(footerFile, function( response, status, xhr ) {
-			console.log("footerFile: " + footerFile);
-			let pageFolder = getPageFolder(footerFile);
-			// Append footerClimbpath to relative paths
-			makeLinksRelative("local-footer", footerClimbpath, pageFolder);
-		});
-	}
+	 	if (param["showapps"] && param["showapps"] == "false") {
+	 		$(".showApps").hide();
+			$("#appSelectHolder").hide();
+	 	}
+	 	if (param["showheader"] && param["showheader"] == "false") {
 
- 	// SIDE NAV WITH HIGHLIGHT ON SCROLL
+			//$(".filterPanel").addClass("filterPanel_fixed"); // This cause everything but top nav to disappear.
+			//$(".filterbarOffset").hide();
+			$(".headerOffset").hide();
+			$("#headeroffset").hide();
+			$(".headerOffset").hide();
+			$("#headerbar").addClass("headerbarhide");
 
- 	// Not currently using nav.html, will likely use later for overrides.  Primary side nav resides in header.
- 	if (1==2 && param["navcolumn"]) {
- 		// Wait for header to load?
+			// Insert for map filters since header.html file is not loaded.
+			//$("body").prepend( "<div id='filterbaroffset' style='height:56px; pointer-events:none'></div>");
 
-		let targetColumn = "#navcolumn";
-		$(targetColumn).load( modelpath + "../localsite/nav.html", function( response, status, xhr ) {
+			// TO DO: Add support for custom headerpath
 
-			activateSideColumn();
-		});
-	}
-	// END SIDE NAV WITH HIGHLIGHT ON SCROLL
+	 	} else {
+
+	 		$(".headerOffset").show();
+			$("#headeroffset").show();
+			$(".headerOffset").show();
+
+	 		// LOAD HEADER.HTML
+	 		//if (earthFooter) {
+		 		let headerFile = modelroot + "/localsite/header.html";
+		 		if (slash_count <= 4) { // Folder is the root of site
+		 			// Currently avoid since "https://model.earth/" is prepended to climbpath above.
+		 			//headerFile = climbpath + "../header.html";
+		 		}
+		 		if (param.headerFile) {
+		 			modelpath = ""; // Use the current repo when custom headerFile provided.
+		 			headerFile = param.headerFile;
+		 		}
+
+				if (param.header) headerFile = param.header;
+
+				//if (earthFooter && param.showSideTabs != "false") { // Sites includieng modelearth and neighborhood
+				// 	$(".showSideTabs").show(); // Before load headerFile for faster display.
+				//}
+
+				// headerFile contains only navigation
+				//alert("headerFile " + headerFile);
+				waitForElm('#local-header').then((elm) => { 
+				$("#local-header").load(headerFile, function( response, status, xhr ) {
+					//alert("headerFile loaded");
+					waitForElm('#sidecolumnContent').then((elm) => { // Resides in header.html
+						//alert("got sidecolumnContent");
+						console.log("Doc is ready, header file loaded, place #cloneLeft into #navcolumn")
+
+						waitForElm('#navcolumn').then((elm) => { // #navcolumn is appended by this navigation.js script, so typically not needed.
+							//$("#cloneLeft").clone().appendTo($("#navcolumn"));
+							//$("#cloneLeft").show(); // Still hidden, just removing the div that prevents initial exposure.
+							if(location.host.indexOf("intranet") >= 0) {
+						        $("#sidecolumnContent a").each(function() {
+						          $(this).attr('href', $(this).attr('href').replace(/\/docs\//g,"\/"));
+						        });
+						    }
+						    if(location.host.indexOf("dreamstudio") >= 0) {
+						        $("#sidecolumnContent a").each(function() {
+						          $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
+						        });
+						    }
+
+							let colEleLeft = document.querySelector('#sidecolumnContent');
+							let colCloneLeft = colEleLeft.cloneNode(true)
+							colCloneLeft.id = "cloneLeft";
+							$("#cloneLeftTarget").append(colCloneLeft);
+
+							waitForElm('#topicsMenu').then((elm) => { // From info/template-main.html
+								let colEleRight = document.querySelector('#sidecolumnContent');
+								let colCloneRight = colEleRight.cloneNode(true)
+								colCloneRight.id = "cloneRight";
+
+	          					$("#topicsMenu").prepend(colCloneRight);
+
+								if (location.href.indexOf('desktop') >= 0 || location.host.indexOf('dreamstudio') >= 0 || location.href.indexOf('dreamstudio') >= 0) {
+									let storiesFile = "https://dreamstudio.com/seasons/episodes.md";
+									//console.log("location.href index: " + location.href.indexOf("/dreamstudio/"));
+									if(location.host.indexOf('localhost') >= 0) {
+										storiesFile = "/dreamstudio/seasons/episodes.md";
+									} else if (location.href.indexOf("dreamstudio") >= 0) {
+										storiesFile = "/seasons/episodes.md";
+									}
+									waitForElm('#storiesDiv').then((elm) => {
+										// TO DO - Lazy load elsewhere, and avoid if already loaded
+										loadMarkdown(storiesFile, "storiesDiv", "_parent");
+										console.log("after storiesFile")
+									});
+								}
+							});
+
+						});
+
+				 		// Move filterbarOffset and filterEmbedHolder immediately after body tag start.
+				 		// Allows map embed to reside below intro text and additional navigation on page.
+
+				 		//if (param.showSideTabs != "false") { // brig
+				 		
+				 		$("#filterEmbedHolder").insertAfter("#headeroffset");
+				 		////$(".filterbarOffset").insertAfter("#headeroffset");
+				 		
+				 		//$(".filterbarOffset").insertAfter("#headerLarge");
+
+				 		// Not needed since moved into header.html
+				 		//$(".filterbarOffset").insertAfter("#headeroffset");
+
+				 		//$(".filterbarOffset").insertAfter("#header");
+				 		//$('body').prepend($(".filterbarOffset"));
+
+				 		//$(".filterbarOffset").hide();
+
+				 		// Make paths relative to current page
+				 		// Only updates right side navigation, so not currently necessary to check if starts with / but doing so anyway.
+				 		$("#local-header a[href]").each(function() {
+				 		  if($(this).attr("href").toLowerCase().indexOf("http") < 0) {
+				 		  	if($(this).attr("href").indexOf("/") != 0) { // Don't append if starts with /
+				 		  		//alert($(this).attr('href'))
+					      		$(this).attr("href", modelpath + $(this).attr('href'));
+					        }
+					  	  }
+					    });
+					    $("#local-header img[src]").each(function() {
+				 		  	if($(this).attr("src").toLowerCase().indexOf("http") < 0) {
+				 		  		if($(this).attr("src").indexOf("/") == 0) { // Starts with slash
+				 		  			$(this).attr("src", modelroot + $(this).attr('src'));
+				 		  		} else {
+					      		$(this).attr("src", modelpath + $(this).attr('src'));
+					      	}
+					  	  }
+					    });
+
+					 	if(location.host.indexOf('neighborhood') >= 0) {
+					 		// Since deactivated above due to conflict with header logo in app.
+					 		$('.neighborhood').css('display', 'block');
+					 	}
+					 	if (param.titleArray && !param.headerLogo) {
+					 		if (param.titleArray[1] == undefined) {
+					 			$('#headerSiteTitle').html("");
+					 		} else {
+						 		//let titleValue = "<span style='float:left'><a href='" + climbpath + "' style='text-decoration:none'>";
+						 		let titleValue = "<span style='float:left'><a href='/' style='text-decoration:none'>";
+						 		
+						 		titleValue += "<span style='color: #777;'>" + param.titleArray[0] + "</span>";
+						 		for (var i = 1; i < param.titleArray.length; i++) {
+						 			titleValue += "<span id='titleTwo' style='color:#bbb;margin-left:1px'>" + param.titleArray[i] + "</span>";
+						 		}
+						 		titleValue += "</a></span>";
+						 		$('#headerSiteTitle').html(titleValue);
+						 		let theState = $("#state_select").find(":selected").text();
+						 		if (theState) {
+						 			//$(".locationTabText").text(theState);
+						 		}
+						 	}
+					 	}
+
+					 	if (param.favicon) {
+					 		changeFavicon(param.favicon);
+					 	}
+
+						// WAS LIMITED TO HEADER
+						//$(document).ready(function() { // Needed for info/index.html page. Fast, but could probably use a timeout delay instead since we are already within the header.html load.
+						//alert("test2");
+						// Equivalent to checking for #headerbar, but using #localsiteDetails since template pages already have a #headerbar.
+						//waitForElm('#localsiteDetails').then((elm) => {
+						waitForElm('#headerbar').then((elm) => {
+							//alert("climbpath value: " + climbpath);
+
+							waitForElm('#headerLogo').then((elm) => {
+							 	if (!param.headerLogo && param.headerLogoSmall) {
+							 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
+							 	} else if (param.headerLogo) {
+							 		//alert("Display param.headerLogo")
+							 		$('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
+							 	} else if (param.favicon) {
+							 		let imageUrl = climbpath + ".." + param.favicon;
+								 	$('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
+									$('#headerLogo').css('background-repeat', 'no-repeat');
+								}
+							});
+
+							// Resides in map/filter.html
+							waitForElm('#logoholderbar').then((elm) => { // Note, #logoholderbar becomes available after #localsiteDetails
+								if (param.headerLogoSmall) {
+									$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall+ "</a>");
+								} else if (param.headerLogoNoText) {
+									$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoNoText + "</a>");
+								} else if (param.headerLogo) {
+									$('#logoholderbar').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
+								}
+							});
+
+							
+							// END WAS LIMITED TO HEADER
+							$(".headerOffset").show();
+							//$("#local-header").append( "<div id='filterbaroffset' style='display:none;height:56px; pointer-events:none; display:none'></div>"); // Might stop using now that search filters are in main.
+							if ($("#filterFieldsHolder").length) {
+								//$("#filterbaroffset").css('display','block');
+							}
+
+							// Slight delay
+							setTimeout( function() {
+								if ($("#filterFieldsHolder").length) {
+									$("#filterbaroffset").css('display','block');
+								}
+							}, 200);
+							setTimeout( function() {
+								if ($("#filterFieldsHolder").length) {
+									$("#filterbaroffset").css('display','block');
+								}
+							}, 1000);
+
+							activateSideColumn();
+
+							if (location.host.indexOf('localhost') >= 0 && earthFooter) {
+								showLeftIcon = true;
+							}
+							if (showLeftIcon) {
+								// Move to header
+
+
+									// /localsite/img/icon/sidemenu.png  // width:15px;height:14px
+					 					//<div class="showSideTabs" style="displayX:none; float:left;font-size:24px; color:#999;">
+					 		}
+
+					 		// Only apply if id="/icon?family=Material+Icons" is already in DOM.
+					 		// Running here incase header has not loaded yet when the same runs in localsite.js.
+					 		if (document.getElementById("/icon?family=Material+Icons")) {
+					 			$(".show-on-load").removeClass("show-on-load");
+					 		}
+					 		//$("#headerbar").show();
+					 		//$("#headerbar").css("display:block");
+					 		//alert("okay2")
+					 	});
+
+
+						if (param["showheader"] && param["showheader"] == "false") {
+							// Don't show header
+							$("#headerbar").addClass("headerbarhide");
+						} else {
+							//alert("#headerbar show")
+							//$("#headerbar").show();
+						}
+					});
+				}); // End $("#header").load
+				});
+			//}
+		}
+
+		if (param.headerFile) {
+			//$(document).ready(function () {
+			setTimeout( function() {
+				//$('body').prepend($("#local-header"));
+				$('.headerOffsetOne').prepend($("#local-header"));
+
+				//$("#headerLarge").hide();
+			}, 1000);
+			//});
+		}
+
+		/*
+		var link = document.querySelector("link[rel~='icon']");
+		alert("link " + link);
+		if (!link) {
+		    link = document.createElement('link');
+		    link.rel = 'icon';
+		    document.getElementsByTagName('head')[0].appendChild(link);
+		}
+		link.href = 'https://stackoverflow.com/favicon.ico';
+		*/
+
+		if(document.getElementById("footer") == null) {
+			$("body").append( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
+		} else {
+			//$("#footer").addClass("flexfooter");
+			$("#footer").prepend( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
+		}
+		if (location.host.indexOf('localhost') >= 0 && param.showfooter != false && !param.footer) {
+			earthFooter = true; // Need to drive localhost by settings in a file ignored by .gitignore
+		}
+		if (param["showfooter"] && param["showfooter"] == "false") {
+		} else if (earthFooter || param.footer) {
+			var footerClimbpath = "";
+			let footerFile = modelpath + "../localsite/footer.html"; // modelpath remains relative for site desgnated above as having a local copy of io and community.
+			if (param.footer) {
+				footerFile = param.footer; // Custom
+
+				var footerFilePath = location.pathname + footerFile;
+				if (footerFile.indexOf("/") > 0) {
+					footerFilePath = footerFilePath.substr(0, footerFilePath.lastIndexOf("/") + 1); // Remove file name
+				}
+
+				console.log("footerFilePath " + footerFilePath);
+
+				var upLevelInstance = (footerFilePath.match(/\.\.\//g) || []).length; // count of ../ in path.
+
+				var climbLevels = ""
+				for (var i = 0; i < upLevelInstance; i++) { // Remove ../ for each found
+					climbLevels = climbLevels + "../";
+				}	 	
+			 	footerClimbpath = climbLevels; // Example: ../
+			 	console.log("footerClimbpath (Levels up to current page): " + footerClimbpath);
+			 	//alert(footerClimbpath)
+			} else {
+				footerClimbpath = climbpath;
+			}
+			$("#local-footer").load(footerFile, function( response, status, xhr ) {
+				console.log("footerFile: " + footerFile);
+				let pageFolder = getPageFolder(footerFile);
+				// Append footerClimbpath to relative paths
+				makeLinksRelative("local-footer", footerClimbpath, pageFolder);
+			});
+		}
+
+	 	// SIDE NAV WITH HIGHLIGHT ON SCROLL
+
+	 	// Not currently using nav.html, will likely use later for overrides.  Primary side nav resides in header.
+	 	if (1==2 && param["navcolumn"]) {
+	 		// Wait for header to load?
+
+			let targetColumn = "#navcolumn";
+			$(targetColumn).load( modelpath + "../localsite/nav.html", function( response, status, xhr ) {
+
+				activateSideColumn();
+			});
+		}
+		// END SIDE NAV WITH HIGHLIGHT ON SCROLL
+	});
 } // end applyNavigation function
 
 $(document).ready(function () {
@@ -831,14 +880,15 @@ $(document).on("click", ".showEarth", function(event) {
 		$("#hero_holder").show();
 		closeSideTabs();
 	} else {
+		includeCSS3('/localsite/css/leaflet.css',''); // For zoom icons
 		//$("#globalMapHolder").hide(); // Home page nullschool map.
 		closeSideTabs();
 		$("#hero_holder").hide();
 		// Add a setting to choose map: Temperatures or just wind
 		// Big blue: https://earth.nullschool.net/#current/wind/surface/level/orthographic=-35.06,40.67,511
 		showGlobalMap("https://earth.nullschool.net/#current/wind/surface/level/overlay=temp/orthographic=-72.24,46.06,511"); //   /loc=-81.021,33.630
-		event.stopPropagation();
 	}
+	event.stopPropagation();
 });
 $(document).click(function(event) { // Hide open menus
 	if($("#menuHolder").css('display') !== 'none') {
@@ -875,7 +925,7 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
 		    if (hash.state) {
 		        theState = hash.state.split(",")[0].toUpperCase();
 		    }
-		    if (theState.length > 2) {
+		    if (theState && theState.length > 2) {
 		        theState = theState.substring(0,2);
 		    }
 			if ($('#bigThumbMenu').length <= 1) {
@@ -925,10 +975,9 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
 			                                bkgdUrl = removeFrontFolder(bkgdUrl);
 
 			                                
-			                                if (thelayers[layer].directlink) {
+			                                if (thelayers[layer].directlink) { // Omit thumbClick javascript
 			                                    //hrefLink = "href='" + removeFrontFolder(thelayers[layer].directlink) + "'";
-			                                }
-			                                if (thelayers[layer].rootfolder && thelayers[layer].rootfolder) {
+			                                } else if (thelayers[layer].rootfolder && thelayers[layer].rootfolder) {
 			                                	// Change to pass entire hash
 
 			                                	//linkJavascript = 'onclick="window.location = \'/localsite/' + thelayers[layer].rootfolder + '/#show=' + localObject.layers[layer].item + '\';return false;"';
@@ -1062,7 +1111,6 @@ function showClassInline(theclass) {
 	}, 30000);
 	*/
 }
-
 function hideAdvanced() {
 	// We might want to omit this line to retain mapview=earth
 	updateHash({"mapview":""});
@@ -1092,7 +1140,10 @@ function activateSideColumn() {
     })
 	
 	// Clone after path change
-		$("#headerLogo").clone().appendTo("#logoholderside");
+		
+		// Might need to reactivate, but should we give a different ID?
+		// Double use of ID seems to prevent display here: http://localhost:8887/recycling/
+		//$("#headerLogo").clone().appendTo("#logoholderside");
 
 		// ALL SIDE COLUMN ITEMS
 		var topMenu = $("#cloneLeft");
@@ -1286,38 +1337,31 @@ function getPageFolder(pagePath) {
 		alert("ALERT: navigation.js is being loaded twice.");
 	}
 	console.log("ALERT: navigation.js is being loaded twice.")
-
 } // End typeof page_scripts which checks if file is loaded twice.
 
 $(document).on("click", "#filterClickLocation", function(event) {
-	console.log("#filterClickLocation click");
     let hash = getHash();
-	if (!hash.mapview) {
-		// Hash change triggers call to filterClickLocation() and map display.
-		if (hash.state) {
-    		goHash({'mapview':'state'});
-    	} else {
-    		goHash({'mapview':'country'});
-    	}
+    //let hash = $.extend(true, {}, getHash());
+    //console.log("#filterClickLocation click hash.state: " + hash.state);
+    console.log("#filterClickLocation click hash.mapview: " + hash.mapview);
+    //console.log("#filterClickLocation click param.mapview: " + param.mapview);
+    if (!hash.mapview) {
+    	loadScript(theroot + 'js/map-filters.js', function(results) {
+			//if (!param.mapview) {
+			// Hash change triggers call to filterClickLocation() and map display.
+			if (hash.state) {
+				console.log("#filterClickLocation click go state");
+	    		goHash({'mapview':'state'});
+	    	} else {
+	    		goHash({'mapview':'country'});
+	    	}
+    	});
 	} else {
-		closeLocationFilter();
-
-		//alert("To do: Close tab");
-
-		/*
-		loadScript(theroot + 'js/map.js', function(results) { // Load list before map
-    
-			//loadMapFiltersJS(theroot,1);
-
-			loadScript(theroot + 'js/map-filters.js', function(results) {
-				
-				filterClickLocation(); // Resides in map-filters.js
-
-			});
-		});
-        */
+		// Triggers closeLocationFilter(); while setting priorHash.mapview.
+		//goHash({"mapview":""}); // Remove from URL using gohash so priorhash is also reset
+		goHash({},["mapview"]); //TODO - Alter so the above works instead.
 	}
-    //event.stopPropagation();
+    event.stopPropagation();
 });
 
 
@@ -1345,31 +1389,158 @@ function showApps(menuDiv) {
 			$('html,body').animate({
 				scrollTop: 0
 			});
-        
-			$("#bigThumbPanelHolder").hide();
-        	$(".showApps").removeClass("filterClickActive");
-			$('.showApps').removeClass("active"); // Still needed?
-
-		} else {
+        	closeAppsMenu();
+		} else { // Show Apps, Close Locations
 			console.log("call showThumbMenu from navidation.js");
 
 	        closeExpandedMenus($(".showSections")); // Close Locations sidetab and open Topics sidetab.
 	        $("#topicsPanel").show();
 
 	        if ($("#filterLocations").is(':visible')) {
-	            filterClickLocation(); // Toggle county-select closed
+	        	//goHash({"mapview":""});
+	        	goHash({},["mapview"]); //TODO - Alter so the above works instead.
+
+	            //filterClickLocation(); // Toggle county-select closedhttp://localhost:8887/localsite/map/#show=recyclers&state=GA
 	        }
 			$("#appSelectHolder .select-menu-arrow-holder .material-icons:first-of-type").hide();
 			$("#appSelectHolder .select-menu-arrow-holder .material-icons:nth-of-type(2)").show();
 
 			$("#showAppsText").text("Local Topics");
-			$("#appSelectHolder .showApps").addClass("filterClickActive");
+			waitForElm('#appSelectHolder').then((elm) => {
+				$("#appSelectHolder .showApps").addClass("filterClickActive");
+			});
 	        $("#bigThumbMenuInner").appendTo(menuDiv);
 			showThumbMenu(hash.show, menuDiv);
-	        $('html,body').animate({
-	        	//- $("#filterFieldsHolder").height()  
-	            scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
-	        });
+			//$('.showApps').addClass("filterClickActive");
+			waitForElm('#bigThumbPanelHolder').then((elm) => { 
+		        $('html,body').animate({
+		        	//- $("#filterFieldsHolder").height()  
+		            scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
+		        });
+		    });
 		}
 	});
+}
+function closeAppsMenu() {
+	$("#bigThumbPanelHolder").hide();
+    $(".showApps").removeClass("filterClickActive");
+	//$('.showApps').removeClass("active"); // Still needed?
+}
+function filterClickLocation(loadGeoTable) {
+    console.log("filterClickLocation() " + loadGeoTable);
+	$("#searchLocation").focus(); // Not working
+	//document.getElementById("searchLocation").focus(); // Not working
+	//$("#filterFieldsHolder").hide();
+
+	$("#bigThumbPanelHolder").hide();
+	$('.showApps').removeClass("filterClickActive");
+    let distanceFilterFromTop = 120;
+    if ($("#filterLocations").length) {
+    	distanceFilterFromTop = $("#filterLocations").offset().top - $(document).scrollTop();
+    }
+    //alert("distanceFilterFromTop  " + distanceFilterFromTop);
+	//$('.hideMetaMenuClick').trigger("click"); // Otherwise covers location popup. Problem: hides hideLayers/hideLocationsMenu.
+	if ($("#filterLocations").is(':visible') && (distanceFilterFromTop < 300 || distanceFilterFromTop > 300)) {
+        closeLocationFilter();
+	} else { // OPEN MAP FILTER
+		openMapLocationFilter()
+	}
+	$("#keywordFields").hide();
+}
+function openMapLocationFilter() {
+    let hash = getHash();
+    //alert("hash.state " + hash.state);
+    //alert("openMapLocationFilter param.state " + param.state);
+    console.log("openMapLocationFilter()");
+    closeAppsMenu();
+    loadScript(theroot + 'js/map-filters.js', function(results) {
+    	if (!hash.state && param.state) {
+	        hash.state = param.state; // For /apps/base/
+	        console.log("filterClickLocation updatesHash state " + hash.state);
+	        updateHash({"state":hash.state});
+	    }
+	    if (!hash.mapview) {
+	        let currentStates = [];
+	        if(hash.geo && !hash.state) {
+	            let geos = hash.geo.split(",");
+	            for(var i = 0 ; i < geos.length ; i++) {
+	                currentStates.push(getKeyByValue(us_stateIDs, Number(geos[i].replace("US","").substring(0,2))));
+	            }
+	        }
+	        if (currentStates.length > 0) { // Multiple states, use first one.
+	            goHash({"mapview":"state","state":currentStates[0]});
+	        } else {
+	            goHash({"mapview":"state"});
+	        }
+	    }
+	    $("#geoPicker").show();
+	    $("#filterLocations").show();
+	    $(".locationTabText").text("Locations");
+	    $("#topPanel").hide();
+	    $("#showLocations").show();
+	    $("#hideLocations").hide();
+
+	    $("#hero_holder").hide();
+	    if (typeof state_select_holder != "undefined") {
+	        state_select_holder.appendChild(state_select); // For apps hero
+	    }
+	    locationFilterChange("counties");
+
+	    if (hash.geo) {
+	        let clearall = false;
+	        if (hash.regiontitle != priorHash.regiontitle || hash.state != priorHash.state) {
+	            clearall = true;
+	        }
+	        if (hash.mapview != "country") {
+	            //if (loadGeoTable != false) { // Prevents loading twice on init
+	                //alert("updateSelectedTableRows 1")
+	                updateSelectedTableRows(hash.geo, clearall, 0);
+	            //}
+	        }
+	    }
+	    //alert("add filterClickActive")
+	    $("#filterClickLocation").addClass("filterClickActive");
+	    //loadScript(theroot + 'js/map.js', function(results) { // Load list before map
+	        renderMapShapes("geomap", hash, 1);// Called once map div is visible for tiles.
+	    //});
+	    if ($("#filterLocations").length) {
+	        $('html,body').animate({
+	            scrollTop: $("#filterLocations").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
+	        });
+	    } else {
+	        console.log("ALERT #filterLocations not available yet.")
+	    }
+	    if (location.host == 'georgia.org' || location.host == 'www.georgia.org') { 
+	        $("#header.nav-up").show();
+	    }
+	});
+}
+function closeLocationFilter() {
+    //delete(hash.mapview); // BUGBUG, clears but still in filterClickLocation click
+    //alert("hash.mapview: " + hash.mapview)
+    console.log("closeLocationFilter()");
+    $(".locationTabText").text($(".locationTabText").attr("title"));
+    $("#showLocations").hide();
+    $("#hideLocations").show();
+    //$(".locationTabText").text("Entire State");
+    $("#filterLocations").hide();
+    $("#filterClickLocation").removeClass("filterClickActive");
+    if (location.host == 'georgia.org' || location.host == 'www.georgia.org') { 
+        $("#header.nav-up").hide();
+    }
+
+    if (typeof relocatedStateMenu != "undefined") {
+        relocatedStateMenu.appendChild(state_select); // For apps hero
+    }
+    $("#hero_holder").show();
+
+    /*
+    if(location.host.indexOf("localhost") >= 0 || location.host.indexOf("georgia") >= 0) { // TEMP until state is enforced while international map is still avalable. Applied when clicking "Top Industires" here: /localsite/map/#show=trade&mapview=countries
+        console.log("Populate with state based on domain.")
+        goHash({"mapview":"","state":"GA"});
+    } else {
+        //updateHash({"mapview":""});
+        
+    }
+    */
 }
