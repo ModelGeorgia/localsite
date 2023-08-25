@@ -505,6 +505,8 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 .datascapeEmbed {
 	display: flex;
 	flex-direction: row;
+}
+.datascapeEmbed #listcolumn {
 	max-height: 1200px;
 }
 #insertedText {
