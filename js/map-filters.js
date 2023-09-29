@@ -292,19 +292,6 @@ $(document).ready(function () {
     $(document).on("change", "#country_select", function(event) {
         goHash({'mapview':this.value,'state':''});
     });
- 	$(document).on("change", "#state_select", function(event) {
-        console.log("state_select change");
- 		if (this.value) {
-	    	$("#geoPicker").show();
-	    	$("#region_select").val("");
-            // Later a checkbox could be added to retain geo values across multiple states
-            // Omitting for BC apps page  ,'mapview':'state'
-	    	goHash({'state':this.value,'geo':'','name':'','regiontitle':''}); // triggers renderMapShapes("geomap", hash); // County select map
-	    	//$("#filterLocations").hide(); // So state appears on map immediately
-	    } else { // US selected
-	    	goHash({'mapview':'country','state':''});
-	    }
-	});
 	$('.selected_state').on('change', function() {
 		//alert("selected_state " + this.getAttribute("id"))
 		$("#state_select").val(this.getAttribute("id"));
@@ -1575,6 +1562,8 @@ function loadStateCounties(attempts) { // To avoid broken tiles, this won't be e
                 let csvFilePath = local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv";
                 if (hash.mapview == "zip") {
                     csvFilePath = local_app.community_data_root() + "us/zipcodes/zipcodes6.csv";
+                } else if (hash.show == "cameraready" && hash.state == "GA") {
+                    csvFilePath = "/localsite/info/data/map-filters/state-county-sections-ga.csv";
                 }
     			d3.csv(csvFilePath).then(function(myData,error) {
                 //d3.csv(csvFilePath, function(myData) {
@@ -2411,7 +2400,7 @@ $(document).ready(function () {
     }
     var catString = catTitle.replace(/ /g, '_').replace(/&/g, '%26');
     $("#bigThumbPanelHolder").hide();
-    $(".showApps").removeClass("filterClickActive");
+    $(".showApps").removeClass("filterClickActive"); updateHash({'appview':''});
     if (catString == "All_Categories") {
         hash.cat = "";
         catString = "";
@@ -2722,9 +2711,6 @@ function callInitSiteObject(attempt) {
 */
 
 // INIT
-if(typeof priorHash == 'undefined') {
-    var priorHash = {};
-}
 if(!param.state) {
     local_app.loctitle = "United States";
 }
@@ -2754,11 +2740,10 @@ if(typeof hiddenhash == 'undefined') {
 // Load localObject.layers for later use when showApps clicked
 // Also adds state hash for layers requiring a state.
 //callInitSiteObject(1); // replaced by 
-
-
+//alert("map-filters")
 function hashChanged() {
 	let loadGeomap = false;
-	let hash = getHash(); // Includes changes to hiddenhash
+	let hash = getHash(); // Might still include changes to hiddenhash
 
     //alert("hiddenhash.mapview " + hiddenhash.mapview)
 
@@ -2782,8 +2767,9 @@ function hashChanged() {
 	populateFieldsFromHash();
 	productList("01","99","All Harmonized System Categories"); // Sets title for new HS hash.
 
+    let stateAbbrev = "";
 	if (hash.state) {
-		var stateAbbrev = hash.state.split(",")[0].toUpperCase();
+		stateAbbrev = hash.state.split(",")[0].toUpperCase();
 		// Apply early since may be used by changes to geo
 		$("#state_select").val(stateAbbrev);
         if (priorHash.state && hash.state != priorHash.state) {
@@ -2792,14 +2778,25 @@ function hashChanged() {
 	} else {
         //$(".locationTabText").text("United States");
     }
-
-
+    //alert("hash.appview " + hash.appview)
+    if (hash.appview && hash.appview != priorHash.appview) {
+        loadScript(theroot + 'js/navigation.js', function(results) {
+            alert("hash.appview exists")
+            showApps("#bigThumbMenu");
+        });
+    }
 	if (hash.show != priorHash.show) {
         if (hash.show && priorHash.show) {
             console.log("Close location filter, show new layer.");
             closeLocationFilter();
         }
-        closeAppsMenu();
+        if (!hash.appview) {
+            waitForElm('.showApps').then((elm) => {
+                // Same as in closeAppsMenu(), but calling that function from here generates blank page
+                $("#bigThumbPanelHolder").hide();
+                $(".showApps").removeClass("filterClickActive"); updateHash({'appview':''});
+            });
+        }
         loadScript(theroot + 'js/map.js', function(results) {
         });
 
@@ -2973,12 +2970,11 @@ function hashChanged() {
         });
     } else if (priorHash.mapview && !hash.mapview) {
         $("#country_select").val("");
-        closeLocationFilter(); alert("closeLocationFilter");
+        closeLocationFilter();
     }
     */
 
-    // Also used for state change in apps without map which don't have mapview
-	if (hash.state != priorHash.state) {
+    if (hash.state != priorHash.state) {
 		loadGeomap = true;
 		if(location.host.indexOf('model.georgia') >= 0) {
 			if (hash.state != "" && hash.state.split(",")[0].toUpperCase() != "GA") { // If viewing other state, use model.earth
@@ -2987,38 +2983,8 @@ function hashChanged() {
 			}
 		}
 
-		
+		$("#state_select").val(stateAbbrev);
 
-        //let imageUrl = "https://model.earth/us-states/images/backgrounds/1280x720/landscape/georgia.jpg";
-        //$("#hero-landscape-image").css('background-image', 'url(' + imageUrl + ')');
-
-        let theStateName; // Full name of state.
-        let theStateNameLowercase;
-        let imageUrl;
-        loadScript(theroot + 'js/map-filters.js', function(results) {
-            waitForElm('#state_select').then((elm) => {
-                $("#state_select").val(stateAbbrev);
-                if ($("#state_select").find(":selected").val()) { // Omits top which has no text
-                    theStateName = $("#state_select").find(":selected").text();
-                    //theState = $("#state_select").find(":selected").val();
-                }
-                if (theStateName && theStateName.length > 0) {
-                    theStateNameLowercase = theStateName.toLowerCase();
-                    imageUrl = "https://model.earth/us-states/images/backgrounds/1280x720/landscape/" + theStateNameLowercase.replace(/\s+/g, '-') + ".jpg";
-                    if (theStateNameLowercase == "georgia") {
-                    	imageUrl = "/apps/img/hero/state/GA/GA-hero.jpg";
-                    }
-                    if (theStateName.length == 0) {
-                    	imageUrl = "/apps/img/hero/state/GA/GA-hero.jpg";
-                    }
-                } else {
-                    imageUrl = "/apps/img/hero/state/GA/GA-hero.jpg";
-                }
-                let imageUrl_scr = "url(" + imageUrl + ")";
-                //alert("imageUrl_scr  " + imageUrl_scr)
-                $("#hero-landscape-image").css('background-image', imageUrl_scr);
-            });
-        });
 		if (hash.state != "GA") {
 			$(".regionFilter").hide();
 			$(".geo-limited").hide();
@@ -3045,10 +3011,14 @@ function hashChanged() {
         }
     }
 
+    console.log("hashChanged hash.mapview: " + hash.mapview + ".  priorHash.mapview: " + priorHash.mapview);
     if (hash.mapview != priorHash.mapview) {
+
         if (hash.mapview) {
             loadScript(theroot + 'js/navigation.js', function(results) {
-                openMapLocationFilter();
+                //setTimeout( function() { // Let's watch for a field instead  
+                    openMapLocationFilter();
+                //}, 2000 );
             });
         }
         if (hash.mapview == "state" || hash.mapview == "country") {
@@ -3328,10 +3298,6 @@ function hashChanged() {
 
     $(".regiontitle").text(local_app.loctitle);
     $(".service_title").text(local_app.loctitle + " - " + local_app.showtitle);
-	//priorHash = getHash();
-    //alert("hash.mapview " + hash.mapview);
-    priorHash = $.extend(true, {}, getHash()); // Clone/copy object without entanglement
-    //alert("Done, set priorHash.mapview to " + priorHash.mapview)
 
     /*
 	if (loadGeomap) {
