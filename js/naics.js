@@ -11,7 +11,6 @@
 
 //let hash = loadParams(location.search,location.hash);
 //hash = mix(param,hash); // Add include file's param values.
-
 let initialNaicsLoad = true;
 let hash = getHash(); // Includes hiddenhash
 if (typeof dataObject == 'undefined') {
@@ -119,6 +118,7 @@ document.addEventListener('hashChangeEvent', function (elem) {
         //alert('Localhost Alert: hashChangeEvent invoked by naics.js'); // Invoked twice by iogrid inflow-outflow chart
     }
     //let hash = loadParams(location.search,location.hash);
+    console.log("naics.js detects hash change");
     refreshNaicsWidget();                    
  }, false);
 
@@ -135,31 +135,31 @@ function refreshNaicsWidget() {
     //hash = mix(param,hash); // Add include file's param values.
 
 
-    //alert("refreshNaicsWidget " + typeof hash.naics + " " + typeof priorHash_naicspage.naics)
-    if (hash.name && hash.name != priorHash_naicspage.name) {
+    //alert("refreshNaicsWidget " + typeof hash.naics + " " + typeof priorHash.naics)
+    if (hash.name && hash.name != priorHash.name) {
         console.log("Exit refreshNaicsWidget - not for name change");
         return;
     }
-    if (!hash.show || hash.show != priorHash_naicspage.show) { // GET NAICS BASED ON THEME (recycing, bioeconomy, etc.)
+    if (!hash.show || hash.show != priorHash.show) { // GET NAICS BASED ON THEME (recycing, bioeconomy, etc.)
         // Initial load
         //alert("hash.show " + hash.show)
         getNaics_setHiddenHash2(hash.show); // Sets hiddenhash.naics for use by other widgets.
 
         // Get the hash again - hiddenhash.naics is set in getNaics_setHiddenHash2
         hash = getHash(); // Get new hiddenhash
-    } else if (hash.naics != priorHash_naicspage.naics) { // IF NAICS, AVOID THEME NAICS (from show) 
+    } else if (hash.naics != priorHash.naics) { // IF NAICS, AVOID THEME NAICS (from show) 
         //alert("hash.naics " + hash.naics);
-    } else if (hash.state != priorHash_naicspage.state) {
+    } else if (hash.state != priorHash.state) {
         // Not working yet
         //getNaics_setHiddenHash2(hash.show); // Show the state name above naics list.
-    } else if (hash.catsize != priorHash_naicspage.catsize) {
+    } else if (hash.catsize != priorHash.catsize) {
         //getNaics_setHiddenHash2(hash.show);
     }
 
     let loadNAICS = false;
     // The following will narrow the naics to the current location
     
-    if (hash.regiontitle != priorHash_naicspage.regiontitle) {
+    if (hash.regiontitle != priorHash.regiontitle) {
         if (!hash.regiontitle) {
             if(!hash.geo) {
                 
@@ -169,48 +169,66 @@ function refreshNaicsWidget() {
             hiddenhash.loctitle = hash.regiontitle;
             $("#region_select").val(hash.regiontitle.replace(/\+/g," "));
             hiddenhash.geo = $("#region_select option:selected").attr("geo");
-            hash.geo = hiddenhash.geo; // Used by naics.js
+            hash.geo = $("#region_select option:selected").attr("geo");
+            // Avoid this:
+            //hash.geo = hiddenhash.geo; // Used by naics.js
         }
         loadNAICS = true;
-    } else if (hash.state != priorHash_naicspage.state) {
+    } else if (hash.state != priorHash.state) {
         // Initial load, if there is a state
         console.log("hash.state change call loadIndustryData(hash)")
         // Occurs on INIT
         loadNAICS = true;
-    } else if (hash.show != priorHash_naicspage.show) {
+    } else if (hash.show != priorHash.show) {
         loadNAICS = true;
-    } else if (hash.geo != priorHash_naicspage.geo) {
+    } else if (hash.geo != priorHash.geo) {
         loadNAICS = true;
-    } else if ((hash.naics != priorHash_naicspage.naics) && hash.naics && hash.naics.indexOf(",") > 0) { // Skip if only one naics
+    } else if ((hash.naics != priorHash.naics) && hash.naics && hash.naics.indexOf(",") > 0) { // Skip if only one naics
         loadNAICS = true;
-    } else if (hash.catsize != priorHash_naicspage.catsize) {
+    } else if (hash.catsize != priorHash.catsize) {
         loadNAICS = true;
-    } else if (hash.catsort != priorHash_naicspage.catsort) {
+    } else if (hash.catsort != priorHash.catsort) {
         loadNAICS = true;
+    } else {
+        // TEMP for US
+        console.log("loadNAICS for any change - added for US")
+        loadNAICS = true; // Allows toggleBubbleHighlights() to be called, which calls midFunc
     }
     /*
-    } else if (hash.indicators != priorHash_naicspage.indicators) {
+    } else if (hash.indicators != priorHash.indicators) {
         // Avoid invoking change to widget since indicators is auto-detected
         //alert("hash.indicators " + hash.indicators);
         // initial
-    } else if (hash.sectors != priorHash_naicspage.sectors) {
+    } else if (hash.sectors != priorHash.sectors) {
         // Avoid invoking change to widget since sectors is auto-detected
     }
     */
 
-    if ((hash.naics != priorHash_naicspage.naics) && hash.naics.indexOf(",") < 0) {
+    console.log("hiddenhash.indicators " + hiddenhash.indicators)
+    // hash.naics.indexOf(",") causes error when no hash.naics
+    //if ((hash.naics != priorHash.naics) && hash.naics.indexOf(",") < 0) {
         //if (!hash.indicators) {
             //param.indicators = "ACID,CCDD,CMSW,CRHW,ENRG,ETOX,EUTR,GHG,HAPS,HCAN,HNCN,HRSP,HTOX,JOBS,LAND,MNRL,NNRG,OZON,PEST,RNRG,SMOG,VADD,WATR";
             //hiddenhash.indicators = "ACID,CCDD,CMSW,CRHW,ENRG,ETOX,EUTR,GHG,HAPS,HCAN,HNCN,HRSP,HTOX,JOBS,LAND,MNRL,NNRG,OZON,PEST,RNRG,SMOG,VADD,WATR";
-            hiddenhash.indicators = "ACID,CCDD,CMSW,CRHW,ENRG,ETOX,EUTR,GHG,HAPS,HCAN,HNCN,HRSP,HTOX,JOBS,LAND,MNRL,NNRG,OZON,PEST,RNRG,SMOG,VADD,WATR";
-        
+            
+            // Shows too many (all) in input-output chart
+            // Commercial Municipal Solid Waste outweighs other indicators.
+            //hiddenhash.indicators = "ACID,CCDD,CMSW,CRHW,ENRG,ETOX,EUTR,GHG,HAPS,HCAN,HNCN,HRSP,HTOX,JOBS,LAND,MNRL,NNRG,OZON,PEST,RNRG,SMOG,VADD,WATR";
+
+            // For input-output chart - This also originates somewhere else.
+            //hiddenhash.indicators = "GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS,ENRG,WATR";
+
         //}
-    }
+    //}
+
     //alert("naics " + hash.naics)
     if (loadNAICS) {
         if (hash.state && hash.naics && hash.naics.indexOf(",") < 0) { // Hide when viewing just 1 naics within a state.
             $("#industryListHolder").hide();
             $("#industryDetail").show();
+        } else if (!hash.state) {
+            $("#industryListHolder").show();
+            $("#industries").html("<div style='padding:0 20px 20px 20px'>Select a location above for industry details.</div>");
         } else {
             $("#industryListHolder").show();
             $("#industryDetail").hide();
@@ -231,8 +249,8 @@ function refreshNaicsWidget() {
         $("#industryListHolder").hide();
         $("#industryDetail").hide();
     }
-    console.log("naics1 " + loadNAICS + " " + hash.show + " " + priorHash_naicspage.show);
-    if ((initialPageLoad || hash.show != priorHash_naicspage.show)) {
+    console.log("naics1 " + loadNAICS + " " + hash.show + " " + priorHash.show);
+    if ((initialPageLoad || hash.show != priorHash.show)) {
         //alert("call applyIO no naics")
         if (loadNAICS == false) { // Not sure if loadNAICS==false needed, or if applyIO is ever used here.
             applyIO("");
@@ -240,10 +258,6 @@ function refreshNaicsWidget() {
         if(initialPageLoad) {
             loadScript(theroot + '../localsite/js/d3.v5.min.js', function(results) {
                 loadScript(theroot + '../io/charts/bubble/js/bubble.js', function(results) {
-
-                    //displayImpactBubbles(1); // Red bubbles appear when toggling.
-                    //refreshBubbleWidget(); // No effect
-
                 });
             });
         }
@@ -253,7 +267,7 @@ function refreshNaicsWidget() {
     //priorHash_naicspage = getHash();
     priorHash_naicspage = $.extend(true, {}, getHash()); // Clone/copy object without entanglement
 
-    //alert("afterr " + priorHash_naicspage.naics);
+    //alert("afterr " + priorHash.naics);
     // priorHash_naicspage = mix(getHash(),hash); // So we include changes above.
 }
 
@@ -443,7 +457,6 @@ function populateTitle(showtitle,showtab) {
     $(".regiontitle").text(showtitle);
 }
 
-
 // NOT OPTIMALLY DESIGNED - No need to load all 3 naics datasets for state.
 // Calls promisesReady when completed.
 function loadIndustryData(hash) {
@@ -458,11 +471,14 @@ function loadIndustryData(hash) {
     if(!stateAbbr) {
         stateAbbr = param.state;
     }
+    
     // HACK BUGBUG - Until we have a path to data for entire country.
     if(!stateAbbr) {
         stateAbbr = "GA";
     }
-    
+    //alert("stateAbbr " + stateAbbr)
+
+    console.log("naics stateAbbr: " + stateAbbr)
     if(!stateAbbr) { // THIS IS NOT REACHED ON INIT, regardless of hack above.
         // Load US data here
         // TODO: When acivating, in info/index.html remove applyIO("")
@@ -472,6 +488,10 @@ function loadIndustryData(hash) {
         //console.log("call applyIO when no stateAbbr")
         //alert("Load national, no naics stateAbbr " + stateAbbr);
         //applyIO(""); // Causes loop
+
+        //alert("no state")
+        //renderIndustryChart(dataObject,values,hash);
+            
     } else {
         //alert("stateAbbr1: " + stateAbbr);
         dataObject.stateshown=stateID[stateAbbr.toUpperCase()];
@@ -561,7 +581,7 @@ function promisesReady(values) {
                         'ActualRate': formatIndustryData(values[7],dataObject.subsetKeys_state_api)
                     }
                 }
-                    
+                
                 dataObject.industryDataStateApi=industryDataStateApi;
                 
                 industryNames = {}
@@ -698,7 +718,7 @@ function renderIndustryChart(dataObject,values,hash) {
     console.log("whichHaveChanged: ");
     console.log(whichHaveChanged);
 
-    console.log(hash.show + " priorHash_naicspage " + priorHash_naicspage.show)
+    console.log(hash.show + " priorHash_naicspage " + priorHash.show)
     // BUG - this return prevented change to show from reloading
     //if (whichHaveChanged.length == 0 && initialNaicsLoad == false) {
     //    console.log("Cancel naics.js, no hash values have changed.");
@@ -1015,7 +1035,7 @@ function topRatesInFips(dataSet, dataNames, fips, hash) {
                     }   
                 } else {
                     // US Reaches here
-                    //alert("fips " + fips + " dataObject.stateshown " + dataObject.stateshown);
+                    console.log("fips state ID " + fips + ", dataObject.stateshown stateID " + dataObject.stateshown);
                     if (fips==dataObject.stateshown){
                     
                         if (hash['census_scope']=="state"){
@@ -1648,7 +1668,7 @@ function getKeyByValue(object, value) {
 }
 
 function applyIO(naics) {
-    //alert("applyIO with naics: " + naics);
+    console.log("applyIO heatmap with naics: " + naics);
 
     if (!hash.indicators) {
         hash.indicators = "ACID,ETOX,EUTR,GHG,HTOX,LAND,OZON,PEST,SMOG,WATR";
@@ -1659,6 +1679,13 @@ function applyIO(naics) {
         hiddenhash.naics = naics; // No effect
         //hiddenhash.naics = naicsCodes; // Causes split error in bubble chart.
     }
+
+    if (!hash.state && !param.state) {
+        console.log("Show national by cleaing hiddenhash.naics.")
+        // Clear to show national heatmap mosaic and input-output chart.
+        hiddenhash.naics = "";
+    }
+
     var indicators = "";
     //let hash = getHash();
     if (hash.indicators) {

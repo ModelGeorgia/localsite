@@ -77,15 +77,9 @@ function populateFieldsFromHash() {
 
 
 // INIT
-
-//locationFilterChange("counties"); // Display county list
-//$("#filterClickLocation .locationTabText").html("Counties");
-//$(".filterUL li").removeClass("selected");
-//$(".filterUL li").find("[data-id='counties']").addClass("selected"); // Not working
-
-
-$(".showSearch").css("display","inline-block");
-$(".showSearch").removeClass("local");
+//alert("hey")
+//$(".showSearch").css("display","inline-block");
+//$(".showSearch").removeClass("local");
 
 catArray = [];
 $(document).ready(function () {
@@ -657,7 +651,7 @@ function renderMapShapeAfterPromise(whichmap, hash, mapview, attempts) {
         $("#geoPicker").show();
         $('#' + whichmap).show();
         if (!$("#" + whichmap).is(":visible")) {
-          $("#filterLocations").show(); //Why did we need here?
+          //$("#filterLocations").show(); //Why did we need here?
           console.log("Caution: #" + whichmap + " not visible. May effect tile loading.");
           //return; // Prevents incomplete tiles
         }
@@ -1206,10 +1200,12 @@ function renderMapShapeAfterPromise(whichmap, hash, mapview, attempts) {
               // Send text to side box
               info.update(layer.feature.properties);
             }
-       
+            // Rollout map shape (county)
             function resetHighlight(e){
+                // Restores color prior to rollover
                 if (geoOverlays[layerName]) {
-                  console.log("Found layerName: " + layerName);
+                  //console.log("Rollout resetHighlight e.target ");
+                  //console.log(e.target);
                   geoOverlays[layerName].resetStyle(e.target);
                   info.update();
                 } else {
@@ -1776,7 +1772,7 @@ var geotable = {};
 function showTabulatorList(element, attempts) {
     consoleLog("showTabulatorList. Length: " + Object.keys(element).length + ". Attempt: " + attempts);
 	let hash = getHash();
-    theState = hash.state;
+    let theState = hash.state;
     if (element.state) {
         theState = element.state;
     }
@@ -2056,10 +2052,13 @@ function showTabulatorList(element, attempts) {
 	}
 }
 function updateSelectedTableRows(geo, clear, attempts) {
+    let hash = getHash();
     if (!hash.state) {
         console.log("ALERT - A state value is needed in the URL")
     } else {
     	if (typeof geotable.getRows === "function") {
+            //alert("geotable.getRows === function")
+            // #tabulator-geotable
         	//geotable.selectRow(geotable.getRows().filter(row => row.getData().name.includes('Ba')));
         	if (clear) {
                 geotable.deselectRow(); // All
@@ -2208,12 +2207,9 @@ function populateCityList(callback) {
             }
         });
         $(".listHolder").append(n);
-        //$(".listPanelRows").prepend(n);
-        
 
         // We avoid showing .listHolder here because sometime list is populated without displaying.
         $('.cityList :checkbox').change(function () {
-            //alert('city list triggers goSearch');
             $('#goSearch').trigger("click");
         });
         $('.cityText').click(function(event) {
@@ -2740,11 +2736,13 @@ if(typeof hiddenhash == 'undefined') {
 // Load localObject.layers for later use when showApps clicked
 // Also adds state hash for layers requiring a state.
 //callInitSiteObject(1); // replaced by 
-//alert("map-filters")
+
 function hashChanged() {
+    //alert("priorHash.geo: " + priorHash.geo)
 	let loadGeomap = false;
 	let hash = getHash(); // Might still include changes to hiddenhash
-
+    //alert("hash.geo1 " + hash.geo);
+    //alert("hash.mapview " + hash.mapview)
     //alert("hiddenhash.mapview " + hiddenhash.mapview)
 
     console.log("hashChanged() map-filters.js");
@@ -2773,15 +2771,15 @@ function hashChanged() {
 		// Apply early since may be used by changes to geo
 		$("#state_select").val(stateAbbrev);
         if (priorHash.state && hash.state != priorHash.state) {
-            $("#hitRefreshNote").show();
+            console.log("hitRefreshNote is now turned off")
+            //$("#hitRefreshNote").show();
         }
 	} else {
         //$(".locationTabText").text("United States");
     }
-    //alert("hash.appview " + hash.appview)
     if (hash.appview && hash.appview != priorHash.appview) {
         loadScript(theroot + 'js/navigation.js', function(results) {
-            alert("hash.appview exists")
+            console.log("hash.appview exists: " + hash.appview);
             showApps("#bigThumbMenu");
         });
     }
@@ -2845,7 +2843,7 @@ function hashChanged() {
 		//$("#infoColumn").show();
         $(".mainColumn1").show();
 	}
-	if (hash.geomap != priorHash.geomap) {
+    if (hash.geomap != priorHash.geomap) {
 		//if (hash.geomap) {
 			$("#aboutToolsDiv").hide();
 			//$("#infoColumn").show();
@@ -2854,6 +2852,8 @@ function hashChanged() {
 			// DOES NOT WORK - document.querySelector(whichmap)._leaflet_map not found
 			//reloadMapTiles('#geomap',1);
 			
+            alert("renderMapShapes")
+            renderMapShapes();
 			
 			/*
 			alert("show map")
@@ -3006,14 +3006,13 @@ function hashChanged() {
         //&& hash.mapview == "state"
         if (hash.mapview && hash.mapview == priorHash.mapview) { // Prevents dup loading when hash.mapview != priorHash.mapview below.
             if (hash.mapview != "earth") {
+                console.log("loadStateCounties invoked by state change");
                 loadStateCounties(0); // Add counties to state boundaries.
             }
         }
     }
 
-    console.log("hashChanged hash.mapview: " + hash.mapview + ".  priorHash.mapview: " + priorHash.mapview);
     if (hash.mapview != priorHash.mapview) {
-
         if (hash.mapview) {
             loadScript(theroot + 'js/navigation.js', function(results) {
                 //setTimeout( function() { // Let's watch for a field instead  
@@ -3025,6 +3024,9 @@ function hashChanged() {
             if (hash.mapview == "country") {
                 //loadStateCounties(0); // State border layer
             }
+            console.log("loadStateCounties invoked by mapview change");
+            console.log("priorHash.mapview: " + priorHash.mapview + ", hash.mapview: " + hash.mapview);
+            
             loadStateCounties(0);
 
             //if (hash.mapview == "country" && !hash.state) {
@@ -3041,8 +3043,10 @@ function hashChanged() {
                         ];
 
                     // Not needed since loadStateCounties above loads.
-                    //loadObjectData(element, 0);
-
+                    // Actual was need for tabulator list of states, but USA map shapes turned red.
+                    if (hash.mapview == "country") {
+                        loadObjectData(element, 0);
+                    }
                     $("#tabulator-geocredit").show();
                 }
             //}
@@ -3076,7 +3080,8 @@ function hashChanged() {
             //alert("country");
             $("#geoPicker").show(); // Required for map to load
             $("#state_select").show();
-            openMapLocationFilter();
+            
+            //openMapLocationFilter();
         }
     } else if (hash.mapview == "state") {
         $("#state_select").show();
@@ -3109,10 +3114,12 @@ function hashChanged() {
             $(".locationTabText").text("United States");
         }
 
+        //alert("hash.regiontitle " + hash.regiontitle);
         if(!hash.regiontitle) {
-            //alert("no hash.regiontitle")
+            //alert("OKAY hash.geo before: " + hash.geo);
             delete hiddenhash.loctitle;
             delete hiddenhash.geo;
+            //alert("BUG hash.geo after: " + hash.geo);
             //delete param.geo;
             $(".regiontitle").text("");
             // Could add full "United States" from above. Could display longer "show" manufacing title.
@@ -3145,7 +3152,8 @@ function hashChanged() {
             
             $(".regiontitle").val(hash.regiontitle.replace(/\+/g," "));
             hiddenhash.geo = $("#region_select option:selected").attr("geo");
-            hash.geo = hiddenhash.geo;
+            hash.geo = $("#region_select option:selected").attr("geo");
+            //hash.geo = hiddenhash.geo;
             
             try {
 	        	params.geo = hiddenhash.geo; // Used by old naics.js
@@ -3154,7 +3162,8 @@ function hashChanged() {
 		    }
         }
     }
-
+    //alert("hash.geo 2 " + hash.geo);
+    //alert("priorHash.geo 2 " + priorHash.geo);
     if (hash.geo != priorHash.geo) {
         if (hash.geo && hash.geo.length > 4) { 
             $(".state-view").hide();
@@ -3283,30 +3292,36 @@ function hashChanged() {
         }
     }
 
-    /*
+    //alert("mapview: " + hash.mapview + " " + priorHash.mapview);
     if (hash.mapview != priorHash.mapview) {
     	//$(".stateFilters").show();
     	//$("#filterLocations").show();
     	//$("#geomap").show(); // To trigger map filter display below.
-    	if (hash.mapview) {
+
+        // Opening mapview tab without state rendered yet - ToDo: check a data attribute to see what state is already loaded
+    	if (hash.mapview) { // && map2 data != hash.state  // && hash.state now allowing without state for country map
+            //alert("loadGeomap")
     		loadGeomap = true;
     	} else {
+            //alert("#filterLocations hide")
             $("#filterLocations").hide();
     	}
     }
-    */
+    
 
     $(".regiontitle").text(local_app.loctitle);
     $(".service_title").text(local_app.loctitle + " - " + local_app.showtitle);
 
-    /*
+    
 	if (loadGeomap) {
+        //alert("loadGeomap")
+        //$("#filterLocations").show();
 		if($("#geomap").is(':visible')){
 			console.log("call renderMapShapes from map-filter.js hashChanged()");
 			renderMapShapes("geomap", hash, "county", 1); // County select map
 		}
 	}
-    */
+    
 }
 
 // INIT
@@ -3320,7 +3335,8 @@ $(document).ready(function () {
 		$("#region_select").val(hash.regiontitle)
 		//$("#state_select option[value='NV']").prop('selected', true);
 	}
-	hashChanged();
+	//hashChanged(); // Move to localsite.js since occurs twice if map-filter.js loaed by hash change.
+
 	/*
 	if (hiddenhash.showtitle) {
     	$("#showAppsText").text(hiddenhash.showtitle);
