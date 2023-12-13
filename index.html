@@ -34,6 +34,9 @@ body {
   max-height: 74%;
   max-width: 350px;
 }
+.dark .slideTextBox {
+  color: #333;
+}
 .slideText {
   position:absolute;
   color: #fff;
@@ -200,7 +203,7 @@ text-align:left; overflow:scroll;
           <div class="title">Tilford Yard</div>
           <div class="subtitle" data-swiper-parallax="-200"></div>
           <div class="text" data-swiper-parallax="-100">
-            <p>Located northwest of Atlanta, Tilford Yard has been transformed as residential construction has expanded along the Beltline trail.<br><br>
+            <p>Located northwest of Atlanta, Tilford Yard has&nbsp;been transformed by new residential construction along the Beltline trail.<br><br>
             </p>
           </div>
         </div>
@@ -469,6 +472,25 @@ var vis = document.getElementById('vis'),
   }
   </script>
 
+  <div id="cookieList"></div>
+  <script>
+  function listCookies() {
+      var theCookies = document.cookie.split(';');
+      var aString = '';
+      for (var i = 0 ; i < theCookies.length; i++) {
+          console.log("theCookies[i] " + theCookies[i]);
+          var theCookVal = theCookies[i].split('=');
+          aString += '<b>' + theCookVal[0] + '</b> ' + theCookVal[1] + "<br>\n";
+      }
+      $(document).ready(function () {
+        $("#cookieList").html("<h2>Cookies</h2>" + aString);
+      });
+  }
+  if (location.host.indexOf('localhost') >= 0) {
+    listCookies();
+  }
+  </script>
+
 </div>
 
 <script>
@@ -483,3 +505,6 @@ var vis = document.getElementById('vis'),
 
 </body>
 </html>
+
+
+

@@ -295,7 +295,7 @@ $(document).ready(function () {
  		//alert($(this).attr("geo"))
  	    //goHash({'regiontitle':this.value,'lat':this.options[this.selectedIndex].getAttribute('lat'),'lon':this.options[this.selectedIndex].getAttribute('lon'),'geo':this.options[this.selectedIndex].getAttribute('geo')});
  		hiddenhash.geo = this.options[this.selectedIndex].getAttribute('geo');
-        alert("hiddenhash.geo " + hiddenhash.geo);
+        console.log("hiddenhash.geo " + hiddenhash.geo);
         delete hash.geo;
         delete param.geo;
         try {
@@ -1381,7 +1381,7 @@ function zoomFromKm(kilometers_wide, theState) {
   if (theState == "HI" || theState == "IN") {
     zoom = zoom + 2;
   }
-  if (theState == "DE") {
+  if (theState == "DE" || theState == "RI" || theState == "MA") {
     zoom = zoom + 3;
   }
   return zoom;
@@ -2396,7 +2396,8 @@ $(document).ready(function () {
     }
     var catString = catTitle.replace(/ /g, '_').replace(/&/g, '%26');
     $("#bigThumbPanelHolder").hide();
-    $(".showApps").removeClass("filterClickActive"); updateHash({'appview':''});
+    $(".showApps").removeClass("filterClickActive");
+    //updateHash({'appview':''});
     if (catString == "All_Categories") {
         hash.cat = "";
         catString = "";
@@ -2599,112 +2600,6 @@ function localJsonpCallback(json) {
     alert(json.Message);
   }
 }
-function loadLocalObjectLayers(layerName, callback) { // layerName is not currently used
-    //alert("loadLocalObjectLayers " + layerName);
-    // Do we need to load this function on init, for state hash for layers requiring a state.
-
-    //console.log("loadLocalObjectLayers is deactivated. Using thumb menu load instead.")
-    //return;
-
-    let hash = getHash();
-	//if(location.host.indexOf('localhost') >= 0) {
-	    // Greenville:
-	    // https://github.com/codeforgreenville/leaflet-google-sheets-template
-	    // https://data.openupstate.org/map-layers
-
-	    //var layerJson = local_app.community_data_root() + "us/state/GA/ga-layers.json"; // CORS prevents live
-	    // The URL above is outdated. Now resides here:
-	    let layerJson = local_app.localsite_root() + "info/data/ga-layers-array.json";
-        if(location.host.indexOf("georgia") >= 0) {
-	    	// For B2B Recyclers, since localsite folder does not reside on same server.
-	    	layerJson = "https://model.earth/localsite/info/data/ga-layers-array.json";
-	    	console.log("Set layerJson: " + layerJson);
-		}
-        //alert(layerJson)
-	    //console.log(layerJson);
-
-        if (localObject.layers.length >= 0) {
-            callback();
-            return;
-        }
-	    let layerObject = (function() {
-            //alert("loadLocalObjectLayers layerObject " + layerName);
-    
-            if(!localObject.layers) {
-                console.log("Error: no localObject.layers");
-            }
-            $.getJSON(layerJson, function (layers) {
-
-                //console.log("The localObject.layers");
-                //console.log(localObject.layers);
-
-                // Create an object of objects so show.hash is the layers key
-                $.each(layers, function (i) {
-
-                    // To Do, avoid including "item" in object since it is already the key.
-                    localObject.layers[layers[i].item] = layers[i];
-
-                    //$.each(layerObject[i], function (key, val) {
-                    //    alert(key + val);
-                    //});
-                });
-
-                console.log("The localObject 2");
-                console.log(localObject);
-
-                //console.log("The localObject.layers");
-                //console.log(localObject.layers);
-
-                let layer = hash.show;
-                //alert(hash.show)
-                //alert(localObject.layers[layer].state)
-                
-
-
-
-
-          		// These should be lazy loaded when clicking menu
-                //displayBigThumbnails(0, hash.show, "main");
-                //displayHexagonMenu("", layerObject);
-                
-                if (!hash.show && !param.show) { // INITial load
-                	// alert($("#fullcolumn").width()) = null
-                	if ($("body").width() >= 800) {
-
-                		//showThumbMenu(hash.show, "#bigThumbMenu");
-                	}
-            	}
-                callback();
-                return;
-                //return layerObject;
-	            
-	        });
-	    })(); // end layerObject
-	    
-	    
-	//}
-} // end loadLocalObjectLayers
-
-/*
-function callInitSiteObject(attempt) {
-    alert("callInitSiteObject")
-    if (typeof localObject.layers != 'undefined' && localObject.layers.length >= 0) {
-        alert("localObject.layers already loaded " + localObject.layers.length)
-        return;
-    }
-	if (typeof local_app !== 'undefined') {
-		loadLocalObjectLayers("");
-        return;
-	} else if (attempt < 100) { // wait for local_app
-		setTimeout( function() {
-   			console.log("callInitSiteObject again")
-			callInitSiteObject(attempt+1);
-   		}, 100 );
-	} else {
-		console.log("ERROR: Too many search-filters local_app attempts. " + attempt);
-	}
-}
-*/
 
 // INIT
 if(!param.state) {
@@ -2777,11 +2672,9 @@ function hashChanged() {
 	} else {
         //$(".locationTabText").text("United States");
     }
-    if (hash.appview && hash.appview != priorHash.appview) {
-        loadScript(theroot + 'js/navigation.js', function(results) {
-            console.log("hash.appview exists: " + hash.appview);
-            showApps("#bigThumbMenu");
-        });
+    if (!stateAbbrev && hash.mapview == "state") { // No state
+        updateHash({'mapview':''});
+        $("#country_select").val("country");
     }
 	if (hash.show != priorHash.show) {
         if (hash.show && priorHash.show) {
@@ -2792,7 +2685,7 @@ function hashChanged() {
             waitForElm('.showApps').then((elm) => {
                 // Same as in closeAppsMenu(), but calling that function from here generates blank page
                 $("#bigThumbPanelHolder").hide();
-                $(".showApps").removeClass("filterClickActive"); updateHash({'appview':''});
+                $(".showApps").removeClass("filterClickActive");
             });
         }
         loadScript(theroot + 'js/map.js', function(results) {
@@ -2961,9 +2854,12 @@ function hashChanged() {
 
     console.log("hash.mapview: " + hash.mapview + " priorHash.mapview: " + priorHash.mapview);
 
-    /* Delete, occurs below
     if (hash.mapview && hash.mapview != priorHash.mapview) {
         $("#country_select").val(hash.mapview);
+    }
+    /* Delete, occurs below
+    if (hash.mapview && hash.mapview != priorHash.mapview) {
+        //$("#country_select").val(hash.mapview);
         loadScript(theroot + 'js/navigation.js', function(results) {
             alert("Call openMapLocationFilter() 1")
             openMapLocationFilter();
@@ -3123,21 +3019,33 @@ function hashChanged() {
             //delete param.geo;
             $(".regiontitle").text("");
             // Could add full "United States" from above. Could display longer "show" manufacing title.
+            let appTitle = $("#showAppsText").attr("title");
+            console.log("appTitle: " + appTitle);
             if (hash.show && local_app.loctitle) {
                 $(".region_service").text(local_app.loctitle + " - " + hash.show.toTitleCase());
             } else if (hash.show) {
-                let appTitle = $("#showAppsText").attr("title");
-                $(".region_service").text("Supply Chain Inflow-Outflow");
+                /*
                 if (appTitle) {
                     $("#pageTitle").text(appTitle); // Ex: Parts Manufacturing
-                    $(".region_service_industries").text("Top " + appTitle);
                 } else {
                     //$(".region_service").text(hash.show.toTitleCase());
                     $("#pageTitle").text(hash.show.toTitleCase());
-                    $(".region_service_industries").text("Top Industries");
                 }
+                */
             } else {
-                $(".region_service").text("Top " + $(".locationTabText").text() + " Industries");
+                //$(".region_service").text("Top " + $(".locationTabText").text() + " Industries");
+            }
+            if (appTitle) {
+
+                /*
+                // Under development
+                alert(document.title);
+                let siteAppTitle = appTitle;
+                //if (document.title != siteAppTitle) {
+                    document.title = siteAppTitle;
+                //}
+                alert(document.title);
+                */
             }
         } else {
             hiddenhash.loctitle = hash.regiontitle;
@@ -3267,29 +3175,6 @@ function hashChanged() {
             });
         }
         */
-    }
-
-    if (hash.set != priorHash.set) {
-        if (hash.set == "air") {
-            $('#pageTitle').text('Air and Climate')
-        } else if (hash.set == "water") {
-            $('#pageTitle').text('Water Use and Quality')
-        } else if (hash.set == "land") {
-            $('#pageTitle').text('Land Use')
-        } else if (hash.set == "energy") {
-            $('#pageTitle').text('Energy Use')
-        } else if (hash.set == "prosperity") {
-            $('#pageTitle').text('Jobs and Value Added')
-        } else if (hash.set == "health") {
-            $('#pageTitle').text('Health Impact')
-        }
-        $(".impactIcons div").removeClass("active");
-        if (hash.set) {
-            const capitalizeSetName = hash.set.toLowerCase().replace(/\b[a-z]/g, function(letter) {
-                return letter.toUpperCase();
-            });
-            $(".impactIcons div:contains(" + capitalizeSetName + ")").addClass("active");
-        }
     }
 
     //alert("mapview: " + hash.mapview + " " + priorHash.mapview);

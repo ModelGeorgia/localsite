@@ -6,6 +6,12 @@
     background-color: #fff;
     border-right: 1px solid #fff;
 }
+.dark .tabulator .tabulator-header .tabulator-col {
+   
+}
+.dark .tabulator-row {
+    background-color: transparent;
+}
 .tabulator-row .tabulator-cell {
     border-right: 1px solid #fff;
     border-bottom: 1px solid #ccc;
@@ -21,12 +27,21 @@
 .tabulator-selectable:hover { /* rows */
     background-color: #fafafa !important;
 }
+.dark .tabulator-selectable:hover { /* rows */
+    background-color: #333 !important;
+}
 .tabulator-row.tabulator-selected {
     background-color: #ddd;
     border-bottom: 1px solid #999;
 }
+.dark .tabulator-row.tabulator-selected {
+    background-color: #111;
+}
 .tabulator-row.tabulator-selected:hover {
     background-color: #ccc !important;
+}
+.dark .tabulator-row.tabulator-selected:hover {
+    background-color: #000 !important;
 }
 .tabulator-header {
     max-height: 32px !important;

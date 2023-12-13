@@ -46,6 +46,10 @@ body {
   color: #333;
   line-heightX:0; /* prevents gaps betweet images, but 0 caused text to overlap on start and nav icons. */
 }
+.dark {
+  color: #eee;
+  background-color: #333;
+}
 .bodyIconMargin {
   margin-left: 64px;
 }
@@ -276,7 +280,7 @@ h2 {
   color: #333;
   overflow: auto;
 }
-h2::before { /* Avoids hashtag headbutting browser window */
+.flexmain h2::before { /* Prevents hashtag h2 links from being covered by site header */
   display: block; 
   content: " "; 
   margin-top: -120px; 
@@ -284,7 +288,7 @@ h2::before { /* Avoids hashtag headbutting browser window */
   visibility: hidden; 
   pointer-events: none;
 }
-section::before { /* Avoids hashtag headbutting browser window */
+.flexmain section::before { /* Prevents hashtag section links from being covered by site header */
   display: block; 
   content: " "; 
   margin-top: -120px; 
@@ -327,6 +331,29 @@ h6 {
   margin-top: 10px;
   margin-bottom: 0px;
 }
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #ccc;
+}
+
+/* hacks for useeio widgets */
+.dark .MuiTypography-h6 {
+  color: #ccc;
+}
+.dark .MuiTypography-body1 {
+  color: #ccc;
+}
+.dark .MuiInputBase-root {
+  color: #fff;
+}
+.dark .MuiIconButton-root {
+  color: #fff;
+}
+.dark .sector-list a, .dark .sector-list a:visited {
+  color: #fff;
+}
+.dark .sector-list .indicator-group {
+  color: #bbb;
+}
 sup {
   line-height: 0.8em;
   font-size: 0.6em;
@@ -363,6 +390,9 @@ summary::-webkit-details-marker {
   display: table-cell;
   vertical-align: top;
   position: relative; /* Allows menu rollover/popups to overlap adjacent cell */
+}
+.dark .table-cell, .dark .table-cell-mobile {
+  background-colorX: #111;
 }
 @media (max-width: 800px) {
   .table-cell {
@@ -430,17 +460,23 @@ summary::-webkit-details-marker {
   padding-right: 40px;
   padding-bottom: 45px;
 }
-.content a {
+.content a, .contentfull a {
   text-decoration: none;
 }
-.content a:link {
+.content a:link, .content a:visited, .contentfull a:link, .contentfull a:visited {
   color: #0366d6;
 }
-.content a:visited {
-  color: #0366d6;
+.dark .content a:link, .dark .content a:visited {
+  color: #acb;
 }
-.liteDiv {
-  border-right: solid 1px #e9e9e9;
+.lite { /* Also in DS */
+  background-color: #eee;
+  color:  #777;
+}
+.dark .lite {
+  background-color: #555;
+  background: #555;
+  color:  #eee;
 }
 .liteDiv a {
   color: #333;
@@ -449,23 +485,36 @@ summary::-webkit-details-marker {
   color: #fff;
   background-color: #b1b1b1;
 }
-.greyDiv a, .greyDiv a:visited, .content .greyDiv a, .content .greyDiv a:visited {
+.greyDiv a:link, .greyDiv a:visited, .content .greyDiv a:link, .content .greyDiv a:visited {
   color: #fff;
 }
-.greyDiv b, .greyDiv .maincat, .greyDiv b a, .greyDiv b a:visited, .content .greyDiv b, .content .greyDiv .maincat, .content .greyDiv b a, .content .greyDiv b a:visited {
+.greyDiv b, .greyDiv .maincat, .greyDiv b a:link, .greyDiv b a:visited, .content .greyDiv b, .content .greyDiv .maincat, .content .greyDiv b a:link, .content .greyDiv b a:visited {
   color: #333;
 }
 .greyDiv b a:hover, .greyDiv b a:visited:hover {
   color: #fff;
 }
-.dark .greyDiv {
-  background-color: #555;
+.dark .greyDiv { /* Left side nav */
+  background-color: #444;
+  border: 0px;
 }
-.dark .greyDiv a, .greyDiv a:visited, .dark .content .greyDiv a, .dark .content .greyDiv a:visited {
+.dark .greyDiv a:link, .greyDiv a:visited, .dark .content .greyDiv a:link, .dark .content .greyDiv a:visited {
   color: #fff;
 }
 .dark .greyDiv b, .dark .greyDiv .maincat, .dark .greyDiv b a, .dark .greyDiv b a:visited, .dark .content .greyDiv b, .dark .content .greyDiv .maincat, .dark .content .greyDiv b a, .dark .content .greyDiv b a:visited {
   color: #fff;
+}
+.litetext {
+  color:#888;
+}
+.darktext {
+  color:#333;
+}
+.dark .litetext {
+  color:#fff;
+}
+.dark .darktext {
+  color:#aaa;
 }
 .bodyLeftMargin .contentpadding {
   padding-left: 30px;
@@ -614,6 +663,10 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   unicode-bidi: embed;
   font-family: monospace;
   /* white-space: pre-wrap; */ /* Causes Drupal to have large empty div's at top */
+}
+.dark code {
+  color: #ddd;
+  background-color: #111;
 }
 .link {
   color:#4091dd;
@@ -803,26 +856,6 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   font-size: 13.5px;
 }
 
-.navLinks a {
-    height: 42px;
-    display: block;
-    float: left;
-    color: #aaa;
-    text-decoration: none !important;
-    margin-right:0px !important;
-    padding:8px 15px 0 13px;
-    font: 400 16px/1.8 "Lato", sans-serif;
-    -webkit-font-smoothing: inherit !important;
-}
-.navLinks .navActive {
-    font: 600 16px/1.8 "Lato", sans-serif !important;
-    color: #444 !important;
-}
-.navLinks a:hover {
-    color: #555;
-    background-color: #ddd;
-    text-decoration: none !important;
-}
 .pageLinks a {
   display: inline;
   float: none;
@@ -893,6 +926,16 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 }
 .dark .cardstyle {
     background: #555;
+}
+.dark .menuBuddyRight {
+  background: #666;
+}
+.dark .sideMenuColumn {
+  background: #444;
+  color: #fff;
+}
+.dark .sideMenuColumn .layerSection {
+  color: #fff;
 }
 @media (max-width: 1200px) {
     .pagecard {
@@ -1034,6 +1077,11 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   margin-bottom: 10px;
 }
 
+.dark select {
+  background-color: #000;
+  color: #fff;
+  border: 1px solid #555 !important;
+}
 
 #logospace {
   float:left;

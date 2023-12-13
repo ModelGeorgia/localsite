@@ -111,7 +111,7 @@
                 </div>
               </div>
 
-              <div class="listingsHolder local earth intranet georgia" style="display:none">
+              <div class="listingsHolder local earth garesource georgia" style="display:none">
                 <div class="hideEmbed">
                     <div class="showListings rightTopItem" style="padding-top:14px; padding-right:10px">
                         <i class="material-icons menuTopIcon">&#xE241;</i>
@@ -152,11 +152,9 @@
                 </div>
               </div>
 
-              <div class="local" style="display:none">
-                <div class="showSettings rightTopItem">
-                    <i class="material-icons menuTopIcon">&#xE8B8;</i>
-                    <span>Settings</span>
-                </div>
+              <div class="showSettings rightTopItem">
+                  <i class="material-icons menuTopIcon">&#xE8B8;</i>
+                  <span>Settings</span>
               </div>
 
               <div class="local" style="display:none">
@@ -194,21 +192,23 @@
                 </div>
               </div>
 
-              <div class="local" style="display:none">
-              <div class="showAccountTools rightTopItem" style="displayX:none">
-                  <div class="showAccount user-1">
+              <div class="local acct" style="display:none">
+              <div class="showAccount rightTopItem">
+                  <div class="showAccount">
                       <i class="material-icons menuTopIcon">&#xE7FD;</i>
                       <span>Account</span>
                   </div>
               </div>
               </div>
 
+              <!--
               <div class="local" style="display:none">
               <div class="logoutAccount user-1 rightTopItem" style="display:none">
                   <i class="material-icons menuTopIcon">&#xE7FD;</i>
                   <span>Log out</span>
               </div>
               </div>
+              -->
 
               <div class="showSettingsInNavTop" style="float:left">
               </div>
@@ -272,8 +272,8 @@
             <div class="setOverflow"><div class="setRight">
                 <select id="sitelook">
                   <option value="default" selected>Default</option>
-                  <option value="light">Light Colors</option>
-                  <option value="dark">Night Vision</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
                 </select>
             </div></div>
             <div class="setDiv"></div>
@@ -304,25 +304,26 @@
                 <div class="setDiv"></div>
             </div>
             
-            <div class="setLeft"><div>Basemap</div></div>
-            <div class="setOverflow">
-              <div id='selector_menu' class="setRight">
-            
-                <select id='basemapSelector' class='layerSelector sitebasemap catchClick'>
-                  <option value='positron_light_nolabels'>Positron</option>
-                  <option value='osm'>Open Street Map</option>
-                  <option value='esri'><!--- Esri -->Satellite Map</option>
-                  <!-- Zoom not appearing -->
-                  <!--<option value='default'>Open Street Map 2</option>-->
-                  <!-- Zoom not appearing -->
-                  <!-- <option value='green'>Green Topo Map</option>-->
-                  <option value='dark'>Dark Background</option>
-                  <option value='firemap'>Fire Map</option>
-                </select>
-            
+            <div class="local" style="display:none">
+              <div class="setLeft"><div>Basemap</div></div>
+              <div class="setOverflow">
+                <div id='selector_menu' class="setRight">
+              
+                  <select id='basemapSelector' class='layerSelector sitebasemap catchClick'>
+                    <option value='positron_light_nolabels'>Positron</option>
+                    <option value='osm'>Open Street Map</option>
+                    <option value='esri'><!--- Esri -->Satellite Map</option>
+                    <!-- Zoom not appearing -->
+                    <!--<option value='default'>Open Street Map 2</option>-->
+                    <!-- Zoom not appearing -->
+                    <!-- <option value='green'>Green Topo Map</option>-->
+                    <option value='dark'>Dark Background</option>
+                    <option value='firemap'>Fire Map</option>
+                  </select>
+              
+                </div>
+              </div>
             </div>
-          </div>
-          
 
           <!--
           <div class="setDiv"></div>
@@ -417,11 +418,38 @@
         <!-- Desktop Panel -->
         <div id="desktopPanel" class="menuExpanded topMenuOffset" style="display:none; font-size: 18.5px;">
           <div class="menuExpandedScroll always-show-scroll">
-              <div id="desktopDiv"><h1>Desktop</h1></div>
+              <div id="desktopDiv" class="menuTitle">Desktop</div>
               <br><br><br>
           </div>
         </div>
-        <!-- /Stories Panel -->
+        <!-- /Desktop Panel -->
+
+        <!-- Account Panel -->
+        <div id="accountPanel" class="menuExpanded topMenuOffset" style="display:none">
+          <div class="menuExpandedScroll">
+            <div style="font-size:16pt; margin-bottom:20px">Account</div>
+
+            <!-- fields here instead from recap -->
+
+            <div class="local" style="display:none">
+              <div style="margin-bottom:5px">Your email address</div>
+              <input id="input123" autocompleteX="off" style="width:100%" class="mobileWide textInput si-input" type="text" value=""><br><br><br>
+            </div>
+
+            <div class="georgia" style="display:none">
+              <div><a href="https://partner.exploregeorgia.org/login">Partner Resources</a></div><br><br>
+            </div>
+
+            <div class="default" style="display:none">
+              <a class="uIn" href="/resources">Staff Resources</a><br><br>
+            </div>
+            <div class="use-1" style="display:none;">
+              <a class="uOut" style="margin:0 0 20px 0;">Log Out</a>
+            </div>
+          </div>
+        </div>
+        <!-- /Account Panel -->
+
 
         <!-- Print Options -->
         <div class="printOptionsHolderWide menuExpanded topMenuOffset" style="display:none">
@@ -476,7 +504,7 @@
 <!-- HEADER BAR -->
 <div id="headerbar" class="headerbar headerbarheight headerbarhide" style="display:none;position:fixed;overflow:visible;z-index:1002;pointer-events:auto;">
 
-  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; float:left; min-width: 200px">
+  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; padding-left:64px; loat:left; min-width: 200px">
     <div id="logospace" class="headerbarheight">
       <div id="logoholder">
         
@@ -559,9 +587,9 @@
         </span>
       </div>
 
-      <div class="intranet georgia" style="display:none">
+      <div class="georgia" style="display:none">
         <span id="intranet-nav" class="hideMobile" style="float:left">
-          <a href="/localsite/info/#state=GA" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
+          <a href="/locations/" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
           <a href="/display/exporters/" class="navlink-exporters"><span style="white-space: nowrap; margin-right:3px">Exporters</span></a>
           <a href="/recycling/georgia/" class="navlink-recyclers"><span style="white-space: nowrap; margin-right:3px">Recyclers</span></a>
         </span>
@@ -570,7 +598,7 @@
     </div>
 
     <div id="headerIcons">
-      <div class="earth dreamstudio intranet" style="display:none">
+      <div class="earth dreamstudio garesource" style="display:none">
         <div id="showSideTabs" class="showSideTabs" style="padding:12px 0px 10px 10px; margin-right:10px; min-height:64px">
           <i class="material-icons show-on-load" style="font-size:40px;font-weight:550" data="apps">&#xE5C3;</i>
         </div>
@@ -689,7 +717,7 @@
 
   <div id="honeycombPanelHolder" style="overflow:auto;position:relative">
   <a name="sections"></a>
-  <div id="honeycombPanel" class="filterFields" style="display: block;">
+  <div id="honeycombPanel" class="filterFields lite" style="display: block;">
     
     <!--
     <div style="float:left;display:flex;justify-content:left;">
@@ -716,7 +744,7 @@
 
 <!-- LOCATION SEARCH -->
 <!-- For inactive portions - copy scripts from explore/js/embed.js -->
-<div id="filterLocations" class="fieldSelector filterBubbleHolder" style="display:none">
+<div id="filterLocations" class="lite fieldSelector filterBubbleHolder" style="display:none">
 
     
       <!-- Stores location options. Not displayed. -->
@@ -758,7 +786,7 @@
               </select>
 
               <b><!--States--></b>
-              <div id="state_select_holder" class="earth" style="display:none;float:left">
+              <div id="state_select_holder" class="earth" style="displayX:none;float:left">
                 <select id="state_select" name="state" style="max-width:300px;">
                  <option value="">States and Territories...</option>
 <!-- Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
@@ -1164,7 +1192,7 @@ Displayed by hashChanged() in map-filters.js
     -->
 
     <div style="padding-top:5px;overflow:auto" class="hideOnProjectsPage">
-      Transforming environments<br>through collaborative modeling.<br>
+      Exploring Earth's systems<br>through collaborative modeling.<br>
       <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
     </div>
     <div style="display:none" class="projectsPage">

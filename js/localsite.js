@@ -6,6 +6,7 @@
 // Define a new object if localsite library does not exist yet.
 let localStart = Date.now();
 let onlineApp = true; // Set to false during air travel. Also sets local to no state.
+let localsiteTitle = "Localsite";
 let defaultState = ""; // GA
 consoleLog("start localsite");
 var local_app = local_app || (function(module){
@@ -81,7 +82,6 @@ var local_app = local_app || (function(module){
               // For testing embedding without locathost repo in site theroot. Rename your localsite folder.
               // Why don't we reach ".showApps click" when activatied?:
               //theroot = "https://model.earth/localsite/";
-              //alert("theroot " + theroot)
             }
             localsite_repo = theroot; // Save to reduce DOM hits
             return (theroot);
@@ -146,7 +146,9 @@ if(typeof param != 'undefined') { // From settings in HTML page
   var param = structuredClone(extend(true, loadParams(location.search,location.hash), paramIncludeFile)); // Subsequent overrides first giving priority to setting in page over URL. Clone/copy object without entanglement. 
   //param = loadParams(location.search,location.hash); // Includes localsite.js include.
 }
-
+if (param.state) {
+  defaultState = param.state; // For /locations/index.html
+}
 // TO DO: Add paramIncludeFile to call once rather than in both function
 function getParamInclude() {
   let paramInclude = {};
@@ -654,6 +656,7 @@ function loadLocalTemplate() {
       document.body.appendChild(elemDiv);
 
       console.log("Template Loaded: " + datascapeFile);
+      initSitelook();
       if (typeof relocatedStateMenu != "undefined") {
         relocatedStateMenu.appendChild(state_select); // For apps hero
         $(".stateFilters").hide();
@@ -677,9 +680,12 @@ function loadLocalTemplate() {
         $("#sideTabs").prependTo("#fullcolumn"); // Move back up to top.
 
         // Replace paths in div
-        if(location.host.indexOf("intranet") >= 0) {
-          $("#intranet-nav a").each(function() {
-            $(this).attr('href', $(this).attr('href').replace(/\/docs\//g,"\/"));
+
+        if(location.host.indexOf("desktop") >= 0) {
+          waitForElm('#desktop-nav').then((elm) => {
+            $("#desktop-nav a").each(function() {
+              $(this).attr('href', $(this).attr('href').replace(/\/desktop\//g,"\/"));
+            });
           });
         }
         if(location.host.indexOf("dreamstudio") >= 0) {
@@ -784,18 +790,56 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       //var divForBodyLoaded = '<div id="bodyloaded"></div>'; // Tells us the body is loaded, since body is not detected.
       var divForBodyLoaded = document.createElement('div');
       divForBodyLoaded.id = "bodyloaded";
-      divForBodyLoaded.innerHTML = '<span>&nbsp;</span>'; // Tells us the body is loaded, since body is not detected.
+      divForBodyLoaded.innerHTML = '<span style="display:none">&nbsp;</span>'; // Tells us the body is loaded, since body is not detected.
       
       $(document).ready(function () {
-        // this approach brakes events. Do not "add" to innerHTML. Use DOM API e.g. appendChild
+        useSet(); // Below
+
+        // This approach brakes events. Do not "add" to innerHTML. Use DOM API e.g. appendChild
         //document.getElementsByTagName('body')[0].innerHTML += divForBodyLoaded;
+        
         document.body.appendChild(divForBodyLoaded);
+
+        let sitelook;
+        if (typeof Cookies != 'undefined' && Cookies.get('sitelook')) {
+          sitelook = Cookies.get('sitelook');
+        }
+        if (param.sitelook) {
+          sitelook = param.sitelook;
+        }
+        if (sitelook == "light") {
+          removeElement('/localsite/css/bootstrap.darkly.min.css');
+          removeElement('/explore/css/site-dark.css');
+          //includeCSS3(theroot + 'css/light.css',theroot);
+          if (typeof Cookies != 'undefined') {
+              waitForElm('#sitelook').then((elm) => {
+                $("#sitelook").val(sitelook);
+              });
+              Cookies.set('sitelook', sitelook);
+              console.log("Bring on the sitelook: " + Cookies.get('sitelook'));
+          }
+        }
       });
 
       $(document).on('click', function(event) { // Hide open menus in core
         $('.hideOnDocClick').hide();
       });
 
+      $(document).on("click", ".uOut", function(event) {
+        console.log(".uOut clicked")
+
+        // Keeping it real simple
+        Cookies.remove('at_a');
+        window.location = "../"
+        return;
+
+        //event.stopPropagation();
+      });
+      $(document).on("click", ".uIn", function(event) {
+        window.location = "/explore/menu/login/azure/";
+        return;
+      });
+      
       // Load when body div becomes available, faster than waiting for all DOM .js files to load.
       waitForElm('#bodyloaded').then((elm) => {
        console.log("#bodyloaded becomes available");
@@ -1042,10 +1086,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       loadMapAndMapFilters();
     }
 
-  } else if (param.showsearch == "true" || hash.showmap || hash.appview) {
+  } else if (param.showsearch == "true" || param.showmap || param.appview) { // Second two were hash, but not defined here
     loadLocalTemplate();
     loadMapAndMapFilters();
-
 
     // This is already in the above
     //loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
@@ -2117,7 +2160,7 @@ function loadIframe(iframeName, url) {
   return true;
 }
 
-function waitForVariable(variable, callback) {
+function waitForVariable(variable, callback) { // Declair variable using var since let will not be detected.
   var interval = setInterval(function() {
     if (window[variable]) {
       clearInterval(interval);
@@ -2347,4 +2390,341 @@ function localHashChanged() {
   }
 }
 */
+function removeElement(divID) {
+    // parentNode is used for IE.
+    let element = document.getElementById(divID);
+    if (element) {
+      element.parentNode.removeChild(element);
+    }
+}
+
+function useSet() {
+    let uAcc = 0;
+    if (Cookies.get('at_a')) {
+        if (location.host.indexOf('localhost') >= 0) {
+            uAcc = 8; // Local
+        } else {
+            uAcc = 5;
+        }
+    } // Others can reside here, Git recap
+    else {
+        uAcc = 0;
+    }
+    loadUse(uAcc); // Place style
+
+    //alert("param.minuse: " + param.minuse);
+    if (param.minuse && param.minuse > uAcc) { // Todo: Detect multiple acccess levels.
+        if (uAcc < 5) {
+          Cookies.set('golog', window.location.href);
+          if (param.minred) {
+            window.location = param.minred;
+          } else {
+            window.location = "/explore/menu/login/azure";
+          }
+          return;
+        }
+    }
+}
+function loadUse(use) {
+    var strUseCss = "<style>";
+    if (use==0) {
+      strUseCss += ".default{display:block !important}";
+    } else {
+      strUseCss += ".use-1{display:block !important}";
+      if (use==8) {
+        strUseCss += ".use-5{display:block !important}";
+      }
+      strUseCss += ".use-" + use + "{display:block !important}";
+    }
+    strUseCss += "<\/style>";
+    document.head.insertAdjacentHTML("beforeend", strUseCss);
+}
+
+
+// Source: explore/js/embed.js
+
+/*******************************************/
+
+/*!
+ * JavaScript Cookie v2.1.1
+ * https://github.com/js-cookie/js-cookie
+ *
+ * Copyright 2006, 2015 Klaus Hartl & Fagner Brack
+ * Released under the MIT license
+ */
+;(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(factory);
+    } else if (typeof exports === 'object') {
+        module.exports = factory();
+    } else {
+        var OldCookies = window.Cookies;
+        var api = window.Cookies = factory();
+        api.noConflict = function () {
+            window.Cookies = OldCookies;
+            return api;
+        };
+    }
+}(function () {
+    function extend () {
+        var i = 0;
+        var result = {};
+        for (; i < arguments.length; i++) {
+            var attributes = arguments[ i ];
+            for (var key in attributes) {
+                result[key] = attributes[key];
+            }
+        }
+        return result;
+    }
+
+    function init (converter) {
+        function api (key, value, attributes) {
+            var result;
+            if (typeof document === 'undefined') {
+                return;
+            }
+
+            // Write
+
+            if (arguments.length > 1) {
+                attributes = extend({
+                    path: '/'
+                }, api.defaults, attributes);
+
+                if (typeof attributes.expires === 'number') {
+                    var expires = new Date();
+                    expires.setMilliseconds(expires.getMilliseconds() + attributes.expires * 864e+5);
+                    attributes.expires = expires;
+                }
+
+                try {
+                    result = JSON.stringify(value);
+                    if (/^[\{\[]/.test(result)) {
+                        value = result;
+                    }
+                } catch (e) {}
+
+                if (!converter.write) {
+                    value = encodeURIComponent(String(value))
+                        .replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent);
+                } else {
+                    value = converter.write(value, key);
+                }
+
+                key = encodeURIComponent(String(key));
+                key = key.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent);
+                key = key.replace(/[\(\)]/g, escape);
+
+                return (document.cookie = [
+                    key, '=', value,
+                    attributes.expires && '; expires=' + attributes.expires.toUTCString(), // use expires attribute, max-age is not supported by IE
+                    attributes.path    && '; path=' + attributes.path,
+                    attributes.domain  && '; domain=' + attributes.domain,
+                    attributes.secure ? '; secure' : ''
+                ].join(''));
+            }
+
+            // Read
+
+            if (!key) {
+                result = {};
+            }
+
+            // To prevent the for loop in the first place assign an empty array
+            // in case there are no cookies at all. Also prevents odd result when
+            // calling "get()"
+            var cookies = document.cookie ? document.cookie.split('; ') : [];
+            var rdecode = /(%[0-9A-Z]{2})+/g;
+            var i = 0;
+
+            for (; i < cookies.length; i++) {
+                var parts = cookies[i].split('=');
+                var name = parts[0].replace(rdecode, decodeURIComponent);
+                var cookie = parts.slice(1).join('=');
+
+                if (cookie.charAt(0) === '"') {
+                    cookie = cookie.slice(1, -1);
+                }
+
+                try {
+                    cookie = converter.read ?
+                        converter.read(cookie, name) : converter(cookie, name) ||
+                        cookie.replace(rdecode, decodeURIComponent);
+
+                    if (this.json) {
+                        try {
+                            cookie = JSON.parse(cookie);
+                        } catch (e) {}
+                    }
+
+                    if (key === name) {
+                        result = cookie;
+                        break;
+                    }
+
+                    if (!key) {
+                        result[name] = cookie;
+                    }
+                } catch (e) {}
+            }
+
+            return result;
+        }
+
+        api.set = api;
+        api.get = function (key) {
+            return api(key);
+        };
+        api.getJSON = function () {
+            return api.apply({
+                json: true
+            }, [].slice.call(arguments));
+        };
+        api.defaults = {};
+
+        api.remove = function (key, attributes) {
+            api(key, '', extend(attributes, {
+                expires: -1
+            }));
+        };
+
+        api.withConverter = init;
+
+        return api;
+    }
+
+    return init(function () {});
+}));
+/* End jQuery Cookie Plugin */
+
+// End: explore/js/embed.js
+
+
+// Copied from setting.js initElements()
+function initSitelook() {
+    let sitemode;
+    let sitesource;
+    let sitelook;
+    if(typeof Cookies != 'undefined') {
+        //sitemode = Cookies.get('sitemode');
+        sitesource = Cookies.get('sitesource');
+        sitelook = Cookies.get('sitelook');
+
+        /*
+        if (param["sitemode"]) { // From URL
+            sitemode = param["sitemode"]; 
+            Cookies.set('sitemode', sitemode);
+            $(".sitemode").val(sitemode);
+        //} else if (params["sitemode"]) { // From index.html
+        //   sitemode = params["sitemode"];
+        //    $(".sitemode").val(sitemode);
+        //    console.log("Set sitemode from index.html: " + sitemode);
+        } else {
+            setSitemode(sitemode);
+        }
+        */
+    }
+    /*
+    $(".moduleIntroHolder").append($(".moduleIntro"));
+
+    if ($(".insertFilters").length > 0) {
+        $(".insertFilters").append($(".filterHolder"));
+        //$("#contractors-table").hide();
+        //$("#contractors-table").prepend($(".k-grid-pager"));
+        $(".showFiltersButton").hide();
+    }
+    */
+
+    if(typeof Cookies != 'undefined') {
+        if (Cookies.get('sitemode')) {
+            $(".sitemode").val(Cookies.get('sitemode'));
+        }
+        if (Cookies.get('sitesource')) {
+            $(".sitesource").val(Cookies.get('sitesource'));
+        }
+        if (Cookies.get('sitebasemap')) {
+            $(".sitebasemap").val(Cookies.get('sitebasemap'));
+        }
+    }
+    
+    //if (!$("#sitelook").is(':visible')) {
+    //    sitelook = "default"; // For now, filterPanel background is always an image.
+    //}
+
+    if (param["sitelook"]) { // From URL
+        sitelook = param["sitelook"]; 
+        //Cookies.set('sitelook', sitelook);
+    //} else if (params["sitelook"]) { // From widget
+    //    sitelook = params["sitelook"]; 
+        // Prevent video from appearing when going to menu. Cookies probably need to be specific to domain.
+        //Cookies.set('sitelook', sitelook);
+    } else if (typeof Cookies != 'undefined' && Cookies.get('sitelook')) {
+        sitelook = Cookies.get('sitelook');
+    }
+    
+    setSitelook(sitelook);
+    if (typeof Cookies != 'undefined') {
+        $("#sitelook").val(Cookies.get('sitelook'));
+    }
+}
+
+function setSitemode(sitemode) {
+  // Not copied over from settings.js
+}
+function setSitelook(siteLook) {
+    console.log("setSitelook init: " + sitelook);
+
+    //let root = "/explore/"; // TEMP
+    //let root = "/localsite/";
+    consoleLog("setSiteLook: " + siteLook);
+    
+    // Force the brower to reload by changing version number. Avoid on localhost for in-browser editing. If else.
+    var forceReload = (location.host.indexOf('localhost') >= 0 ? "" : "?v=3");
+    $("body").removeClass("dark");
+    if (siteLook == "dark") {
+        $('.sitebasemap').val("dark").change();
+        //toggleVideo("show","nochange");
+        $("body").addClass("dark");
+        //removeElement('/localsite/css/light.css');
+        includeCSS3('/localsite/css/bootstrap.darkly.min.css');
+        $("#css-site-dark-css").removeAttr('disabled');
+        $("#css-site-green-css").attr("disabled", "disabled");
+        $("#css-site-plain-css").attr("disabled", "disabled");
+        $('.searchTextHolder').append($('.searchTextMove'));
+    } else if (siteLook == "gc") {
+        $('.sitebasemap').val("osm").change();
+        //toggleVideo("hide","pauseVideo");
+        //includeCSS3(root + 'css/site-green.css' + forceReload);
+        $("#css-site-green-css").removeAttr('disabled');
+        $("#css-site-dark-css").attr("disabled", "disabled");
+        $("#css-site-plain-css").attr("disabled", "disabled");
+        $('.searchTextHolder').append($('.searchTextMove'));
+    } else if (siteLook == "default") {
+        //removeElement('/localsite/css/light.css');
+        removeElement('/localsite/css/bootstrap.darkly.min.css');
+        $("#css-site-green-css").removeAttr('disabled');
+        $("#css-site-dark-css").attr("disabled", "disabled");
+        $("#css-site-plain-css").attr("disabled", "disabled");
+        //$('.searchTextHolder').append($('.searchTextMove'));
+    } else { // Light
+        //includeCSS3(root + 'css/light.css'); // + forceReload
+        removeElement('/localsite/css/bootstrap.darkly.min.css');
+        //removeElement(root + 'css/site-dark.css');
+
+        $('.sitebasemap').val("positron_light_nolabels").change();
+        //includeCSS3(root + 'css/site-plain.css' + forceReload);
+
+        /*
+        $("#css-site-plain-css").removeAttr('disabled');
+        $("#css-site-dark-css").attr("disabled", "disabled");
+        $("#css-site-green-css").attr("disabled", "disabled");
+        */
+
+        //$(".layoutTabHolder").show();
+    }
+    //setTimeout(function(){ updateOffsets(); }, 200); // Allows time for css file to load.
+    //setTimeout(function(){ updateOffsets(); }, 4000);
+}
+
 consoleLog("end localsite");
