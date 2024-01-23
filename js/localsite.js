@@ -5,9 +5,12 @@
 // Localsite Path Library - A global namespace singleton
 // Define a new object if localsite library does not exist yet.
 let localStart = Date.now();
-let onlineApp = true; // Set to false during air travel. Also sets local to no state.
+let onlineApp = true;
+if (location.host.indexOf('localhost') >= 0) {
+  //onlineApp = false; // Set to false during air travel. Also sets local to no state.
+}
 let localsiteTitle = "Localsite";
-let defaultState = ""; // GA
+let defaultState = ""; // Set to GA to include additional map layers in top nav
 consoleLog("start localsite");
 var local_app = local_app || (function(module){
     let _args = {}; // private, also worked as []
@@ -260,14 +263,6 @@ function mix(incoming, target) { // Combine two objects, priority to incoming. D
     // This non-JQuery extend results in "Uncaught (in promise) RangeError: Maximum call stack size exceeded" with map.js mix(dp,defaults)
     target2 = structuredClone(extend(true, target, incoming)); // Clone/copy object without entanglement, subsequent overrides first.
    }
-
-   // structuredClone solved this entanglement bug
-   //console.log("incoming.mapview: " + incoming.mapview);
-   //console.log("target.mapview: " + target.mapview);
-   //console.log("target2.mapview: " + target2.mapview);
-   //delete target.mapview;
-   //console.log("target2.mapview: " + target2.mapview);
-
    for(var key in incoming) {
      if (incoming.hasOwnProperty(key)) {
         if (incoming[key] === null || incoming[key] === undefined || incoming[key] === '') {
@@ -282,9 +277,9 @@ function mix(incoming, target) { // Combine two objects, priority to incoming. D
    //console.log(target2);
    return target2;
 }
-function getHash() { // Includes hiddenhash
-    return (mix(getHashOnly(),hiddenhash));
-    //return (getHashOnly());
+function getHash() {
+    //return (mix(getHashOnly(),hiddenhash)); // Includes hiddenhash
+    return (getHashOnly());
 }
 function getHashOnly() {
     return (function (a) {
@@ -352,7 +347,7 @@ function go(addToHash) {
   triggerHashChangeEvent();
 }
 
-// Used by map-filters.js, map.js
+// Used by navigation.js, map.js
 if(typeof priorHash == 'undefined') {
   var priorHash = {};
 }
@@ -363,7 +358,7 @@ let nextPriorHash = structuredClone(param); // Param values set in pages and the
 var triggerHashChangeEvent = function () {
     // priorHash includes remaining values in hiddenhash (which originate from param values in page)
     priorHash = structuredClone($.extend(true, {}, nextPriorHash));
-    //alert("hiddenhash.mapview " + hiddenhash.mapview);
+    //alert("hiddenhash.geoview " + hiddenhash.geoview);
     //nextPriorHash = getHashOnly();
     nextPriorHash = getHash(); // Includes hiddenhash
 
@@ -865,7 +860,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         }
 
         if(param.showheader == "true") {
-          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;display:none'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border:1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
+          // border:1px solid #555; 
+          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;display:none'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
         }
 
         if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
@@ -1052,19 +1048,13 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       if (param.display == "everything") {
 
         loadScript(theroot + '../io/build/lib/useeio_widgets.js', function(results) {
-          if (param.omit_old_naics == "true") {
-            loadScript(theroot + 'js/naics2.js', function(results) {
-              consoleLog("ALERT naics2 loaded")
-            });
-          } else {
-            loadScript(theroot + 'js/d3.v5.min.js', function(results) {
-              waitForVariable('customD3loaded', function() {
-                loadScript(theroot + 'js/naics.js', function(results) {
-                  console.log("everything");
-                });
+          loadScript(theroot + 'js/d3.v5.min.js', function(results) {
+            waitForVariable('customD3loaded', function() {
+              loadScript(theroot + 'js/naics.js', function(results) {
+                console.log("everything");
               });
             });
-          }
+          });
         });
       }
 
@@ -1082,55 +1072,25 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       //loadScript(theroot + 'js/table-sort.js', function(results) {}); // For county grid column sort
 
     }
-    if (param.mapview || param.appview) {
+    if (param.geoview || param.appview) {
       loadMapAndMapFilters();
     }
 
   } else if (param.showsearch == "true" || param.showmap || param.appview) { // Second two were hash, but not defined here
     loadLocalTemplate();
     loadMapAndMapFilters();
-
-    // This is already in the above
-    //loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
-
-    /*
-    // TODO: Then remove these dependencies and lazy load these when switching to the above and tabs are clicked.
-    loadScript(theroot + 'js/d3.v5.min.js', function(results) { // BUG - change so map-filters.js does not require this on it's load
-      includeCSS3(theroot + 'css/leaflet.css',theroot);
-      loadScript(theroot + 'js/leaflet.js', function(results) {
-        loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Could skip when map does not use material icon colors
-          loadScript(theroot + 'js/map.js', function(results) {
-            // Loads map-filters.js
-            loadMapFiltersJS(theroot,1); // Uses local_app library in localsite.js for community_data_root
-          });
-        });
-      });
-    });
-    */
   } else {
     includeCSS3(theroot + 'css/base.css',theroot);
   }
 
-
   function loadMapAndMapFilters() {
-
     console.log("loadScript called from localsite.js");
-
     loadSearchFilterCss(); 
-
     loadScript(theroot + 'js/navigation.js', function(results) {
     });
-    loadScript(theroot + 'js/map.js', function(results) { // Load list before map
-    });
-    loadScript(theroot + 'js/map-filters.js', function(results) { // Load list before map
-      hashChanged();
-    });
-
+    //loadScript(theroot + 'js/map.js', function(results) { // Load list before map
+    //});
   }
-
-  //} else { // Show map or list without header
-
-  
 
   if (param.material_icons != "false") {
     param.material_icons = "true"; // Could lazy load if showSideTabs changed to graphic.
@@ -1435,14 +1395,9 @@ function getUrlID3(url,theroot) {
 function loadMapFiltersJS(theroot, count) {
   console.log("loadMapFiltersJS");
   if (typeof customD3loaded !== 'undefined' && typeof localsite_map !== 'undefined') {
-    //alert("localsite_map " + localsite_map)
-    //loadScript(theroot + 'https://cdn.jsdelivr.net/npm/vue', function(results) { // Need to check if function loaded
-      loadScript(theroot + 'js/map-filters.js', function(results) {});
-      //alert("loadMapFiltersJS says D3 is ready for map-filters.js");
       if (document.getElementById("/icon?family=Material+Icons")) {
           $(".show-on-load").removeClass("show-on-load");
       }
-    //});
   } else if (count<100) { // Wait a milisecond and try again
     setTimeout( function() {
       consoleLog("try loadMapFiltersJS again")
@@ -1792,11 +1747,6 @@ addEventListener("load", function(){
   };
   document.querySelector("body").addEventListener('click', function(e) {
     $(".hideOnBodyClick").hide();
-
-    $("#hideMenu").hide(); // Avoids double clicking.
-    $("#showSideTabs").show();
-
-    //consoleLog('click ' + Date.now())
     var anchor = getParentAnchor(e.target);
     if(anchor !== null) {
       //$('#log_display').hide();
@@ -2004,7 +1954,7 @@ function getState(stateCode) {
 function showSearchFilter() {
   let loadFilters = false;
   let headerHeight = $("#headerbar").height(); // Not sure why this is 99 rather than 100
-  closeSideTabs(); // Later search will be pulled into side tab.
+  //closeSideTabs(); // Later search will be pulled into side tab.
 
 
   if (!$("#filterFieldsHolder").length) { // Resides in template-main.html. Filter doesn't exist yet, initial map/index.html load.
@@ -2116,12 +2066,12 @@ function showSearchFilter() {
   }
 }
 function closeSideTabs() {
+  console.log("closeSideTabs()");
   $("#sideTabs").hide();
   $("body").removeClass("bodyRightMargin");
   if (!$('body').hasClass('bodyLeftMargin')) {
     $('body').removeClass('mobileView');
   }
-  //$("#hideMenu").hide();
   $("#closeSideTabs").hide();
   $("#showSideTabs").show();
 }
@@ -2160,7 +2110,28 @@ function loadIframe(iframeName, url) {
   return true;
 }
 
-function waitForVariable(variable, callback) { // Declair variable using var since let will not be detected.
+
+function waitForSubObject(theObject, theSubObject, callback) { // To confirm: Declare object using var since let will not be detected.
+  var interval = setInterval(function() {
+    if (window[theObject]) {
+      console.log('waitForObject found parent ' + theObject + '. Waiting for ' + theSubObject);
+      if (theSubObject in window[theObject] && Object.keys(window[theObject][theSubObject]).length > 0) {
+        //consoleLog("layers count " + );
+
+        //if (window[theObject].layers["bioeconomy"].section) {
+
+          clearInterval(interval);
+          consoleLog('waitForSubObject found ' + theObject + '.' + theSubObject);
+          callback();
+          return;
+        //}
+      }
+    }
+    //consoleLog('waitForSubObject ' + theObject + '.' + theSubObject);
+  }, 300);
+}
+
+function waitForVariable(variable, callback) { // Declare variable using var since let will not be detected.
   var interval = setInterval(function() {
     if (window[variable]) {
       clearInterval(interval);
@@ -2385,7 +2356,7 @@ document.addEventListener('localHashChangeEvent', function (elem) {
 
 function localHashChanged() {
   let hash = getHash();
-  if (hash.mapview && !priorHash.mapview) {
+  if (hash.geoview && !priorHash.geoview) {
 
   }
 }

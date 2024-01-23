@@ -521,7 +521,6 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 .rightIcons {
 	position: absolute;
-	top: 0px;
 	right: 0px;
 	z-index: 999;
 	font-size: 44px;
@@ -543,7 +542,7 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 		top:64px;
 	}
 	.sideIconsLower {
-	 	top:62px;
+	 	top:4px;
 	}
 }
 #showNavColumn {
@@ -561,11 +560,13 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
  	opacity: .7;
  	cursor: pointer;
 }
-@media (max-width: 1100px) {
+/*
+@media (min-width: 600px) and (max-width: 1100px) {
 	#showNavColumn {
 		margin-left: -23px;
 	}
 }
+*/
 .dark #showNavColumn .material-icons {
 	background-color: #000 !important;
 	color: #fff !important;
@@ -704,8 +705,9 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
   */
   color: #aaa;
   text-decoration: none !important;
-  margin-right:0px !important;
-  padding:8px 15px 0 13px;
+  margin: 1px;
+  margin-rightX:2px !important;
+  padding:8px 13px 8px 13px;
   font: 400 16px/1.8 "Lato", sans-serif;
   -webkit-font-smoothing: inherit !important;
 }
@@ -713,9 +715,12 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
   color: #fff;
 }
 .navLinks a:hover {
-    color: #555;
-    background-color: #ddd;
+    colorX: #555;
+    background-colorX: #ddd;
     text-decoration: none !important;
+    font-weightX: bolder;
+    border: 1px solid #777;
+    margin: 0px;
 }
 .navLinks .navActive {
     font: 600 16px/1.8 "Lato", sans-serif !important;
@@ -748,23 +753,22 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 /* End For navcolumn from header.html */
 
-/* Settings Menu */
-.settingsPanel select {
-    min-width: 215px;
-    padding: 5px;
+#rightTopMenu select {
+    width: 280px;
+    padding: 8px;
     font-size: 16px;
     line-height: 1;
-    border: 1px solid #d9d9de;
-    
     border-radius: 6px;
-    /* height: 40px; */
-    /* -webkit-appearance: none; */
     font-size: 16pt;
-    color: #000;
-    /* pointer-events: auto; */
+    color: #ddd;
+    background-color: #777;
+    margin-right: 30px;
+    padding-right: 30px;
+    border: 0px !important;
 }
-.dark .settingsPanel select {
+.dark #rightTopMenu select {
 	color: #ddd;
+	background-color: #aaa;
 }
 .menuExpanded {
     min-height: 200px;
@@ -773,7 +777,6 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     background-color: #555;
     box-sizing: border-box;
     position: relative;
-    line-heightX: 0.9em;
     font-family: Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif; /* avoiding 'Nunito Sans' for menu */
 }
 .menuExpanded h2, .menuExpanded h3, .menuExpanded h4 {
@@ -793,7 +796,7 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     -webkit-overflow-scrolling: touch;
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
-    padding: 28px 24px 34px 28px;
+    padding: 12px 24px 34px 16px;
 }
 .menuTitle {
   font-size:18pt;

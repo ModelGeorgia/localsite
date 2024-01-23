@@ -15,9 +15,12 @@ let initialNaicsLoad = true;
 if (typeof dataObject == 'undefined') {
     var dataObject = {};
 }
-
+if(typeof localObject == 'undefined') {
+    var localObject = {};
+}
 // For v2
-let industries = d3.map(); // Populated in promises by industryTitleFile
+let industries = d3.map(); // Populated in promises from industryTitleFile
+let epaSectors = d3.map(); // Populated from sectorsJsonFile
 
 let stateID = {AL:1,AK:2,AZ:4,AR:5,CA:6,CO:8,CT:9,DE:10,FL:12,GA:13,HI:15,ID:16,IL:17,IN:18,IA:19,KS:20,KY:21,LA:22,ME:23,MD:24,MA:25,MI:26,MN:27,MS:28,MO:29,MT:30,NE:31,NV:32,NH:33,NJ:34,NM:35,NY:36,NC:37,ND:38,OH:39,OK:40,OR:41,PA:42,RI:44,SC:45,SD:46,TN:47,TX:48,UT:49,VT:50,VA:51,WA:53,WV:54,WI:55,WY:56,AS:60,GU:66,MP:69,PR:72,VI:78,}
 let stateAbbr;
@@ -307,11 +310,15 @@ function refreshNaicsWidget() {
         }
 
         // v2
-        if (location.host.indexOf('localhost') >= 0) {
+        if (hash.beta == "true" || location.host.indexOf('localhost') >= 0) {
 
             $("#industryTableHolder").show();
 
             let industryLocDataFile = getIndustryLocFileString(hash.catsize);
+            if (location.host.indexOf('localhost') >= 0) {
+                // BUGBUG - Occurs everytime state or county changes.
+                $("#tabulator-industrytable-intro").append(" - <a href='" + industryLocDataFile + "''>industryLocDataFile</a>");
+            }
             d3.csv(industryLocDataFile).then( function(county_data) {
                 //alert("load it " + hash.catsize);
                 //showIndustryTabulatorList(0);
@@ -514,11 +521,16 @@ function getNaics_setHiddenHash2(go) {
     return cat_filter;
 }
 function populateTitle(showtitle,showtab) {
+    //alert("showtitle " + showtitle);
     hash = getHash();
     let thestate;
     let regionServiceTitle = showtitle;
     if (hiddenhash.loctitle) {
-        regionServiceTitle = hiddenhash.loctitle + " - " + showtitle;
+        if (showtitle) {
+            regionServiceTitle = hiddenhash.loctitle + " - " + showtitle;
+        } else {
+            regionServiceTitle = hiddenhash.loctitle;
+        }
     } else if (hash.state) {
         $("#state_select").val(hash.state.split(",")[0].toUpperCase());
         thestate = $("#state_select").find(":selected").text();
@@ -536,7 +548,9 @@ function populateTitle(showtitle,showtab) {
     $("#showAppsText").text(showtab);
     $("#showAppsText").attr("title",showtab); // Swaps in when viewing app thumbs
     $(".regiontitle").text(regionServiceTitle);
-    $(".region_service").text(regionServiceTitle);
+
+    // Might not be needed since set in map-filters
+    //$(".region_service").text(regionServiceTitle);
 
     if (thestate && localsiteTitle.indexOf(thestate) >= 0) { // Avoids showing state twice in browser title
         if (showtitle) {
@@ -1725,7 +1739,7 @@ function topRatesInFips(dataSet, dataNames, fips, hash) {
                         } else if (hash.show == "vehicles") {
                             $(".regiontitle").text("Vehicles and Vehicle Parts");
                         } else if (gotext) {
-                            // Would overwrite longer title from map.js loadFromSheet which includes non-datasets
+                            // Would overwrite longer title from map.js loadDataset which includes non-datasets
                             //$(".regiontitle").text(gotext);
                         } else {
                             // Temp, reactivate after iogrid stops deleteing hash values.
@@ -1928,7 +1942,7 @@ function applyIO(naics) {
 
     // Waiting for widgets to be updated for state data by Wes's team at the EPA.
     // Test here:
-    // http://localhost:8887/localsite/info/#show=vehicles&mapview=country&state=GA
+    // http://localhost:8887/localsite/info/#show=vehicles&geoview=country&state=GA
     if (1==2 && location.host.indexOf('localhost') >= 0) {
         if (hash.state && (hash.state=="GA" || hash.state=="ME" || hash.state=="MN" || hash.state=="OR" || hash.state=="WA")) {
             naics = ""; // TEMP. With transition to 73 Sectors the Naics are not in the models.
@@ -2002,6 +2016,147 @@ function applyIO(naics) {
 
 }
 
+// New 73 Sectors
+getEpaSectors();
+function getEpaSectors() {
+    // USEEIOv2.0 has 411 sector rows.
+    let sectorsJsonFile = "/io/build/api/GAEEIOv1.0/sectors.json";
+    let promises = [
+        d3.json(sectorsJsonFile, function(d) {
+            epaSectors.set(d.id, d.index, d.name, d.code, d.location, d.description);
+            return d;
+        })
+    ]
+    Promise.all(promises).then(sectorsPromisesReady);
+    function sectorsPromisesReady(values) { // Wait for sectors json
+        // Returns Residential building repair and maintanence
+        //alert(epaSectors.get("230302/US"));
+        localObject.epaSectors = values[0]; // 73 EPA sectors
+        console.log("localObject.epaSectors");
+        console.log(localObject.epaSectors);
+        showSectorTabulatorList(0);
+    }
+}
+
+var sectortable = {};
+function showSectorTabulatorList(attempts) {
+    let hash = getHash();
+
+    // BUGBUG - Only start of description before : is displayed.
+    if (typeof Tabulator !== 'undefined') {
+        sectortable = new Tabulator("#tabulator-sectortable", {
+            data:localObject.epaSectors,     //load row data from array of objects
+            layout:"fitColumns",      //fit columns to width of table
+            responsiveLayout:"hide",  //hide columns that dont fit on the table
+            tooltips:true,            //show tool tips on cells
+            addRowPos:"top",          //when adding a new row, add it to the top of the table
+            history:true,             //allow undo and redo actions on the table
+            movableColumns:true,      //allow column order to be changed
+            resizableRows:true,       //allow row order to be changed
+            initialSort:[             //set the initial sort order of the data - NOT WORKING
+                {column:"id", dir:"asc"},
+            ],
+            frozenRows:1,
+            maxHeight:"500px", // For frozenRows
+            paginationSize:400, // No effect
+            columns:[
+                {title:"ID", field:"id", width:100},
+                {title:"Index", field:"index", width:70},
+                {title:"Name", field:"name", width:300},
+                {title:"Code", field:"code", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false,symbol:"$"} },
+                {title:"Location", field:"location", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false} },
+                {title:"Description", field:"description", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false} }
+            ],
+            dataLoaded: function(data) {
+                $("#sectors_totalcount").remove(); // Prevent dup - this will also remove events bound to the element.
+                let totalcount_div = Object.assign(document.createElement('div'),{id:"sectors_totalcount",style:"margin-bottom:10px"})
+                $("#tabulator-sectortable-count").append(totalcount_div);
+                totalcount_div.innerHTML = data.length + " sectors";  
+            },
+            rowClick:function(e, row) {
+                row.toggleSelect(); //toggle row selected state on row click
+
+                console.log("row:");
+                console.log(row); // Single row component
+                console.log(e); // Info about PointerEvent - the click event object
+
+                currentRowIDs = [];
+                //e.forEach(function (row) {
+                    //console.log(row.geoid);
+                    currentRowIDs.push(row._row.data.id);
+                //});
+                //alert(currentRowIDs.toString())
+
+                // Possible way to get currently selected rows - not sure is this includes rows not in DOM
+                // var selectedRows = $("#tabulator-industrytable").tabulator("getSelectedRows"); //get array of currently selected row components.
+
+                // Merge with existing naics values from hash. This allows map to match.
+                let hash = getHash();
+                if (row.isSelected()) {
+                    if(hash.naics) {
+                        //hash.naics = hash.naics + "," + currentRowIDs.toString();
+                        hash.naics = hash.naics + "," + row._row.data.id;
+                    } else {
+                        hash.naics = currentRowIDs.toString();
+                    }
+                } else { // Uncheck
+                    // Remove only unchecked row.
+                    //$.each(currentRowIDs, function(index, value) {
+                        hash.naics = hash.naics.split(',').filter(e => e !== row._row.data.id).toString();
+                    //}
+                }
+                goHash({'naics':hash.naics});
+
+                //var selectedData = industrytable.getSelectedData(); // Array of currently selected
+                //alert(selectedData);
+            },
+            rowSelectionChanged: function(e, row) {
+                //alert("rowSelectionChanged")
+
+                //console.log("rowSelectionChanged");
+                //console.log(e); // Contains all selected rows.
+
+                //console.log("Row Selection (checkbox) Changed");
+                //console.log(row); // Has extra levels
+
+                /*
+                currentRowIDs = [];
+                e.forEach(function (row) {
+                    //console.log(row.geoid); // naics now, will be sector
+                    currentRowIDs.push(row.id)
+                });
+                */
+
+                if (row[0]) {
+                    //console.log(e[0].id); // the geoid
+
+                    // Works - but currently showing first item in array of objects:
+                    //console.log(row[0]._row.data.id); // .data.geoid
+
+                    //this.recalc();
+                }
+            },
+        });
+
+        //industrytable.selectRow(industrytable.getRows().filter(row => row.getData().name == 'Fulton County, GA'));
+        //industrytable.selectRow(industrytable.getRows().filter(row => row.getData().name.includes('Ba')));
+
+        // Place click-through on checkbox - allows hashchange to update row.
+        //$('.tabulator-row input:checkbox').prop('pointer-events', 'none'); // Bug - this only checks visible
+        
+
+    } else {
+      attempts = attempts + 1;
+      if (attempts < 200) {
+        // To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
+        setTimeout( function() {
+          showIndustryTabulatorList(attempts);
+        }, 20 );
+      } else {
+        alert("Tabulator JS not available for displaying list.")
+      }
+    }
+}
 
 // From naics2.js for v2
 
@@ -2021,7 +2176,8 @@ function showIndustryTabulatorList(attempts) {
 
         // Already sent to console
         //console.log("data:localObject.industries");
-        //console.log(localObject.industries);
+
+        // $("#tabulator-industrytable-count").append(totalcount_div);
 
         // ToDo: Replace width on Industry with a cell that fills any excess space.
 
@@ -2035,29 +2191,25 @@ function showIndustryTabulatorList(attempts) {
             movableColumns:true,      //allow column order to be changed
             resizableRows:true,       //allow row order to be changed
             initialSort:[             //set the initial sort order of the data - NOT WORKING
-                {column:"id", dir:"asc"},
+                {column:"employees", dir:"desc"},
             ],
             frozenRows:1,
-            paginationSize:400, // No effect
-            maxHeight:"500px", // For frozenRows
+            maxHeight:"480px", // For frozenRows
+            paginationX:true, //enable.
+            paginationSizeX:10,
             columns:[
                 {title:"Naics", field:"id", width:80},
-                {title:"Industry", field:"title", width:120},
+                {title:"Industry", field:"title", width:300},
                 {title:"Payroll", field:"payroll", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false,symbol:"$"} },
                 {title:"Locations", field:"establishments", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false} },
                 {title:"Employees", field:"employees", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false} },
                 {title:"Population", field:"population", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number", formatter:"money", formatterParams:{precision:false} },
-                {title:"Counties", field:"instances", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number" },
-            
+                {title:"Counties", field:"instances", hozAlign:"right", width:120, headerSortStartingDir:"desc", sorter:"number" }
             ],
             dataLoaded: function(data) {
-
-                //var newDiv= document.createElement('div');
-                $("#totalcount").remove(); // Prevent dup - this will also remove events bound to the element.
-                var totalcount_div = Object.assign(document.createElement('div'),{id:"totalcount",style:"float:left"})
+                $("#industries_totalcount").remove(); // Prevent dup - this will also remove events bound to the element.
+                let totalcount_div = Object.assign(document.createElement('div'),{id:"industries_totalcount",style:"margin-bottom:10px"})
                 $("#tabulator-industrytable-count").append(totalcount_div);
-
-                //var el = document.getElementById("total_count");
                 totalcount_div.innerHTML = data.length + " industries";    
             },
             rowClick:function(e, row) {
@@ -2192,9 +2344,6 @@ function callPromises(industryLocDataFile) { // From naics2.js
         // Returns Logging
         //alert(industries.get("113310"));
 
-        showIndustryTabulatorList(0);
-
-        // This code will be removed
-        //displayIndustryList(localObject); 
+        showIndustryTabulatorList(0); 
     }
 }
