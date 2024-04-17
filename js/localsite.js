@@ -4,15 +4,18 @@
 
 // Localsite Path Library - A global namespace singleton
 // Define a new object if localsite library does not exist yet.
-let localStart = Date.now();
+var localStart = Date.now(); // A var so waitForVariableNav detects in navigation.js.
 let onlineApp = true;
-if (location.host.indexOf('localhost') >= 0) {
-  //onlineApp = false; // Set to false during air travel. Also sets local to no state.
-}
 let localsiteTitle = "Localsite";
-let defaultState = ""; // Set to GA to include additional map layers in top nav
+let defaultState = ""; 
+if (location.host.indexOf('localhost') >= 0) {
+  // Set onlineApp to false during air travel. Also sets local to no state.
+  // Requires community-data locally
+  //onlineApp = false; 
+  defaultState = "";  // Set to GA to include additional map layers in top nav.
+}
 consoleLog("start localsite");
-var local_app = local_app || (function(module){
+var local_app = local_app || (function(module) {
     let _args = {}; // private, also worked as []
     let localsite_repo;
     return {
@@ -64,6 +67,7 @@ var local_app = local_app || (function(module){
             }
 
             let hostnameAndPort = extractHostnameAndPort(myScript.src);
+            console.log("location.host " + location.host);
             let theroot = location.protocol + '//' + location.host + '/localsite/';
 
             if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map, and ga-layers.json
@@ -77,6 +81,7 @@ var local_app = local_app || (function(module){
             }
             
             if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
+              console.log("hostnameAndPort " + hostnameAndPort);
               theroot = hostnameAndPort + "/localsite/";
               //consoleLog("myScript.src hostname and port: " + extractHostnameAndPort(myScript.src));
               //consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
@@ -90,18 +95,24 @@ var local_app = local_app || (function(module){
             return (theroot);
         },
         community_data_root : function() { // General US states and eventually some international
-            let theroot = location.protocol + '//' + location.host + '/community-data/';
-            if (location.host.indexOf('localhost') < 0) {
-              theroot = "https://model.earth/community-data/"; 
+            let theroot = "https://model.earth/community-data/";
+            if (location.host.indexOf('localhost') >= 0 && !onlineApp) {
+              theroot = location.protocol + '//' + location.host + '/community-data/';
             }
             return (theroot);
         },
         modelearth_root : function() { // General US states and eventually some international
-            // These repos will typically reside on github, so no localhost.
-            let theroot = "https://model.earth"; // Probably will also remove slash from the ends of others.
-            if (location.host.indexOf('localhost') >= 0) {
+            let theroot = "https://model.earth";
+            // TO DO: Check if localsite.js include div contains "https://model.earth" (non-relative)
+            
+            if (location.host.indexOf('localhost') >= 0 || location.host.indexOf('127.0.0.1') >= 0) {
               theroot = "";
             }
+            return (theroot);
+        },
+        topojson_root : function() { // General US states and eventually some international
+            // These repos will typically reside on github, so no localhost.
+            let theroot = "https://model.earth";
             return (theroot);
         },
         custom_data_root : function() { // Unique US states - will use javascript, domain, cookies and json.
@@ -133,22 +144,34 @@ var local_app = local_app || (function(module){
 // USE param for any html page using localsite.js.
 // mix gives priority to the first (allowing it to delete using blanks). extend gives priority to the second.
 let paramIncludeFile = getParamInclude(); // From localsite.js include file param.
+
 if(typeof hiddenhash == 'undefined') {
   var hiddenhash = {};
 }
-// param values from page are placed in hiddenhash.
+if (hiddenhash.geoview) {
+    alert("BUG L1 hiddenhash.geoview " + hiddenhash.geoview);
+}
+// param values from page are placed in hiddenhash. (UNLESS THEY ARE ALREADY IN THE HASH.)
 // hiddenhash is loaded into hash in gethash if hash does not have an existing value.
-// That allows priorHash to contain the initial param value hardcoded in page (since hiddenhash holds it for getHash).
+// priorHash holds the initial param value hardcoded in page, then changes with each hash update.
 if(typeof param != 'undefined') { // From settings in HTML page
+  // hiddenhash and hash allow params to be altered after initial load.
+  // hiddenhash DOES NOT contain location.search
   hiddenhash = mix(hiddenhash,paramIncludeFile); // Before URL values added. Priority to hiddenhash.
   hiddenhash = mix(param,hiddenhash); // param set in page takes priority over param set on localsite.js URL.
+
+  // param includes location.search, but might not need to.
+  // param is coming in from page settings, so we give it priority over localsite.js includes and the URL
   param = mix(param,loadParams(location.search,location.hash)); // Priority to first, the param values set in page.
+  param = mix(param,paramIncludeFile);
+
 } else { // No param object in page, but could be set in localsite.js include.
   hiddenhash = mix(hiddenhash,paramIncludeFile);
-  //var param = {}; // Clone paramIncludeFile
+  // Now we add in the hash, after hiddenhash is set without hash
   var param = structuredClone(extend(true, loadParams(location.search,location.hash), paramIncludeFile)); // Subsequent overrides first giving priority to setting in page over URL. Clone/copy object without entanglement. 
   //param = loadParams(location.search,location.hash); // Includes localsite.js include.
 }
+
 if (param.state) {
   defaultState = param.state; // For /locations/index.html
 }
@@ -220,7 +243,7 @@ function loadParams(paramStr,hashStr) {
   //alert(myScript.src);
 
   let params = {};
-  console.log("Get param from " + myScript.src);
+  //console.log("Get param from " + myScript.src);
   let includepairs = myScript.src.substring(myScript.src.indexOf('?') + 1).split('&');
   for (let i = 0; i < includepairs.length; i++) {
     if(!includepairs[i]) continue;
@@ -235,8 +258,8 @@ function loadParams(paramStr,hashStr) {
           continue;
       let pair = pairs[i].split('=');
       params[decodeURIComponent(pair[0]).toLowerCase()] = decodeURIComponent(pair[1]);
-   }
-
+  }
+   
   let hashPairs = hashStr.split('&');
   for (let i = 0; i < hashPairs.length; i++) {
       if(!hashPairs[i])
@@ -248,20 +271,22 @@ function loadParams(paramStr,hashStr) {
       let hashPair = hashPairs[i].split('=');
       params[decodeURIComponent(hashPair[0]).toLowerCase()] = decodeURIComponent(hashPair[1]);
    }
+   
    return params;
 }
 function mix(incoming, target) { // Combine two objects, priority to incoming. Delete blanks indicated by incoming.
    let target2;
-   //target2 = structuredClone($.extend(true, {}, target)); // Clone/copy object without entanglement
+
+   let target1 = structuredClone(extend(true, {}, target)); // Clone/copy object without entanglement - prevents making hashhidden = hash
    //console.log("mix incoming and default (target). Incoming has priority.");
    //console.log(incoming);
    //console.log(target);
    if (window.jQuery) {
-    target2 = structuredClone($.extend(true, target, incoming)); // structuredClone prevents entanglement, subsequent overrides first.
+    target2 = structuredClone(extend(true, target1, incoming)); // structuredClone prevents entanglement, subsequent overrides first.
    } else {
-    console.log("USING non-jquery extend")
+    consoleLog("USING non-jquery extend")
     // This non-JQuery extend results in "Uncaught (in promise) RangeError: Maximum call stack size exceeded" with map.js mix(dp,defaults)
-    target2 = structuredClone(extend(true, target, incoming)); // Clone/copy object without entanglement, subsequent overrides first.
+    target2 = structuredClone(extend(true, target1, incoming)); // Clone/copy object without entanglement, subsequent overrides first.
    }
    for(var key in incoming) {
      if (incoming.hasOwnProperty(key)) {
@@ -278,8 +303,7 @@ function mix(incoming, target) { // Combine two objects, priority to incoming. D
    return target2;
 }
 function getHash() {
-    //return (mix(getHashOnly(),hiddenhash)); // Includes hiddenhash
-    return (getHashOnly());
+    return (mix(getHashOnly(),hiddenhash)); // Includes hiddenhash
 }
 function getHashOnly() {
     return (function (a) {
@@ -298,7 +322,7 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
     if (addToExisting != false) {
       hash = getHashOnly(); // Include all existing. Excludes hiddenhash.
     }
-    
+    console.log(addToHash)
     const newObj = {}; // For removal of blank keys in addToHash
     Object.entries(addToHash).forEach(([k, v]) => {
       if (v === Object(v)) {
@@ -431,7 +455,7 @@ function loadScript(url, callback)
 var localsite_repo3; // TEMP HERE
 /*
 function extractHostnameAndPort(url) { // TEMP HERE
-    console.log("hostname from: " + url);
+    consoleLog("hostname from: " + url);
     let hostname;
     let protocol = "";
     //find & remove protocol (http, ftp, etc.) and get hostname
@@ -468,7 +492,7 @@ function get_localsite_root3() { // Also in two other places
       }
   }
   let hostnameAndPort = extractHostnameAndPort(myScript.src);
-  console.log("hostnameAndPort: " + hostnameAndPort);
+  //consoleLog("hostnameAndPort: " + hostnameAndPort);
   let theroot = location.protocol + '//' + location.host + '/localsite/';
 
   if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map
@@ -628,7 +652,7 @@ function consoleLog(text,value) {
 }
 
 function loadLocalTemplate() {
-  console.log("loadLocalTemplate()");
+  consoleLog("loadLocalTemplate()");
   let datascapeFile = theroot + "info/template-main.html";
   let datascapeFileDiv = "#datascape";
   waitForElm(datascapeFileDiv).then((elm) => {
@@ -650,7 +674,7 @@ function loadLocalTemplate() {
       elemDiv.innerHTML = "testing";
       document.body.appendChild(elemDiv);
 
-      console.log("Template Loaded: " + datascapeFile);
+      consoleLog("Template Loaded: " + datascapeFile);
       initSitelook();
       if (typeof relocatedStateMenu != "undefined") {
         relocatedStateMenu.appendChild(state_select); // For apps hero
@@ -708,9 +732,7 @@ function showHeaderBar() {
   //$('.headerOffset').show(); 
   $('#headerbar').show();
   $('#headerbar').removeClass("headerbarhide");
-  $('#headerbar').removeClass("headerbarhide");
   $('#local-header').show();
-  //alert("showHeaderBar")
 }
 
 function loadSearchFilterCss() {
@@ -736,18 +758,6 @@ function loadLeafletAndMapFilters() {
         waitForElm('#local-header').then((elm) => {
           $("#local-header").prependTo("#fullcolumn"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
           $("#local-header").show();
-        
-        // Might need to add a check here. Occasional:
-        // Uncaught ReferenceError: applyNavigation is not defined
-
-        // if #local-header already exists, abort
-
-
-        // To Do: wait for div from navigation.js
-        //waitForElm('#bodyloaded').then((elm) => {
-
-        //});
-
         });
 
       });
@@ -778,7 +788,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       //Doc ready was here, now further down
 
-      console.log("Ready DOM Loaded (But not template yet). Using theroot: " + theroot)
+      consoleLog("Ready DOM Loaded (But not template yet). Using theroot: " + theroot)
       // Add id to body tag
       //document.body.id = "bodyloaded"; //Works, but avoid incase body already has an id.
 
@@ -837,7 +847,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       
       // Load when body div becomes available, faster than waiting for all DOM .js files to load.
       waitForElm('#bodyloaded').then((elm) => {
-       console.log("#bodyloaded becomes available");
+       consoleLog("#bodyloaded becomes available");
         if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
           var div = $("<div />", {
               html: '<style>.local{display:inline-block !important}.local-block{display:block !important}.localonly{display:block !important}.hidelocal{display:none}</style>'
@@ -861,7 +871,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
         if(param.showheader == "true") {
           // border:1px solid #555; 
-          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;display:none'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
+          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons sideIconsLower' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;display:none'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border: 1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
         }
 
         if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
@@ -882,7 +892,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           let infoFile = theroot + "info/template-charts.html #template-charts"; // Including #template-charts limits to div within page, prevents other includes in page from being loaded.
           //console.log("Before template Loaded infoFile: " + infoFile);
           $("#infoFile").load(infoFile, function( response, status, xhr ) {
-            console.log("Info Template Loaded: " + infoFile);
+            consoleLog("Info Template Loaded: " + infoFile);
             $("#industryFilters").appendTo("#append_industryFilters");
           });
         }
@@ -1253,6 +1263,208 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
 }); // End JQuery loadScript
 
+// Might REPLACE WITH loadGeos(), not sure yet
+// 
+function getStateFips(hash) {
+
+  // Called three times, once per map?
+  //alert("getStateFips")
+
+  if (hash.geo) {
+      //if (hash.geo.includes(",")) {
+          var geos=hash.geo.split(",");
+          fips=[]
+          for (var i = 0; i < geos.length; i++){
+              let fip = geos[i].split("US")[1];
+              if (fip) {
+                  if (fip.startsWith("0")){
+                      fips.push(parseInt(geos[i].split("US0")[1]))
+                  } else {
+                      fips.push(parseInt(geos[i].split("US")[1]))
+                  }
+              } else {
+                  console.log("fip without US = " + geos[i]);
+              }
+          }
+          st=(geos[0].split("US")[1]).slice(0,2)
+          if (st.startsWith("0")){
+              dataObject.stateshown=(geos[0].split("US0")[1]).slice(0,1)
+          } else {
+              if (geos[0].split("US")[1].length==4){
+                  dataObject.stateshown=(geos[0].split("US")[1]).slice(0,1)
+              } else {
+                  dataObject.stateshown=(geos[0].split("US")[1]).slice(0,2)
+              }
+              
+          }
+          /* BUG - was loading Westion County from Wyoming when only one county selected.
+          } else {
+              //alert("split on US")
+              fip=hash.geo.split("US")[1]
+              
+              if (fip.startsWith("0")){
+                  fips=parseInt(hash.geo.split("US0")[1])
+              } else {
+                  fips=parseInt(hash.geo.split("US")[1])
+              }
+              st=(hash.geo.split("US")[1]).slice(0,2)
+              if (st.startsWith("0")){
+                      dataObject.stateshown=(hash.geo.split("US0")[1]).slice(0,1)
+              } else {
+                  if (hash.geo.split("US")[1].length==4){
+                      dataObject.stateshown=(hash.geo.split("US")[1]).slice(0,1)
+                  } else {
+                      dataObject.stateshown=(hash.geo.split("US")[1]).slice(0,2)
+                  }
+              
+              }
+          }
+          */
+  } else if (hash.state) {
+      //fips = $("#state_select").find(":selected").attr("stateid").trimLeft("0");
+      fips = stateID[hash.state.split(",")[0].toUpperCase()];
+      dataObject.stateshown = fips;
+      //alert("the fips " + fips)
+  } else {
+      fips = dataObject.stateshown;
+  }
+  stuff=[]
+  stuff.push(fips)
+  stuff.push(dataObject.stateshown)
+  return stuff
+}
+
+function loadGeos(geo, attempts, callback) {
+  // Commented out in navigation.js since being called from map.js too.
+
+  // load only, no search filter display - get county name from geo value.
+  // created from a copy of loadStateCounties() in search-filters.js
+
+  // Not being reached.
+  //alert("loadGeos")
+  
+  if (typeof d3 !== 'undefined') {
+
+    let hash = getHash();
+    let stateID = {AL:1,AK:2,AZ:4,AR:5,CA:6,CO:8,CT:9,DE:10,FL:12,GA:13,HI:15,ID:16,IL:17,IN:18,IA:19,KS:20,KY:21,LA:22,ME:23,MD:24,MA:25,MI:26,MN:27,MS:28,MO:29,MT:30,NE:31,NV:32,NH:33,NJ:34,NM:35,NY:36,NC:37,ND:38,OH:39,OK:40,OR:41,PA:42,RI:44,SC:45,SD:46,TN:47,TX:48,UT:49,VT:50,VA:51,WA:53,WV:54,WI:55,WY:56,AS:60,GU:66,MP:69,PR:72,VI:78,}
+    //let theState = "GA"; // TEMP - TODO: loop trough states from start of geo
+    let theState = hash.state ? hash.state.split(",")[0].toUpperCase() : undefined;
+    if (!theState) {
+      goHash({'geoview':'state'});
+      filterClickLocation();
+    }
+    //if (theState && theState.includes(",")) {
+    //  theState = theState.substring(0, 2);
+    //}
+    var geos=geo.split(",");
+    fips=[]
+    for (var i = 0; i < geos.length; i++){
+        fip=geos[i].split("US")[1]
+        if (fip) {
+          if(fip.startsWith("0")){
+              fips.push(parseInt(geos[i].split("US0")[1]))
+          }else{
+              fips.push(parseInt(geos[i].split("US")[1]))
+          }
+        } else {
+          console.log("ALERT: geo value does not start with US.")
+        }
+    }
+    if (geos[0].split("US")[1]) {
+      st=(geos[0].split("US")[1]).slice(0,2)
+      if(st.startsWith("0")){
+          dataObject.stateshown=(geos[0].split("US0")[1]).slice(0,1)
+      }else{
+          if(geos[0].split("US")[1].length==4){
+              dataObject.stateshown=(geos[0].split("US")[1]).slice(0,1)
+          }else{
+              dataObject.stateshown=(geos[0].split("US")[1]).slice(0,2)
+          }
+      }
+    } else {
+      console.log("ALERT: geos[0].split(US)[1] does not start with US.")
+    }
+
+    //Load in contents of CSV file
+    if (theState) {
+      d3.csv(local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv").then(function(myData,error) {
+        if (error) {
+          //alert("error")
+          console.log("Error loading file. " + error);
+        }
+        let geoArray = [];
+
+        myData.forEach(function(d, i) {
+
+          let geoParams = {};
+          d.difference =  d.US_2007_Demand_$;
+
+          // OBJECTID,STATEFP10,COUNTYFP10,GEOID10,NAME10,NAMELSAD10,totalpop18,Reg_Comm,Acres,sq_miles,Label,lat,lon
+          //d.name = ;
+          //d.idname = "US" + d.GEOID + "-" + d.NAME + " County";
+
+          //d.perMile = Math.round(d.totalpop18 / d.sq_miles).toLocaleString(); // Breaks sort
+          d.perMile = Math.round(d.totalpop18 / d.sq_miles);
+
+          d.sq_miles = Number(Math.round(d.sq_miles).toLocaleString());
+          var activeGeo = false;
+          var theGeo = "US" + d.GEOID;
+          //alert(geo + " " + theGeo)
+          let geos=geo.split(",");
+          //fips=[]
+          for (var i = 0; i<geos.length; i++){
+              if (geos[i] == theGeo) {
+                activeGeo = true;
+              }
+          }
+
+
+          geoParams.name = d.NAME;
+          geoParams.pop = d.totalpop18;
+          geoParams.permile = d.perMile;
+          geoParams.active = activeGeo;
+
+          geoArray.push([theGeo, geoParams]); // Append a key-value with an object as the value
+        });
+
+        console.log("geoArray")
+        console.log(geoArray)
+        dataObject.geos = geoArray;
+
+        //alert("localStorage.length ");
+        //alert(localStorage.length);
+        //alert(theState)
+        // Doesn't get populated: localStorage.geos[theState]
+
+        // TO DO: We'll probably push on multiple sets of counties for different states (plus individual states and countries: AK and US)
+        localStorage.setItem("geos", JSON.stringify(geoArray));
+
+        //localStorage.setItem("geos.GA", JSON.stringify(geoArray));
+
+        console.log("localStorage.geos")
+        //console.log(JSON.parse(localStorage.geos)); // Works
+        //console.log(JSON.parse(localStorage.geos.GA)); // Nope
+
+        // About localStorage 
+        // https://blog.logrocket.com/localstorage-javascript-complete-guide/
+
+        //alert("loadGeos return");
+        callback(); // TypeError: callback is not a function
+        return;
+      });
+    }
+  } else {
+    attempts = attempts + 1;
+        if (attempts < 2000) {
+          // To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
+          setTimeout( function() {
+            loadGeos(geo,attempts,callback);
+          }, 20 );
+        } else {
+          alert("D3 javascript not available for loading counties csv.")
+        }
+  }
+}
 
 var mycount = 0;
 function includeCSS3(url,theroot) {
@@ -1456,6 +1668,7 @@ function extend () {
 };
 
 function loadTabulator() {
+  console.log("Bug: Gets called when tabulator not yet needed by nav.")
   // Tabulator
   if (typeof Tabulator === 'undefined') {
     //includeCSS3('https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css',theroot);
@@ -1492,7 +1705,7 @@ function updateHiddenhash(hashObject) {
 }
 
 function extractHostnameAndPort(url) {
-    console.log("hostname from: " + url);
+    //consoleLog("hostname from: " + url);
     let hostname;
     let protocol = "";
     // find & remove protocol (http, ftp, etc.) and get hostname
@@ -1760,10 +1973,12 @@ addEventListener("load", function(){
 });
 
 
-
-String.prototype.toTitleCase = function () {
+// Error on storage page: this.replace is not a function
+// So renamed to toTitleCaseFormatFormat. Haven't confirmed.
+String.prototype.toTitleCaseFormat = function () {
     return this.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
 };
+
 function getKeyByValue(object, value) {
   return Object.keys(object).find(key => object[key] === value);
 }
@@ -1971,10 +2186,10 @@ function showSearchFilter() {
     loadFilters = true;
   } else {
     let filterTop = $("#filterFieldsHolder").offset().top - window.pageYOffset;
-    console.log("showSearchFilter #filterFieldsHolder offset top: " + filterTop);
+    consoleLog("showSearchFilter #filterFieldsHolder offset top: " + filterTop);
     //  || (!$("#headerbar").is(':visible') && filterTop >= 0)
     if ($("#filterFieldsHolder").is(':visible') && (($("#headerbar").is(':visible') && filterTop >= headerHeight) )) { // Might need to allow for coverage by header.
-      console.log("Hide #filterFieldsHolder");
+      consoleLog("Hide #filterFieldsHolder");
       $("#filterFieldsHolder").hide();
       $("#filterFieldsHolder").addClass("filterFieldsHidden");
       //$("#filterbaroffset").hide();
@@ -1985,7 +2200,7 @@ function showSearchFilter() {
         
       if (document.getElementById("filterFieldContent") == null) { 
         //alert("load filter.html")
-        let filterFile = "/localsite/map/filter.html";
+        let filterFile = local_app.modelearth_root() + "/localsite/map/filter.html";
         $("#filterFieldsHolder").load(filterFile, function( response, status, xhr ) {
 
         }); // End $("#filters").load
@@ -2114,7 +2329,7 @@ function loadIframe(iframeName, url) {
 function waitForSubObject(theObject, theSubObject, callback) { // To confirm: Declare object using var since let will not be detected.
   var interval = setInterval(function() {
     if (window[theObject]) {
-      console.log('waitForObject found parent ' + theObject + '. Waiting for ' + theSubObject);
+      console.log('waitForSubObject. theObject: ' + theObject + '. Waiting for theSubObject: ' + theSubObject);
       if (theSubObject in window[theObject] && Object.keys(window[theObject][theSubObject]).length > 0) {
         //consoleLog("layers count " + );
 
@@ -2131,7 +2346,7 @@ function waitForSubObject(theObject, theSubObject, callback) { // To confirm: De
   }, 300);
 }
 
-function waitForVariable(variable, callback) { // Declare variable using var since let will not be detected.
+function waitForVariable(variable, callback) { // Declare variable using var since "let" will not be detected.
   var interval = setInterval(function() {
     if (window[variable]) {
       clearInterval(interval);
@@ -2247,10 +2462,9 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
     d3.text(pagePath).then(function(data) {
       // Path is replaced further down page. Reactivate after adding menu.
       let pencil = "<div class='markdownEye' style='position:absolute;font-size:28px;right:0px;top:0px;text-decoration:none;opacity:.7'><a href='" + pagePath + "' style='color:#555'>…</a></div>";
-      if(location.host.indexOf('localhost') < 0) {
+      //if(location.host.indexOf('localhost') < 0) {
         pencil = "";
-      }
-
+      //}
       // CUSTOM About YAML metadata converter: https://github.com/showdownjs/showdown/issues/260
 
       // Also try adding simpleLineBreaks http://demo.showdownjs.com/
@@ -2697,5 +2911,4 @@ function setSitelook(siteLook) {
     //setTimeout(function(){ updateOffsets(); }, 200); // Allows time for css file to load.
     //setTimeout(function(){ updateOffsets(); }, 4000);
 }
-
 consoleLog("end localsite");

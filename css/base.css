@@ -12,6 +12,7 @@ Used in localsite, modelearth, io, neighborhood, trees
 */
 .showMobile, .showMobileWide {display:none;}
 .showGit {display:none;}
+.hideGit {display:inline-block;}
 .local, .localonly {
   background-image: linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 95%, rgba(0,0,0,0.1) 75%), linear-gradient(-45deg, transparent 95%, rgba(0,0,0,0.1) 75%);
   background-size: 3px 3px;
@@ -61,6 +62,11 @@ body {
 }
 .bodyLeftMarginFull {
   margin-left: 600px;
+}
+@media (max-width: 1000px) {
+  .bodyLeftMargin #locationFilterHolder #filterLocations {
+    padding-left: 30px;
+  }
 }
 @media (max-width: 500px) {
   .bodyLeftMargin {
@@ -222,7 +228,15 @@ td {
 textarea {
     border-color: #777;
 }
-
+.textInput {
+  font-size: 15px;
+  box-sizing: border-box;
+  height: 34px;
+  min-height: 34px;
+  padding-left: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
 /* Lighter: #4091dd */
 p {
   margin-top: 0px;
@@ -445,12 +459,17 @@ summary::-webkit-details-marker {
 .displayOnload {
   display:block !important; /* hidden until css loaded */
 }
-.content {
+.content, #observablehq-center {
   max-width: 1100px;
   margin:0 auto;
   font-size: 15px;
   line-height: 1.55;
   /* position: relative; */  /* overlapped top filters */
+}
+#observablehq-toc nav {
+  margin-top: 148px; /* when showsearch */
+  margin-top: 100px;
+  padding-top: 18px;
 }
 @media (min-width: 1800px) {
 	.content {
@@ -458,7 +477,7 @@ summary::-webkit-details-marker {
 	  font-size: 18px;
 	}
 }
-.contentpadding {
+.contentpadding, #observablehq-center {
   padding-top: 25px;
   padding-left: 50px; /* also used 64, 50 */
   padding-left: 60px; /* to avoid overlapping upper left menu */
@@ -492,6 +511,7 @@ summary::-webkit-details-marker {
 }
 .greyDiv a:link, .greyDiv a:visited, .content .greyDiv a:link, .content .greyDiv a:visited {
   color: #fff;
+  text-decoration: none;
 }
 .greyDiv b, .greyDiv .maincat, .greyDiv b a:link, .greyDiv b a:visited, .content .greyDiv b, .content .greyDiv .maincat, .content .greyDiv b a:link, .content .greyDiv b a:visited {
   color: #333;
@@ -659,7 +679,7 @@ code {
   padding: 2px  5px;
   overflow: scroll;
 }
-content .js, pre code { /* Prevents .js from impacting js class within Drupal body tag */
+content .js, pre code, .codetext { /* Prevents .js from impacting js class within Drupal body tag */
   background-color: #eee;
   padding:15px;
   border-left: 4px solid #137AD1;
@@ -668,6 +688,17 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
   unicode-bidi: embed;
   font-family: monospace;
   /* white-space: pre-wrap; */ /* Causes Drupal to have large empty div's at top */
+}
+.codetext {
+  width:100%;
+  overflow:auto;
+  background-color: #eee;
+  padding: 15px;
+  border: none;
+  border-left: 4px solid #137AD1 !important;
+  font-family: monospace;
+  font-size: 15px;
+  line-height: 1.55;
 }
 .dark code {
   color: #ddd;
@@ -1437,7 +1468,7 @@ content .js, pre code { /* Prevents .js from impacting js class within Drupal bo
 
 /* json to html display */
 .titlecell {
-  margin-top:5px;
+  margin: 5px 12px 0 0;
   float:left;
   clear:both;
   min-width: 200px;

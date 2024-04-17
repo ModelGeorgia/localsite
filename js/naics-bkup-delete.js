@@ -846,7 +846,7 @@ function topRatesInFips(dataSet, dataNames, fips, params) {
         params.show = params.go;
     }
     if (params.show) {
-        gotext = params.show.replace(/_/g," ").toTitleCase();
+        gotext = params.show.replace(/_/g," ").toTitleCaseFormat();
         if (gotext == "Smart") {
             gotext = "EV Ecosystem";
         } else if (gotext == "Ppe") {
@@ -1776,7 +1776,7 @@ function applyIO(naics) {
      
 
     var config = useeio.urlConfig();
-    var modelID = config.get().model || 'USEEIOv2.0'; 
+    var modelID = config.get().model || 'USEEIOv2.0.1-411'; 
     // USEEIOv1.2 shows incorrect bars. $300.043 input per $1 for agriculture.
     // USEEIO showed fish for colleges
 

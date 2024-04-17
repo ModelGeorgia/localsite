@@ -1,10 +1,13 @@
+# Localsite Repo
+
 ## Localsite Nav
 
 The&nbsp;[localsite&nbsp;repo](https://github.com/modelearth/localsite/) provides a static framework for displaying navigation and [maps](map/) from json&nbsp;APIs, Google Sheets, and&nbsp;.CSV&nbsp;files.
 
 ## Get Involved
 
-[Local Webroot Setup](start/)
+[Model.Earth](https://model.earth)  
+[Local Webroot Setup](https://model.earth/localsite/start/)  
 [Current Project Areas](https://model.earth/community/projects/)
 
 ## Embed Datascapes
@@ -19,5 +22,3 @@ These are applied by localsite.js:
 
 showheader - Top bar including logo.
 showsearch - Display search bar with filters.
-
-

@@ -443,7 +443,7 @@
 
             <div class="local" style="display:none">
               <div style="margin-bottom:5px">Your email address</div>
-              <input id="input123" autocompleteX="off" style="width:100%" class="mobileWide textInput si-input" type="text" value=""><br><br><br>
+              <input id="input123" autocompleteX="off" style="width:100%; min-width:250px" class="mobileWide textInput si-input" type="text" value=""><br><br><br>
             </div>
 
             <div class="georgia" style="display:none">
@@ -685,15 +685,6 @@
 <!-- /RIGHT MENU -->
 
 
-<!-- FILTERS -->
-<div class="search-filters-css" style="display:none">
-<!-- headerLarge was here -->
-
-
-</div>
-<!-- /FILTERS -->
-
-
 <div style="clear:both"></div>
 
 
@@ -720,7 +711,7 @@
 
 <!-- APP MENU -->
 <!-- From navigation.js displayBigThumbnails function -->
-<div class="search-filters-css" style="display:none">
+<div class="search-filters-css lite" style="display:none">
 <div id="bigThumbPanelHolder" style="display:none;position: relative;">
 
   <div class="hideApps close-X" style="position:absolute;right:0;top:0;z-index:1">✕</div>
@@ -860,7 +851,7 @@ document.addEventListener('mousedown', function(e) {
 <!-- LOCATION SEARCH -->
 <!-- For inactive portions - copy scripts from explore/js/embed.js -->
 <div id="locationFilterHolder" class="lite">
-<div id="filterLocations" class="fieldSelector filterBubbleHolder" style="display:none;">
+<div id="filterLocations" class="fieldSelector filterBubbleHolder" style="display:none; min-height:12px; margin-bottom:1px solid #ccc;">
 
     
       <!-- Stores location options. Not displayed. -->
@@ -886,7 +877,7 @@ document.addEventListener('mousedown', function(e) {
 
       <div id="locationFilterHolderX" style="position: relative;">
           
-        <div style="position:absolute;top:0;right:0" class="hideinpop">
+        <div style="position:absolute;top:0;right:0;z-index:1000" class="hideinpop">
           <div class="hideAdvanced close-X" style="float:left;padding-left:12px;padding-right:35px">&#10005;
           </div>
         </div>
@@ -984,6 +975,17 @@ document.addEventListener('mousedown', function(e) {
 
               </div>
             </div>
+
+            <div class="local" style="display:none">
+            <div id="imagineBar" class="lite" style="float:left; padding:0px 0px 8px 0px;display:none">
+              <div class="detailbutton imagineLocation greenbutton localX" style="display:none; padding:10px 18px 10px 18px;">Imagine</div>
+
+                <!-- Test another chlorpleth -->
+                <div class="local" style="display:none">
+                  <div id="show_county_colors" class="detailbutton">Test County Colors</div>
+                </div>
+            </div>
+          </div>
       </div>
 
         <!-- GOOGLE ADDRESS AUTOCOMPLETE -->
@@ -1208,15 +1210,6 @@ document.addEventListener('mousedown', function(e) {
 
       </div>
 
-</div>
-
-<div id="imagineBar" class="lite" style="padding:8px 0px 8px 60px;border-bottom:1px solid #aaa;display:none">
-  <div class="detailbutton hideGeoPicker greenbutton" style="padding:10px 18px 10px 18px;">Imagine</div>
-
-    <!-- Test another chlorpleth -->
-    <div class="local" style="display:none">
-      <div id="show_county_colors" class="detailbutton">Test County Colors</div>
-    </div>
 </div>
 
 </div>
@@ -1708,6 +1701,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 <div class="content contentpadding contentpaddingMin litePanel" style="max-width:2000px; padding-bottom:0px">
 
   <div class="listTitle"></div>
+  <div class='listSpecs'></div>
   <div id="flexwrapper">
     
     <div id="hublist" style="position:relative;">
@@ -1718,7 +1712,6 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 
         <div style="display:none" class="layerclass farmfresh">
           
-
           <div id="legendLingsHolder" style="margin-bottom: 20px">
             <div class="legendLink">
               <div class="legendLinkRect" style="background:#1f78b4;"></div>
@@ -1736,75 +1729,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
             </div>
             <div style="clear:both"></div>
           </div>
-
-          <div id="suppliers_noiframe" style="display:none">
-
-           
-            <!--
-            Georgia businesses are responding to the call for manufacturing and  
-            distribution of critical supplies via the state's <a href="https://www.georgia.org/covid19response">COVID-19 Response Form</a>. 
-            -->
-
-            <span style="display:none" class="suppliers_pre_message">
-            <a href="https://www.georgia.org/covid19suppliersmap" target="covid19suppliersmap">Learn more</a> about our supplier list and map.
-            </span>
-            <!--
-            To make a listing correction or update, please 
-            <a href="https://www.georgia.org/covid19response" style="white-space: nowrap;">submit a new entry</a> 
-            or use the "feedback" button above. <a href="https://www.georgia.org/covid19suppliers">View PDF and learm more</a>.
-            -->
-
-            <span style="display:none" class="suppliers_pre_message">
-            Some of the locations are randomized by a couple miles since they were posted prior to our public listing registration.
-            <br><br>
-            </span>
-            
-          </div>
         </div>
-
-
-          <sectionX id="directory" class="mock-up" style="display:none;">
-            
-              <!--
-              <h2 style="margin-top:0px">Mock-up</h2>
-              Farm fresh data is provided as a sample dataset pulled from the USDA website. 
-              If you need info related to a GEMA supplier, please contact the Georgia Center of Innovation.
-              <br><br>
-              -->
-
-              <div id="resultsHeader">
-              </div>
-              
-
-              <!-- For D3 Embedded CSV Sheet -->
-              <div style="overflow:hidden;position:relative">
-                <div id="dataGrid">
-                  <div class="eTable" id="d3div"></div>
-                </div>
-              </div>
-              <style>
-                  .eTable table {
-                      border-collapse: collapse;
-                      border: 2px black solid;
-                      font: 12px sans-serif;
-                      min-height: 10px;
-                  }
-                  .eTable td {
-                      border: 1px black solid;
-                      padding: 5px;
-                      white-space: nowrap;
-                  }
-                  .eTable {
-                    margin-bottom:30px;
-                    overflow: auto;
-                  }
-                  .eTable > table > tr:first-child {
-                    background-color: #eee;
-                  }
-              </style>
-              <!-- End D3 Embedded CSV Sheet -->
-
-          </sectionX>
 
           <div id="dataList"></div>
           
@@ -1824,9 +1749,6 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
             </div>
 
           </div>
-
-          
-
       </div>
 
     </div><!-- /hublist -->

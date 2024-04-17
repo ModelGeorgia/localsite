@@ -1,14 +1,13 @@
-[Data Setup](../)  
-
 # Install Data Commons Lite
 
-You'll be running a local copy of the [datacommons.org](https://datacommons.org) website, but without local data.
+You can run a local copy of the [datacommons.org](https://datacommons.org) website, but without local data.
 
-Clone the Google Data Commons "[website](https://github.com/datacommonsorg/website/)" repo and run commands within your cloned folder.  
+Fork and clone the Google Data Commons repo:  
+[github.com/datacommonsorg/website](https://github.com/datacommonsorg/website/)
 
 In the [Data Commons Developer Guide](https://github.com/datacommonsorg/website/blob/master/docs/developer_guide.md) page, scroll down to "Develop with Flask (simple/lite)". Get your gcloud connection working using the lite steps.  
 
-After cloning the website repo, run to load submodule "mixer":  
+After cloning the website repo, run to load submodule "mixer":
 
 	git submodule foreach git pull origin master
 
@@ -40,18 +39,16 @@ For machine learning projects, use the full install with [Minikube](https://mini
 
 ## Optional: Install "tools" repo
 
-### For covid19-dashboard sample
-
 NOTE: To view the "tools" repo samples locally, you'll need to initiate a server from the "website" repo first. (Looking for an alternative to this, or maybe "tools" should be a submodule of "website" so all the routes continue working for both "website" and "tools".)  
 
 The Tools repos was created by a previous Google intern using React Web starter.  
 
 To view and edit the tools repo locally, clone [datacommonsorg/tools](https://github.com/datacommonsorg/tools) repo or the [ModelEarth fork](https://github.com/modelearth/tools)  
 
-Open terminal. (Type CTRL+\` if you're using VS Code.)  
+Open terminal. (Type CTRL+\` if you're using VS Code).
+For a dashboard sample:
 
 	cd covid19-dashboard
-
 
 Run the following and choose your Google account <!-- map.g 00 -->. You should be directed to a page saying "You are now authenticated with the Google Cloud SDK!"  
 
@@ -182,7 +179,7 @@ the [Developer Guide](https://github.com/datacommonsorg/website/blob/master/docs
 Note that the development build is not optimized.
 To create a production build, use: 
 
-	npm run build.
+	npm run build
 
 <!--
 You'll briefly see the DataCommons.org header when refreshing, then a "Failed to compile" occurs with a long list starting with the following:  
@@ -200,8 +197,7 @@ Chaning to the following did not allow browser to launch
 
 -->
 
-The covid19-dashboard site the worked here at port 8080  
-http://localhost:8080/dashboard/?dashboardId=socialWellness
+The covid19-dashboard site [ran at port 8080](http://localhost:8080/dashboard/?dashboardId=socialWellness)
 
 
 # Deploy to gcloud
@@ -218,7 +214,7 @@ If you only wish to deploy the default application and not use the covid-19 scri
 
 $GOOGLE_CLOUD_PROJECT is the project ID, same as QUOTA\_PROJECT\_ID
 
-### Deploy to App Engine.
+### Deploy to App Engine
 	gcloud app deploy app.yaml
 
 

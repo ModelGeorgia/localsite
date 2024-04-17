@@ -84,8 +84,11 @@ document.addEventListener('hashChangeEvent', function (elem) {
   hashChangedMap();
 }, false);
 document.addEventListener('hiddenhashChangeEvent', function (elem) {
-  console.log("map.js detects hiddenhashChangeEvent, calls hashChangedMap()");
-  hashChangedMap();
+  console.log("Doinng nothing: map.js detects hiddenhashChangeEvent, calls hashChangedMap()");
+  // Instead, we'll create a hash change event without changing the hash.
+  
+  // But needed for io center column red bars (not)
+  //hashChangedMap();
 }, false);
 
 // MAP 1
@@ -97,9 +100,10 @@ function clearListDisplay() {
   $(".listTitle").html(""); // Clear
   $(".listSubtitle").html(""); // Clear
   $(".listSpecs").html(""); // Clear
+  $(".sideListSpecs").html(""); // Clear
   $("#listcolumnList").html(""); // Clear
   $("#dataList").html(""); // Clear
-  $("#detailList").html(""); // Clear
+  $("#detaillist").html(""); // Clear
 }
 
 let dp = {}; // So available on .detail click for popMapPoint() and zoomMapPoint().
@@ -107,8 +111,10 @@ let dp = {}; // So available on .detail click for popMapPoint() and zoomMapPoint
 // TO DO: Can we avoid calling outside of the localsite repo by files in community, including community/map/starter/embed-map.js 
 function loadMap1(calledBy, show, dp_incoming) {
   // Calls loadDataset
-  let hash = $.extend(true, {}, getHash()); // Clone/copy object without entanglement. Includes hiddenhash
-    if (!show && param["show"]) {
+  //let hash = $.extend(true, {}, getHash()); // Clone/copy object without entanglement. Includes hiddenhash
+  let hash = getHash();
+
+  if (!show && param["show"]) {
     show = param["show"];
   }
   consoleLog('loadMap1 start. CalledBy ' + calledBy + '. Show: ' + show + '. Cat: ' + hash.cat);
@@ -125,9 +131,13 @@ function loadMap1(calledBy, show, dp_incoming) {
   // Could display a very small loading indicator
 
   let theState;
-  if (param["state"]) {
-    theState = param["state"].toUpperCase();
+  //if (param["state"]) {
+  //  theState = param["state"].toUpperCase();
+  //}
+  if (hash.state) {
+    theState = hash.state;
   }
+
   waitForElm('#state_select').then((elm) => {
 
     if (theState != "") {
@@ -309,13 +319,14 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.valueColumnLabel = "Type";
         dp.mapInfo = "<a href='https://docs.google.com/spreadsheets/d/1bvD9meJgMqLywdoiGwe3f93sw1IVI_ZRjWSuCLSebZo/edit?usp=sharing'>Update Google Sheet</a>.";
         dp.search = {"In Dataset Name": "name", "In Type": "Category1", "In Website URL": "website"};
-              
+        dp.datastates = "GA";    
       } else if (show == "360") {
         dp.listTitle = "Birdseye Views";
         dp.dataset =  local_app.custom_data_root() + "360/GeorgiaPowerSites.csv";
         dp.search = {"In Location Name": "name", "In City": "CITY", "In Property URL": "property_link"};
         dp.color = "#ff9819"; // orange - Since there is no type column. An item column is filtered.
         dp.markerType = "google";
+        dp.datastates = "GA";
       } else if (show == "dmap") {
         dp.listTitle = "Georgia Map";
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPe-t3GBhimUV6JN62lLmtpZ5XsmLDXPusjOfrJ-_tW7BZlVrvcVT4oLFXtAtRX79WSAgVQe9zK2Ik/pub?gid=0&single=true&output=csv";
@@ -333,7 +344,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.showLabels = "Industry";
         dp.search = {"In Company Name": "recipient_name", "In naics description": "naics description", "In Address" : "address"};
         dp.itemsColumn = "NAICS Description"; // The column being search
-
+        dp.datastates = "GA";
       } else if (show == "recyclers") {
         dp.listTitle = "Georgia B2B Recyclers";
         dp.dataTitle = "B2B Recyclers";
@@ -360,7 +371,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.listInfo = "<a href='https://map.georgia.org/recycling/georgia/'>View Recycling Datasets</a>";
         dp.mapInfo = "Add <a href='https://map.georgia.org/recycling/'>B2B&nbsp;Recycler Listings</a> or post comments to submit additions to our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a>.";
         dp.search = {"In Main Category": "Category", "In Materials Accepted": "Materials Accepted", "In Location Name": "organization name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
-      
+        dp.datastates = "GA";
       } else if (show == "wastewater") {
         //alert("wastewater4")
         dp.listTitle = "Georgia Wastewater Facilities (2023)";
@@ -395,7 +406,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.markerType = "google";
         dp.color = "#339";
         dp.search = {"In Name": "PERMIT_NAME", "In Address": "facility_addr", "In County Name": "county", "SIC Code": "SIC_CODE_LIST", };
-
+        dp.datastates = "GA";
       } else if (show == "landfills") {
         dp.listTitle = "Georgia Landfills (2017)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
@@ -420,7 +431,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.color = "#393";
         dp.latColumn = "latitude"; // Only works when lowercase, despite Google Sheet column being uppercase
         dp.lonColumn = "longitude";
-
+        dp.datastates = "GA";
       } else if (show == "solidwaste") {
         dp.listTitle = "Georgia Solid Waste (Oct 2023)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
@@ -441,7 +452,7 @@ function loadMap1(calledBy, show, dp_incoming) {
 
         dp.markerType = "google";
         dp.color = "#933";
-
+        dp.datastates = "GA";
       } else if (show == "solidwaste-old") { // This tab can be deleted in Google Sheet
         dp.listTitle = "Georgia Solid Waste (Old)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
@@ -462,7 +473,7 @@ function loadMap1(calledBy, show, dp_incoming) {
 
         dp.markerType = "google";
         dp.color = "#933";
-        
+        dp.datastates = "GA";
       } else if (show == "cameraready-locations") {
         dp.listTitle = "CameraReady Film Locations";
         dp.dataTitle = "Filming Locations";
@@ -474,7 +485,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.showKeys = "hours_saturday";
         dp.showLabels = "Saturday";
         dp.search = {"In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website", "Type": "tag"};
-        
+        dp.datastates = "GA";
       } else if (show == "cameraready") {
         dp.listTitle = "CameraReady County Liaisons";
         dp.dataTitle = "CameraReady Liaisons";
@@ -484,7 +495,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.markerType = "google";
         dp.filters = {tag:"Liaisons"}; // Supports comma separated values
         dp.search = {"In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website", "Type": "tag"};
-      
+        dp.datastates = "GA";
       } else if (show == "aerospace") {
         dp.listTitle = "Georgia Aerospace Directory";
         dp.dataTitle = "Aerospace Directory";
@@ -519,7 +530,7 @@ function loadMap1(calledBy, show, dp_incoming) {
 
         dp.filters = {type:"aerospace"}; // Supports comma separated values
         dp.search = {"In Main Category": "Category", "In Location Name": "Organization Name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
-      
+        dp.datastates = "GA";
       } else if (1==2 && (show == "recycling" || show == "transfer" || show == "recyclers" || show == "inert" || show == "landfillsX")) { // recycling-processors
         // NOT USED - LOOK ABOVE
         if (hash.state == "GA") {
@@ -734,9 +745,8 @@ function loadMap1(calledBy, show, dp_incoming) {
   // Load the map using settings above
 
   // INIT - geo fetches the county for filtering.
-  //hash = getHash();
   hash = $.extend(true, {}, getHash()); // Clone/copy object without entanglement
-  if (hash.geo) {
+  if (!hash.state && hash.geo) { // Wait for geo load when no state to center.
     loadGeos(hash.geo,0,function(results) {
       loadDataset('map1','map2', dp, basemaps1, basemaps2, 1, function(results) {
         initialHighlight(hash);
@@ -818,21 +828,8 @@ function initialHighlight(hash) {
     */
 //};
 
-$(document).on("click", "#show_county_colors", function(event) {
-  let hash = getHash();
-  let layerName = hash.state.split(",")[0].toUpperCase() + " Counties";
-  geoOverlays[layerName].eachLayer(function (layer) {  
-    //if(layer.feature.properties.COUNTYFP == '121') { // Fulton County
-      layer.setStyle({fillColor :'blue', fillOpacity:.5 }) 
-      // Or call a function:
-      // layer.setStyle(function...)
-    //}
-  });
-  //alert("done"); // Occurs before layers above appear.
-});
-
 function centerMap(lat,lon,name,map,whichmap) {
-    
+    console.log("centerMap " + whichmap);
     $("#sidemapCard").show(); // map2 - show first to maximize time tiles have to see full size of map div.
     $('.detail').removeClass("detailActiveHold"); // Remove prior
 
@@ -936,114 +933,6 @@ $('#hideSideMap').click(function () {
   $("#sidemapCard").hide(); // map2
 });
 
-function loadGeos(geo, attempts, callback) {
-  // load only, no search filter display - get county name from geo value.
-  // created from a copy of loadStateCounties() in search-filters.js
-
-  if (typeof d3 !== 'undefined') {
-
-    let hash = getHash();
-    let stateID = {AL:1,AK:2,AZ:4,AR:5,CA:6,CO:8,CT:9,DE:10,FL:12,GA:13,HI:15,ID:16,IL:17,IN:18,IA:19,KS:20,KY:21,LA:22,ME:23,MD:24,MA:25,MI:26,MN:27,MS:28,MO:29,MT:30,NE:31,NV:32,NH:33,NJ:34,NM:35,NY:36,NC:37,ND:38,OH:39,OK:40,OR:41,PA:42,RI:44,SC:45,SD:46,TN:47,TX:48,UT:49,VT:50,VA:51,WA:53,WV:54,WI:55,WY:56,AS:60,GU:66,MP:69,PR:72,VI:78,}
-    //let theState = "GA"; // TEMP - TODO: loop trough states from start of geo
-    let theState = hash.state ? hash.state.split(",")[0].toUpperCase() : undefined;
-    if (!theState) {
-      goHash({'geoview':'state'});
-      filterClickLocation();
-    }
-    //if (theState && theState.includes(",")) {
-    //  theState = theState.substring(0, 2);
-    //}
-    var geos=geo.split(",");
-    fips=[]
-    for (var i = 0; i < geos.length; i++){
-        fip=geos[i].split("US")[1]
-        if (fip) {
-          if(fip.startsWith("0")){
-              fips.push(parseInt(geos[i].split("US0")[1]))
-          }else{
-              fips.push(parseInt(geos[i].split("US")[1]))
-          }
-        } else {
-          console.log("ALERT: geo value does not start with US.")
-        }
-    }
-    if (geos[0].split("US")[1]) {
-      st=(geos[0].split("US")[1]).slice(0,2)
-      if(st.startsWith("0")){
-          dataObject.stateshown=(geos[0].split("US0")[1]).slice(0,1)
-      }else{
-          if(geos[0].split("US")[1].length==4){
-              dataObject.stateshown=(geos[0].split("US")[1]).slice(0,1)
-          }else{
-              dataObject.stateshown=(geos[0].split("US")[1]).slice(0,2)
-          }
-      }
-    } else {
-      console.log("ALERT: geos[0].split(US)[1] does not start with US.")
-    }
-
-    //Load in contents of CSV file
-    if (theState) {
-      d3.csv(local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv").then(function(myData,error) {
-        if (error) {
-          //alert("error")
-          console.log("Error loading file. " + error);
-        }
-        let geoArray = [];
-
-        myData.forEach(function(d, i) {
-
-          let geoParams = {};
-          d.difference =  d.US_2007_Demand_$;
-
-          // OBJECTID,STATEFP10,COUNTYFP10,GEOID10,NAME10,NAMELSAD10,totalpop18,Reg_Comm,Acres,sq_miles,Label,lat,lon
-          //d.name = ;
-          //d.idname = "US" + d.GEOID + "-" + d.NAME + " County";
-
-          //d.perMile = Math.round(d.totalpop18 / d.sq_miles).toLocaleString(); // Breaks sort
-          d.perMile = Math.round(d.totalpop18 / d.sq_miles);
-
-          d.sq_miles = Number(Math.round(d.sq_miles).toLocaleString());
-          var activeGeo = false;
-          var theGeo = "US" + d.GEOID;
-          //alert(geo + " " + theGeo)
-          let geos=geo.split(",");
-          //fips=[]
-          for (var i = 0; i<geos.length; i++){
-              if (geos[i] == theGeo) {
-                activeGeo = true;
-              }
-          }
-
-
-          geoParams.name = d.NAME;
-          geoParams.pop = d.totalpop18;
-          geoParams.permile = d.perMile;
-          geoParams.active = activeGeo;
-
-          geoArray.push([theGeo, geoParams]); // Append a key-value with an object as the value
-        });
-
-        console.log("geoArray")
-        console.log(geoArray)
-        dataObject.geos = geoArray;
-        //callback(); // TypeError: callback is not a function
-        return;
-      });
-    }
-  } else {
-    attempts = attempts + 1;
-        if (attempts < 2000) {
-          // To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
-          setTimeout( function() {
-            loadGeos(geo,attempts);
-          }, 20 );
-        } else {
-          alert("D3 javascript not available for loading counties csv.")
-        }
-  }
-}
-
 function shortenMapframe(mapframeLong) {
   let mapframeUrl = "";
   if (mapframeLong && mapframeLong.length) {
@@ -1134,10 +1023,10 @@ function showList(dp,map) {
   if (!dp.lonColumn) {
     dp.lonColumn = "longitude";
   }
-  //$("#detaillist").text(""); // Clear prior results
+  console.log("Clear prior list results");
+  $("#detaillist").text(""); // Clear prior results
   $("#detaillist").remove(); // Used to trigger waitfor
   if (dp.search && $("#activeLayer").text() != dp.dataTitle) { // Only set when active layer changes, otherwise selection overwritten on change.
-    
     let search = [];
     if (param["search"]) {
       search = param["search"].replace(/\+/g," ").toLowerCase().split(",");
@@ -1668,7 +1557,6 @@ function showList(dp,map) {
 
     while (n--) {
       key = keys[n];
-      //element[key] = elementRaw[key]; // Also keep uppercase for element["Prepared"]
       element[key.toLowerCase()] = elementRaw[key];
       if (hash.details == "true") {
         if (key && elementRaw[key]) {
@@ -1845,11 +1733,11 @@ function showList(dp,map) {
 
           output += "<div class='detailTitle'>" + name + "</div>";
           if (element[dp.description]) {
-            output += "<div style='padding-bottom:8px'>" + element[dp.description] + "</div>";
+            output += "<div>" + element[dp.description] + "</div>";
           } else if (element.description) {
-            output += "<div style='padding-bottom:8px'>" + element.description + "</div>";
+            output += "<div>" + element.description + "</div>";
           } else if (element["business description"]) {
-            output += "<div style='padding-bottom:8px'>" + element["business description"] + "</div>";
+            output += "<div>" + element["business description"] + "</div>";
           }
 
           // Lower
@@ -1861,7 +1749,9 @@ function showList(dp,map) {
           var outaddress = "";
           if (element[dp.addressColumn]) { 
               outaddress +=  element[dp.addressColumn] + "<br>"; 
-          } else if (element.address || element.city || element.state || element.zip) {
+          } 
+          //else // Removed use of else so farmfresh showed city, state, zip
+          if (element.address || element.city || element.state || element.zip) {
             if (element.address) {
               outaddress += element.address + "<br>";
             }
@@ -1885,10 +1775,11 @@ function showList(dp,map) {
             
           }
           if (outaddress) {
-            output += "<b>Location:</b> " + outaddress;
+            //output += "<b>Location:</b> " + outaddress; // Not using because address is on two lines.
+            output += outaddress;
           }
           if (element.county) {
-            output += '<b>Location:</b> ' + element.county + " County<br>";
+            output += '<b>County:</b> ' + element.county + " County<br>";
           }
 
           if (element.website) {
@@ -2095,7 +1986,6 @@ function showList(dp,map) {
   });
 
   waitForElm('#detaillistHolder').then((elm) => {
-
     $("#detaillistHolder").append("<div id='detaillist'>" + output + "</div>");
     $("#detaillist").append("<div style='height:60px'></div>"); // For space behind absolute buttons at bottom.
 
@@ -2263,6 +2153,7 @@ function showList(dp,map) {
       }
     }
     $(".listSpecs").html(searchFor);
+    $(".sideListSpecs").html(searchFor);
 
     // We're not using "loc" yet, but it seems better than using id to avoid conflicts.
     // Remove name from hash to trigger refresh
@@ -2516,7 +2407,6 @@ function centerMapPoint(map, latitude, longitude) {
 }
 function zoomMapPoint(dp, map, latitude, longitude, name, color) {
   // Place large icon on side map and zoom
-
   if (!latitude || !longitude) {
     console.log("No latitude or longitude for " + name)
     return;
@@ -3032,8 +2922,13 @@ function loadDataset(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback
   if (dp.datastates && hash.state) {
     if (dp.datastates.split(",").indexOf(hash.state.split(",")[0].toUpperCase()) == -1) {
       stateAllowed = false;
-      console.log("State1 of " + hash.state + " has no map point data based on dp.datastates indicated.");
+      console.log("State of " + hash.state + " not in dp.datastates indicated for " + hash.show);
+      // Avoiding so user can retain show and switch to another state.
+      //updateHash({'show':''}); // Remove from URL hash without invoking hashChanged event.
+      // TO DO: Show message: "State does not have data for " + hash.show;
       $("#list_main").hide();
+      $("#navcolumnTitle").hide();
+      $("#listLeft").hide();
       $("#map1").hide();
       return;
     }
@@ -3096,6 +2991,10 @@ function loadDataset(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback
     });
     });
   } else if (dp.googleCSV) {
+    if (!onlineApp) {
+      alert("onlineApp=false in localsite.js so not pulling from Google Sheet")
+      return;
+    }
     loadScript(theroot + 'js/d3.v5.min.js', function(results) {
     waitForVariable('customD3loaded', function() {
     consoleLog("Google data requested " + dp.googleCSV);
@@ -3153,7 +3052,7 @@ function loadDataset(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback
 
 // Move after processOutput once done creating
 function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) {
-
+  console.log("renderMap " + whichmap);
   waitForElm('#' + parentDiv + ' #' + whichmap).then((elm) => { // Didn't help with map refresh.
   let hash = $.extend(true, {}, getHash());
   if (whichmap == "map1") {
@@ -3184,7 +3083,6 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
     zoom = dp.zoom
   }
 
-
   if (!basemaps) {
     basemaps = {
       //'Grayscale' : L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
@@ -3202,11 +3100,9 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
   // TODO - Adjust to allow for map1 also
 
   //overlays[dataTitle] = dp.group2; Added a dup checkbox
-
-
   //console.log(whichmap + " length: " + $(mapDiv).length);
   if($(mapDiv).text().trim().length > 1) {
-    
+    console.log("Existing map found, center it. (Map point refresh needed.) " + whichmap);
     if (whichmap=="map1") {
       map = map1;
       overlays = overlays1;
@@ -3214,12 +3110,14 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
       map = map2;
       overlays = overlays2;
     } 
-
     consoleLog(mapDiv + " div found. Length: " + $(mapDiv).text().trim().length);
     //map = document.querySelector(mapDiv)._leaflet_map; // Recall existing map. Didn't work. Declared map1 and map2 externally instead.
     //alert("typeof map: " + typeof map);
 
     map.setView(mapCenter,zoom);
+
+    let layerGroup = L.layerGroup();
+    addIcons(dp,map,whichmap,layerGroup,zoom,markerType); // Adds to both map1 and map2
 
   } else {
     consoleLog("Initiate map " + mapDiv + " ");
@@ -3332,7 +3230,8 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
         addIcons(dp,map,whichmap,layerGroup,zoom,markerType); // Adds to both map1 and map2
         overlays[dataTitle] = layerGroup; // Available to both map1 and map2
       } else {
-        //alert("highlight mappoint here for existing maps")
+        //alert("TODO: highlight mappoint here for existing maps")
+
         console.log("TO DO: Use the name to fetch the lat and lon from div.")
         //centerMap(element[dp.latColumn], element[dp.lonColumn], name, map, whichmap);
       }
@@ -3376,7 +3275,7 @@ function processOutput(dp,map1,map2,whichmap,whichmap2,basemaps1,basemaps2,callb
   consoleLog("processOutput");
 
   if (typeof map1 === 'undefined' || !map1.length) {
-    console.log("processOutput: map1 not yet defined or populated."); // Ok, so let's define it with renderMap below.
+    console.log("processOutput: map1 not yet defined or populated. We'll render with renderMap()"); // Ok, so let's define it with renderMap below.
   }
   
   let dataTitle = dp.dataTitle;
@@ -3433,6 +3332,8 @@ function processOutput(dp,map1,map2,whichmap,whichmap2,basemaps1,basemaps2,callb
           if (dp.zoom) zoomLevel1 = dp.zoom;
           let zoomLevel2 = 7;
 
+          //console.log("call renderMap")
+          //console.log(dp.data);
           renderMap(dp,map1,"map1","datascape",null,zoomLevel1,"google");
 
           waitForElm('#datascape #map2').then((elm) => {
@@ -3446,7 +3347,7 @@ function processOutput(dp,map1,map2,whichmap,whichmap2,basemaps1,basemaps2,callb
     }); // L avaialable for leaflet.icon-material.js
     });
     });
-  }// showmap = true
+  } // showmap = true
 }
 
 
@@ -3546,7 +3447,7 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
   if (hash.name) {
     currentName = hash.name.replace(/_/g,' ').replace(/ AND /g,' & ');
   }
-  //console.log("dp.color " + dp.color);
+  console.log(whichmap + " addIcons dp.color " + dp.color);
   loadScript(theroot + 'js/leaflet.icon-material.js', function(results) { // Might not get used (in time?) for L.IconMaterial. Previously, had to wrap map.js load in localsite.js instead.
   waitForVariable('leafletIconLoaded', function() {
     dp.data.forEach(function(element) {
@@ -3558,6 +3459,13 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
       while (n--) {
         key = keys[n];
         element[key.toLowerCase()] = element[key];
+      }
+
+      let name = element.name;
+      if (element[dp.nameColumn]) {
+        name = element[dp.nameColumn];
+      } else if (element.title) {
+        name = element.title;
       }
 
       if (dp.colorColumn) {
@@ -3579,7 +3487,7 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
         iconColor = "#548d1a"; // Green. Was "blue"
       }
       
-      //console.log("element[dp.valueColumn] " + element[dp.valueColumn] + " iconColor: " + iconColor + " dp.valueColumn: " + dp.valueColumn);
+      console.log("element[dp.valueColumn] " + element[dp.valueColumn] + " iconColor: " + iconColor + " dp.valueColumn: " + dp.valueColumn + " " + name);
       
       if (typeof dp.latColumn == "undefined") {
         dp.latColumn = "latitude";
@@ -3594,7 +3502,7 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
       iconName = dp.iconName;
       if (typeof L === 'undefined') {
         if (location.host.indexOf('localhost') >= 0) {
-          alert("Leaflet L not yet loaded");
+          alert("localhost Alert: Leaflet L not yet loaded");
         } else {
           console.log("Leaflet L not yet loaded");
         }
@@ -3606,12 +3514,6 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
         }
       }
 
-      let name = element.name;
-      if (element[dp.nameColumn]) {
-        name = element[dp.nameColumn];
-      } else if (element.title) {
-        name = element.title;
-      }
       if (dp.latColumn.includes(".")) { // ToDo - add support for third level
         element[dp.latColumn] = element[dp.latColumn.split(".")[0]][dp.latColumn.split(".")[1]];
         element[dp.lonColumn] = element[dp.lonColumn.split(".")[0]][dp.lonColumn.split(".")[1]];
@@ -3741,10 +3643,12 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
         output += "<a href='" + element.property_link + "'>Property Details</a><br>";
       } else if (element[dp.nameColumn] || element["name"]) {
         let entityName = element[dp.nameColumn] || element["name"];
-        entityName = entityName.replace(/\ /g,"_").replace(/'/g,"\'")
+        // Doesn't work .replace(/'/g,"\'")
+        entityName = entityName.replace(/\ /g,"_")
+        entityName = encodeURIComponent(entityName);
         // Needs to remove m,q,search
         // onclick='goHash({\"show\":\"" + hash.show + "\",\"name\":\"" + entityName + "\"}); return false;' 
-        output += "<a class='btn btn-success' style='margin-top:10px' href='#show=" + hash.show + "&name=" + entityName + "'>View Details</a><br>";
+        output += "<a class='btn btn-success' style='margin-top:10px' href=\"#show=" + hash.show + "&name=" + entityName + "\">View Details</a><br>";
       }
       // ADD POPUP BUBBLES TO MAP POINTS
       if (circle) {
@@ -3860,6 +3764,7 @@ function markerRadius(mapZoom,map) {
 }
 
 function hashChangedMap() {
+  //alert("hashChangedMap")
   let hash = getHash();
   if (priorHash.show && hash.show !== priorHash.show) {
     clearListDisplay();
@@ -3872,11 +3777,11 @@ function hashChangedMap() {
   }
 
   // For PPE embed, also in map-filters.js. Will likely change
-  if (!hash.show) {
-    // For embed link
-    hash.show = param.show;
-    hiddenhash.show = param.show;
-  }
+  //if (!hash.show) {
+  //  // For embed link
+  //  hash.show = param.show;
+  //  hiddenhash.show = param.show;
+  //}
   if (!hash.state && param.state) {
     // For embed link
 
@@ -4007,7 +3912,7 @@ function zoomFromKm2(kilometers_wide, theState) {
   } else if (kilometers_wide > 105000) { // Hawaii and Idaho
     zoom = 6
   }
-  if (theState == "AL" || theState == "GA" || theState == "CO" || theState == "IA") { // Zoom closer for some states
+  if (theState == "AL" || theState == "AR" || theState == "GA" || theState == "CO" || theState == "IA") { // Zoom closer for some states
     zoom = zoom + 1;
   }
   if (theState == "HI" || theState == "IN") {
@@ -4037,5 +3942,3 @@ dataParameters.forEach(function(ele) {
 //console.timeEnd("Processing time: ");
 
 console.log('end of localsite/js/map.js');
-
-

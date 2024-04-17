@@ -6,13 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 
-<title>LocalSite - Player</title>
+<title>LocalSite Parameters</title>
 <style>
 body {
   margin: 0;
 }
 </style>
+
+<!-- javascript included early for use by swiper -->
 <script type="text/javascript" src="/localsite/js/jquery.min.js" id="/localsite/js/jquery.min.js"></script>
+
 <script type="text/javascript" src="/localsite/js/localsite.js?showheader=true&showsearch=true"></script>
 
 </head>
@@ -54,6 +57,7 @@ body {
   text-align: left;
   border-radius: 0px;
   border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
   right: 0px;
   bottom: 0px;
   z-index: 99999;
@@ -129,7 +133,8 @@ text-align:left; overflow:scroll;
           (when intended pause occurs), so we omit loading icon here. -->
         <!--<div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>-->
         <div class="slideText" style="top:48%">
-          Welcome
+          <b>Edit Localsite Parameters</b><br>
+          Scroll down to view parameters that you can set in your HTML pages.
         </div>
       </div>
 
@@ -139,7 +144,7 @@ text-align:left; overflow:scroll;
         <img class="imgcrop" src="/localsite/img/hero/plant.png" style="opacity:0.9;">
         <div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
         <div class="slideText" style="position:absolute; bottom:-20px; right: 0px; z-index:999999999">
-          Text in corner 1
+          Copy our starter index.html.
         </div>
       </div>
 
@@ -148,7 +153,7 @@ text-align:left; overflow:scroll;
         <img class="imgcrop" loading="lazy" src="/localsite/img/hero/2to1-ratio.png" style="opacity:0.9;width:100%;max-width:2000px">
         <div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
         <div class="slideText" style="position:absolute; bottom:-20px; right: 0px; z-index:999999999">
-          Text in corner 2
+          Add your parameters
         </div>
       </div>
 
@@ -159,7 +164,7 @@ text-align:left; overflow:scroll;
         <img class="imgcrop" loading="lazy" src="/localsite/img/hero/solar-rect.png">
         <div class="swiper-lazy-preloader swiper-lazy-preloader-white" style="position: relative; border: 10px solid red;"></div>
         <div class="slideText slideTextRight">
-         Tall cropped image
+         Tall cropped image example
         </div>
       </div>
 
@@ -289,14 +294,15 @@ const buildSwiperSlider = sliderElm => {
         mousewheelX: true, // Avoiding because also invokes verticle scroll on desktop.
         releaseOnEdgesX: true,
 
-        /* change hash value (and load based on hash) -- problem: overwrites other hash values */
+        /* Change hash value as images changes (and load based on hash) */
+        /*
+        BIG PROBLEM: overwrites other hash values, immediatly close upperright navigation. */
         /* also causes favicon to reload */
-
-        
+        /*
         hashNavigation: {
           watchState: true,
         },
-        
+        */
 
         keyboard: {
           enabled: true,
@@ -414,8 +420,25 @@ var vis = document.getElementById('vis'),
 
 <!-- /Swiper and Plyr -->
 
+<style>
+  #readmeDiv H1{
+  display: none;
+}
+.pageColumnStyle H1, .pageColumnStyle H2 {
+  font-family: Raleway, Lato, "Helvetica Neue", Helvetica, "Lato", sans-serif;
+  font-weight: 1000 !important;
+  margin-top: 0px;
+  font-size: 1.4em;
+  padding-top: 12px;
+  padding-bottom: 5px !important;
+  border-bottom: 1px solid #ddd;
+  color: rgb(77, 82, 89);
+  color: #333;
+  line-height: 1.55;
+}
+</style>
 
-<div class="content contentpadding" style="padding-top: 0px">
+<div class="pageColumnStyle content contentpadding" style="padding-top: 0px">
 
   <div style="float:right">
     <!--
@@ -426,7 +449,7 @@ var vis = document.getElementById('vis'),
     -->
   </div>
 
-  <h1 style="padding-top: 0px">Localsite Framework</h1>
+  <h1 style="padding-top: 0px">Localsite Parameters</h1>
 
   <!--
     Swiper demos:
