@@ -13,7 +13,7 @@
 <script>
 // About localStorage
 // https://blog.logrocket.com/localstorage-javascript-complete-guide/
-var checkboxIds = ["localsiteForked", "ioForked", "data-commonsForked", "data-pipelineForked", "projectsForked", "requestsForked"];
+var checkboxIds = ["localsiteForked", "ioForked", "projectsForked", "requestsForked", "realitystreamForked", "feedForked", "useeio.jsForked", "data-commonsForked", "data-pipelineForked", "earthscapeForked"];
 function updateGitCmds() {
     // Get the value of the git account input field
     var gitAccount = document.getElementById("gitAccount").value;
@@ -29,14 +29,18 @@ function updateGitCmds() {
         let checkbox = document.getElementById(checkboxId);
         let repoName = checkboxId.replace("Forked","");
         let branch = "main";
-        var updatedLine = "git clone https://github.com/modelearth/" + repoName + " " + repoName + " &&";
+        var updatedLine = "git clone https://github.com/modelearth/" + repoName + " " + repoName; //  + " &&"
         //var updatedLineRefresh = "git pull https://github.com/modelearth/" + repoName + " " + branch + " &&";
-        var updatedLineRefresh = "cd ../" + repoName + " && git pull https://github.com/modelearth/" + repoName + " &&";
+        var climbout = "cd ";
+        if (repoName == "localsite") { // Except for first one
+          climbout = "cd ";
+        }
+        var updatedLineRefresh = climbout + repoName + " && git pull https://github.com/modelearth/" + repoName + " && cd ../";
         if (checkbox.checked) {
             // If checkbox is checked, construct the updated line
-            updatedLine = "git clone https://github.com/" + gitAccount + "/" + repoName + " " + repoName + " &&";
+            updatedLine = "git clone https://github.com/" + gitAccount + "/" + repoName + " " + repoName;
             //updatedLineRefresh = "git pull https://github.com/" + gitAccount + "/" + repoName + " " + branch + " &&";
-            updatedLineRefresh = "cd ../" + repoName + " && git pull https://github.com/" + gitAccount + "/" + repoName + " &&";
+            updatedLineRefresh = climbout + repoName + " && git pull https://github.com/" + gitAccount + "/" + repoName + " && cd ../";
             checkForks.push(checkboxId);
         }
         // Get the current values of the textareas
@@ -128,12 +132,15 @@ waitForElm('#gitAccount').then((elm) => {
 
 <body>
 
-<div class="content contentpadding" style="padding-top:50px;">
+<div class="content contentpadding">
   <div id="readmeDiv"></div>
 </div>
 
 <script>
   loadMarkdown("README.md", "readmeDiv", "_parent");
+  waitForVariable('steps', function () {
+    $(window). scrollTop(0); // Fixes unexplainable loading in mid-page
+  });
 </script>
 
 </body>

@@ -9,7 +9,7 @@ ____
 <br>
 # Website Setup and Dev
 
-View our [Active Projects](../../projects)
+View our [Active Projects](../../projects) and [Moonshots](../../community/projects)
 
 <div class="showGit">
 <a href="https://model.earth/community/start/">View current GitHub page as a web page</a>
@@ -17,12 +17,14 @@ View our [Active Projects](../../projects)
 
 ## <span class="num">1</span><span class="txt">Start a Local Website</span>
 
-<a href="../../localsite/start/steps/">Local Site Install</a> - For our coding team
+<a href="../../localsite/start/steps/">Site Install</a> - For our coding team, states, communities and [International Timelines](../../data-commons/).
 <!--
 &bullet; <a href="/apps/">Our Apps Folder</a> - Customize JQuery pages
 &bullet; <a href="../challenge/">Sustainable Communities Web Challenge</a><br>
 &bullet; <a href="../challenge/how/">How to Create a Local Site Page</a><br>
 --> 
+
+<a href="../../localsite/start/steps/" class="btn btn-success">Start Site Install</a>
 
 ## <span class="num">2</span><span class="txt">Integrate Datasets</span>
 Model.earth [Data Pipeline](../../localsite/info/data) and our <a href="/data-commons/dist/">Observable Data Commons</a>

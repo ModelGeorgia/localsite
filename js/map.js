@@ -394,8 +394,9 @@ function loadMap1(calledBy, show, dp_incoming) {
         //dp.addressColumn = "FACILITY_ADDR";
         dp.addressColumn = "facility_addr";
 
-        // BUGBUG ONLY WORKS WHEN LOWERCASE, Column in database does NOT need to be lowercase too.
-        dp.valueColumn = "sic_code_list";
+        // ONLY WORKS WHEN UPPERCASE, Column in database is UPPERCASE
+        // TO DO: convert to lowercase in data object, then compare all as lowercase.
+        dp.valueColumn = "SIC_CODE_LIST"; 
         dp.valueColumnLabel = "SIC Code";
         ////dp.showKeys = "description"; // How would this be used?
 
@@ -815,6 +816,12 @@ function initialHighlight(hash) {
     }
   }
 }
+function showSubcatList() {
+  $("#viewAllCategories").hide();
+  $("#subcatListUL").show();
+  event.stopPropagation();
+  event.preventDefault();
+}
 //jQuery.fn.scrollTo = function(elem) {
 
     // BUG Reactivate test with http://localhost:8887/localsite/info/#show=ppe&name=Code_the_South
@@ -875,7 +882,6 @@ function centerMap(lat,lon,name,map,whichmap) {
     $(".go_local").show();
 }
 function showDetail() {
-    
     //let locname = $(this).attr("name").replace(/ AND /g," & ").replace(/_/g," ");
     //alert("click detail This: " + $(this).attr("name"));
     //alert("click detail: " + locname);
@@ -910,15 +916,12 @@ function showDetail() {
     }
 }
 $(document).on("click", "#listcolumnList .detail, #detaillist .detail", function(event) { // Provides close-up using map2
-    console.log("detail click");
-
+    console.log("detail click updates hash. hashChangedMap() hides other names.");
     let hash = getHash();
     let locnameUrl = $(this).attr("name").replace(/ & /g," AND ").replace(/ /g,"_");
     let m = $(this).attr("m"); // iFrame
     goHash({"show":hash.show,"name":locnameUrl,"m":m});
-
-    //showDetail(this);
-    //event.stopPropagation();
+    event.stopPropagation();
 });
 $(document).on("click", ".showItemMenu", function(event) { 
   $("#listingMenu").show();
@@ -977,9 +980,11 @@ function getMapframeUrl(m) {
 let subcatObject = {};
 let subcatArray = [];
 let subcatList = "";
+
 function showList(dp,map) {
   console.log("showList");
   console.log("Call showList for " + dp.dataTitle + " list");
+  let hash = getHash();
   var iconColor, iconColorRGB;
   let count = 0
   let countDisplay = 0;
@@ -999,7 +1004,6 @@ function showList(dp,map) {
   isObject = function(a) {
       return (!!a) && (a.constructor === Object);
   }
-
   if (dp.listTitle) {
     $(".listTitle").html(dp.listTitle);
     $(".listTitle").show();
@@ -1031,47 +1035,43 @@ function showList(dp,map) {
     if (param["search"]) {
       search = param["search"].replace(/\+/g," ").toLowerCase().split(",");
     }
-    let checkCols = "";
-    let checked = "";
-    $.each(dp.search, function( key, value ) {
-      checked = "";
-      if (search.length == 0) {
-        checked = "checked"; // No hash value limiting to specific columns.
-      } else if(jQuery.inArray(value, search) !== -1) {
-        checked = "checked";
-      }
-      checkCols += '<div><input type="checkbox" class="selected_col" name="in" id="' + value + '" ' + checked + '><label for="' + value + '" class="filterCheckboxTitle"> ' + key + '</label></div>';
-    });
-    $("#selected_col_checkboxes").html(checkCols);
-    // Populate from hash
-    //alert("populate")
 
+    if (hash.show !== priorHash.show) {
+      //alert("Render checkboxes " + hash.show + " priorHash.show " + priorHash.show);
+      let checkCols = "";
+      let checked = "";
+      $.each(dp.search, function( key, value ) {
+        checked = "";
+        if (search.length == 0) {
+          checked = "checked"; // No hash value limiting to specific columns.
+        } else if(jQuery.inArray(value.toLowerCase(), search) !== -1) {
+          checked = "checked";
+        }
+        checkCols += '<div><input type="checkbox" class="selected_col" name="in" id="' + value + '" ' + checked + '><label for="' + value + '" class="filterCheckboxTitle"> ' + key + '</label></div>';
+      });
+      $("#selected_col_checkboxes").html(checkCols);
+    }
 
     // BUGBUG - When toggling the activeLayer is added, this will need to be cleared to prevent multiple calls to loadMap1
      
-    $('.selected_col[type=checkbox]').change(function() {
-        //$('#topPanel').hide();
+    //$('.selected_col[type=checkbox]').change(function() {
+    $(document).on('change', '.selected_col[type=checkbox]', function(event) {
         let search = $('.selected_col:checked').map(function() {return this.id;}).get().join(','); 
-        //alert(search)
-        /* delete
-        var hash = getHash(); 
-        if (hash["q"]) {
-          alert(hash["q"])
-        }
-        */
-        if ($("#keywordsTB").val()) {
-          updateHash({"search":search});
-          loadMap1("map.js keywordsTB");
-        }
+        let q = $("#keywordsTB").val();
+        goHash({"search":search,"q":q});
         event.stopPropagation();
     });
-
+    $(document).on("click", ".filterBubble", function(event) {
+        console.log('filterBubble click (stopPropagation so other boxes can be checked)')
+        event.stopPropagation(); // To keep location filter open when clicking .selected_col checkboxes
+    });
   }
 
-  let hash = getHash();
   var allItemsPhrase = "all categories";
-  if ($("#keywordsTB").val()) {
-    keyword = $("#keywordsTB").val().toLowerCase();
+  //if ($("#keywordsTB").val()) {
+  if (hash.q) {
+    //keyword = $("#keywordsTB").val().toLowerCase();
+    keyword = hash.q;
   } else if (hash.subcat) {
     //keyword = hash.subcat;
   } else if (hash.cat) {
@@ -1080,6 +1080,7 @@ function showList(dp,map) {
   if (hash.cat) {
     hash.cat = hash.cat.replace(/\_/g," ");
   }
+
   // Filter by all subcategories
   
   subcatObject["null"] = {};
@@ -1239,7 +1240,8 @@ function showList(dp,map) {
         console.log("Count exceeds 10000");
         return;
     }
-
+    //console.log("elementRaw:");
+    //console.log(elementRaw);
     let showIt = true;
     if (hash.name && elementRaw["name"]) { // Match company name from URL to isolate as profile page.
       //console.log("elementRaw[name] " + elementRaw["name"]);
@@ -1468,6 +1470,11 @@ function showList(dp,map) {
           console.log("catFound in valueColumn");
         }
         if (!foundMatch) {
+          //console.log("Attempt cat search " + hash.cat.toLowerCase() + " in " + dp.catColumn);
+          
+          if (elementRaw[dp.catColumn]) {
+            //console.log("Column exists: " + elementRaw[dp.catColumn]);
+          }
           if (elementRaw[dp.catColumn] && elementRaw[dp.catColumn].toLowerCase().indexOf(hash.cat.toLowerCase()) >= 0) {
             foundMatch++; // Cat found in Category
             catFound++;
@@ -1706,21 +1713,19 @@ function showList(dp,map) {
         }
 
         if (element.photo1) {
-          if (location.host.indexOf('localhost') >= 0) {
-            //output += "<img style='width:100%;max-width:200px;float:right' src='" + element.photo1 + "'>";
+          //output += "<img style='width:100%;max-width:200px;float:right' src='" + element.photo1 + "'>";
 
-            output += "Local Image Test<img style='width:100%;max-width:200px;float:right' class='swiper-lazy' data-src='" + element.photo1 + "'>";
+          output += "<div class='listThumb' style='max-width:200px;float:right'><a href='" + element.photo1 + "'><img style='width:100%;border-radius:12px;' loading='lazy' src='" + element.photo1 + "'></a></div>";
 
-            // unique data-id used by buildSwiperSlider to init multiple sliders.
-            // Might not need id
-            //Reactivete these 3 lines
-            //output += "<div class='swiper-container' id='swiper" + count + "' data-id='swiper" + count + "'><div class='swiper-wrapper'><div class='swiper-slide'>";
-            //output += "<img style='width:100%;max-width:800px' class='swiper-lazy' data-src='" + element.photo1 + "'>";
-            //output += "</div></div></div>";
-          }
+          // unique data-id used by buildSwiperSlider to init multiple sliders.
+          // Might not need id
+          //Reactivete these 3 lines
+          //output += "<div class='swiper-container' id='swiper" + count + "' data-id='swiper" + count + "'><div class='swiper-wrapper'><div class='swiper-slide'>";
+          //output += "<img style='width:100%;max-width:800px' class='swiper-lazy' data-src='" + element.photo1 + "'>";
+          //output += "</div></div></div>";
         }
 
-        output += "<div class='showItemMenu' style='float:right'>&mldr;</div>";
+        output += "<div class='showItemMenu' style='position:absolute;right:14px;top:16px'>&mldr;</div>";
 
         //console.log("dp.valueColumn 1 " + element[dp.valueColumn]); // Works, but many recyclers have blank Category value.
         //console.log("dp.valueColumn 3 " + element["category"]); // Lowercase required (basing on recyclers)
@@ -1977,10 +1982,7 @@ function showList(dp,map) {
 
         output += "</div>"; // End Lower
         output += "</div>"; // End overflow:auto
-        output += "</div>"; // End detail
-        
-        // Here display:none is used when listings are excluded. Do we use script to show these, or simply re-run the list?
-        
+        output += "<div style='clear:both'></div></div>"; // Clea align:right .listThumb and end detail.
       }
     }
   });
@@ -1995,9 +1997,11 @@ function showList(dp,map) {
     // At this point we don't yet know if any are null. So "no subcategory" link is appended later.
     if (subcatArray.length > 1) {
       if (!hash.name) { // Omit when looking at listing detail
-        $("#dataList").prepend("<ul id='subcatListUL' style='margin:0px'>" + subcatList + "</ul><br>");
+        $("#dataList").prepend("<a href='#' onClick='showSubcatList(); return false;' id='viewAllCategories'>View All Categories</a>");
+        $("#dataList").prepend("<ul id='subcatListUL' style='margin:0px;display:none'>" + subcatList + "</ul><br>");
         if(hash.cat){
-          $("#dataList").prepend("<h3>" + hash.cat.replace(/_/g,' ') + "</h3>");
+          //Already appears above
+          //$("#dataList").prepend("<h3>" + hash.cat.replace(/_/g,' ') + "</h3>");
         }
       }
     }
@@ -2050,7 +2054,7 @@ function showList(dp,map) {
     if (!$("#listcolumn").is(":visible")) { // #listcolumn may already be visible if icon clicked while page is loading.
         $("#showListInBar").show();
     }
-
+    //$("#showSideInBar").show(); // Added 2024 May 28
     $(".sidelistHolder").show();
 
     $('.detail').mouseenter(function(event){
@@ -2082,7 +2086,7 @@ function showList(dp,map) {
 
     var locmenu = "<div class='showLocMenu' style='float:right;font-size: 24px;cursor: pointer;'>…</div>";
     locmenu += "<div class='locMenu popMenu filterBubble' style='float:right;display:none'>";
-    locmenu += "<div class='filterBubble'>";
+    locmenu += "<div class='filterBubble greyDiv'>";
     locmenu += "<div id='hideSidemap' class='close-X' style='position:absolute;right:0px;top:8px;padding-right:10px;color:#999'>&#10005; Close Map</div>";
     locmenu += "</div>";
     locmenu += "</div>";
@@ -2103,7 +2107,7 @@ function showList(dp,map) {
     //  listTitle = $("#catSearch").val();
     //} else
     if (hash.cat) {
-      listTitle = hash.cat.replace(/_/g,' ');
+      listTitle = "Category: " + hash.cat.replace(/_/g,' ') + " <!-- In column " + dp.catColumn + " -->";
     }
     if (hash.subcat) { // Overwrite the title with the subtitle
       if (hash.subcat == "null") {
@@ -2114,7 +2118,7 @@ function showList(dp,map) {
           $(".listSubtitle").html("No subcategory");
         }
       } else {
-        listTitle = hash.subcat;
+        listTitle = "Category: " + hash.subcat;
       }
     }
     //listTitle = "title"; // name;
@@ -2197,6 +2201,8 @@ $(document).on("click", ".showList", function(event) {
   }
   showListBodyMargin();
   $(".showList").hide();
+  event.stopPropagation();
+  event.preventDefault(); // Prevents #navcolumn from being hidden.
 });
 function showListBodyMargin() {
   if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded
@@ -3807,6 +3813,7 @@ function hashChangedMap() {
     } else {
       waitForElm('#detaillist').then((elm) => {
         console.log("Limit to details matching name.");
+        $("#changeHublistHeight").hide();
         $("#detaillist .detail").hide(); // Hide all
         let thename = hash.name.replace(/_/g,' ').replace(/ AND /g,' & ');
         $("#detaillist > [name=\"" + thename + "\"]").show();
@@ -3828,12 +3835,14 @@ function hashChangedMap() {
       }
     });
   }
+
+  let whatChanged = "";
   if (hash.layers !== priorHash.layers) {
     //applyIO(hiddenhash.naics);
-    loadMap1("hashChangedMap() in map.js layers", hash.show);
+    whatChanged = "hashChangedMap() in map.js layers";
   } else if (hash.show !== priorHash.show) {
     //applyIO(hiddenhash.naics);
-    loadMap1("hash.show hashChangedMap() in map.js", hash.show);
+    whatChanged = "hash.show hashChangedMap() in map.js";
   } else if (hash.state && hash.state !== priorHash.state) {
     // Why are new map points not appearing
 
@@ -3862,20 +3871,28 @@ function hashChangedMap() {
         } else {
           console.log("ERROR #state_select not available in hashChangedMap()2");
         }    
-        loadMap1("hashChangedMap() in map.js new state(s) " + hash.state, hash.show, dp);
+        whatChanged = "hashChangedMap() in map.js new state(s) " + hash.state;
       });
     });
 
   } else if (hash.cat !== priorHash.cat) {
-
-    loadMap1("hashChangedMap() in map.js new cat " + hash.cat, hash.show);
+    whatChanged = "hashChangedMap() in map.js new cat " + hash.cat;
   } else if (hash.subcat !== priorHash.subcat) {
-    loadMap1("hashChangedMap() in map.js new subcat " + hash.subcat, hash.show);
+    whatChanged = "hashChangedMap() in map.js new subcat " + hash.subcat;
   } else if (hash.details !== priorHash.details) {
-    loadMap1("hashChangedMap() in map.js new details = " + hash.details, hash.show);
+    whatChanged = "hashChangedMap() in map.js new details = " + hash.details;
+  } else if (hash.q !== priorHash.q) {
+    whatChanged = "hashChangedMap() in map.js new search q = " + hash.q;
+  } else if (hash.search !== priorHash.search) {
+    //alert("hash.search: " + hash.search)
+    whatChanged = "hashChangedMap() in map.js new search filters = " + hash.search;
   }
-  if (hash.m != priorHash.m) {
-    // For 360 iFrame
+
+  if (whatChanged.length > 0) {
+    loadMap1(whatChanged, hash.show);
+  }
+  
+  if (hash.m != priorHash.m) { // For 360 iFrame
     //$(".mapframeClass").hide();
     //$("#mapframe").prop("src", "about:blank");
     if (hash.m) {

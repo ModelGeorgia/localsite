@@ -278,7 +278,7 @@
               </div>
             </div>
 
-          <div class="setLeft">Style</div>
+          <div class="setLeft">Light/Dark</div>
             <div class="setOverflow"><div class="setRight">
                 <select id="sitelook">
                   <option value="default" selected>Default</option>
@@ -287,6 +287,34 @@
                 </select>
             </div></div>
             <div class="setDiv"></div>
+
+            <div class="setLeft">Dev Mode</div>
+            <div class="setOverflow"><div class="setRight">
+                <select id="devmode">
+                  <option value="public" selected>Public</option>
+                  <option value="dev">Developer</option>
+                </select>
+            </div></div>
+            <div class="setDiv"></div>
+
+            <div class="dev" style="display:none">
+              <div class="setLeft">Model Site</div>
+              <div class="setOverflow"><div class="setRight">
+                  <select id="modelsite">
+                    <option value="model.earth" selected>Model Earth</option>
+                    <option value="model.africa">Model Africa</option>
+                    <option value="model.europe">Model Europe</option>
+                    <option value="model.canada">Model Canada</option>
+                    <option value="model.china">Model China</option>
+                    <option value="model.india">Model India</option>
+                    <option value="model.usa">Model USA</option>
+                    <option value="model.georgia">Model Georgia</option>
+                    <option value="model.maine">Model Maine</option>
+                    <option value="neighborhood.org">Neighborhood</option>
+                  </select>
+              </div></div>
+              <div class="setDiv"></div>
+            </div>
 
             <div class="user-10" style="display:none">
               <div class="sitesourceHolder" style="display:none">
@@ -314,6 +342,25 @@
                 <div class="setDiv"></div>
             </div>
             
+            <div class="setLeft"><div>Map Center</div></div>
+            <div class="setOverflow"><div class="setRight">
+                  <select id="globecenter">
+                    <option value="me">My Location</option>
+                    <option value="atlantic" lat="0" lon="-25" selected>Atlantic Ocean</option>
+                    <option value="pacific" lat="0" lon="-160">Pacific Ocean</option>
+                    <option value="indian" lat="0" lon="80">Indian Ocean</option>
+                    <option value="arctic" lat="90" lon="0">Arctic Ocean</option>
+                    <option value="antarctic" lat="-90" lon="0">Antarctica</option>
+                  </select>
+            </div></div>
+            <div style="float:left">
+                    <input id="globeLatitude" class="dark mylat filterClick mobileWide textInput" placeholder="Latitude" type="text" style="width:90px; margin-top:0px; margin-right: 5px" />
+            </div>
+            <div style="float:left">
+                    <input id="globeLongitude" class="dark mylon filterClick mobileWide textInput" placeholder="Longitude" type="text" style="width:90px; margin-top:0px;" />
+            </div>
+            <div class="setDiv"></div>
+
             <div class="local" style="display:none">
               <div class="setLeft"><div>Basemap</div></div>
               <div class="setOverflow">
@@ -354,24 +401,7 @@
           </div>
           <div class="setDiv"></div>
 
-          <div style="displayX:none">
-                <div class="setLeft">My Latitude</div>
-                <div class="setOverflow"><div class="setRight">
-                  
-                    <input class="mylat filterClick mobileWide textInput" placeholder="Latitude" type="text" style="width: 120px; margin-top: 0px" />
 
-                </div></div>
-                <div class="setDiv"></div>
-            </div>
-            <div style="displayX:none">
-                <div class="setLeft">My Longitude</div>
-                <div class="setOverflow"><div class="setRight">
-                  
-                    <input class="mylon filterClick mobileWide textInput" placeholder="Longitude" type="text" style="width: 120px; margin-top: 0px" />
-
-                </div></div>
-                <div class="setDiv"></div>
-            </div>
           -->
 
             <!-- Multilayer Checkboxes -->
@@ -441,21 +471,22 @@
 
             <!-- fields here instead from recap -->
 
-            <div class="local" style="display:none">
-              <div style="margin-bottom:5px">Your email address</div>
-              <input id="input123" autocompleteX="off" style="width:100%; min-width:250px" class="mobileWide textInput si-input" type="text" value=""><br><br><br>
+            <div style="margin-bottom:5px">Your email address</div>
+            <input id="input123" autocompleteX="off" style="width:100%; min-width:250px" class="mobileWide textInput si-input" type="text" value=""><br><br>
+
+            <div class="uIn btn btn-success" style="margin-bottom:20px;float:left">Continue</div>
+
+            <div class="georgia" style="display:none;margin-bottom:20px;float:left">
+              <a class="btn btn-success use-5" href="/resources/" style="display:none;">Staff Resources</a>
+              <a class="btn btn-warning" href="https://partner.exploregeorgia.org/login">Partner Resources</a>
             </div>
 
-            <div class="georgia" style="display:none">
-              <div><a href="https://partner.exploregeorgia.org/login">Partner Resources</a></div><br><br>
+            <div style="float:left">
+              <a class="uOut btn btn-primary" style="margin:0 0 20px 0;">Log Out</a>
             </div>
 
-            <div class="default" style="display:none">
-              <a class="uIn" href="/resources">Staff Resources</a><br><br>
-            </div>
-            <div class="use-1" style="display:none;">
-              <a class="uOut" style="margin:0 0 20px 0;">Log Out</a>
-            </div>
+            <div style="clear:both"></div>
+
           </div>
         </div>
         <!-- /Account Panel -->
@@ -514,7 +545,7 @@
 <!-- HEADER BAR -->
 <div id="headerbar" class="headerbar headerbarheight headerbarhide" style="display:none;position:fixed;overflow:visible;z-index:1002;pointer-events:auto;">
 
-  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; padding-leftX:64px; float:left; min-width: 200px">
+  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; padding-leftX:64px; float:left;">
     <div id="logospace" class="headerbarheight">
       <div id="logoholder">
         
@@ -593,7 +624,7 @@
           <!--
           <a href="/dreamstudio/studio/" class="navlink-studio"><span style="white-space: nowrap; margin-right:3px">Studio</span></a>
           -->
-          <a href="/swarm/" class="navlink-swarm"><span style="white-space: nowrap; margin-right:3px">Swarm</span></a> 
+          <a href="/dreamstudio/earth/" class="navlink-earth"><span style="white-space: nowrap; margin-right:3px">Earth</span></a> 
           <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
           <a href="/dreamstudio/api/" class="navlink-api"><span style="white-space: nowrap">API</span></a>  
           <a href="https://dreamstudio.ai/generate" class="navlink-generate" target="gen"><span style="white-space: nowrap">Generate</span></a>
@@ -602,7 +633,10 @@
 
       <div class="georgia" style="display:none">
         <span id="intranet-nav" class="hideMobile" style="float:left">
+          <a href="/locations/" class="navlink-locations"><span style="white-space: nowrap; margin-right:6px">Locations</span></a>
+          <!--
           <a href="/localsite/info/#geoview=state&state=GA" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
+          -->
           <a href="/display/exporters/" class="navlink-exporters"><span style="white-space: nowrap; margin-right:3px">Exporters</span></a>
           <a href="/recycling/georgia/" class="navlink-recyclers"><span style="white-space: nowrap; margin-right:3px">Recyclers</span></a>
         </span>
@@ -850,7 +884,7 @@ document.addEventListener('mousedown', function(e) {
 
 <!-- LOCATION SEARCH -->
 <!-- For inactive portions - copy scripts from explore/js/embed.js -->
-<div id="locationFilterHolder" class="lite">
+<div id="locationFilterHolder" class="liteX">
 <div id="filterLocations" class="fieldSelector filterBubbleHolder" style="display:none; min-height:12px; margin-bottom:1px solid #ccc;">
 
     
@@ -1175,8 +1209,6 @@ document.addEventListener('mousedown', function(e) {
                       background-color: #000;
                     }
                   </style>
-
-                  <!-- Tabulator: Latest version -->
                   
                   <div id="tabulator-statetable" style="min-width:510px"></div>
                   <div id="tabulator-geotable" style="min-width:510px;overflowX:visible"></div>
@@ -1698,18 +1730,23 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 
 
 <section class="data-section" id="data" style="overflow:auto">
+<div style="border-bottom:1px solid #ccc">
+  <div class="content contentpadding contentpaddingMin litePanel" style="max-width:2000px; padding-bottom:0px">
+
+    <div class='viewAllLink' style='display:none;float:right'><a class='btn btn-white' onclick='goHash({},["name","loc","m","cat","subcat","q","search"]); return false;' href='#show=" + param["show"] + "'>List All</a></div>
+
+    <div class="listTitle"></div>
+    <div class='listSpecs'></div>
+  </div>
+</div>
 <div class="content contentpadding contentpaddingMin litePanel" style="max-width:2000px; padding-bottom:0px">
 
-  <div class="listTitle"></div>
-  <div class='listSpecs'></div>
   <div id="flexwrapper">
     
     <div id="hublist" style="position:relative;">
 
       <div id="hublist-padding">
         
-        <div class='viewAllLink' style='display:none;float:right'><a class='btn btn-white' onclick='goHash({},["name","loc","m","cat","subcat","q","search"]); return false;' href='#show=" + param["show"] + "'>List All</a></div>
-
         <div style="display:none" class="layerclass farmfresh">
           
           <div id="legendLingsHolder" style="margin-bottom: 20px">
@@ -1755,7 +1792,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 
     <div class="litePanelFadeOut">
       <div id="changeHublistHeight" style="cursor:pointer;float:left;display:none">
-        <div class="btn btn-success">Show All</div>
+        <div class="btn btn-success">Expand List</div>
       </div>
     </div>
 
