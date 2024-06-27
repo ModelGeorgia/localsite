@@ -4,6 +4,7 @@
 // Works WITHOUT map.js. Loads map.js if hash.show gets populated.
 // renderMapShapes() in navigation.js - For #geomap in search filters
 
+if(typeof local_app == 'undefined') { var local_app = {}; console.log("BUG: Move navigation.js after localsite.js"); } // In case navigation.js included before localsite.js
 if(typeof layerControls=='undefined') { var layerControls = {}; } // Object containing one control for each map on page.
 if(typeof dataObject == 'undefined') { var dataObject = {}; }
 if(typeof localObject == 'undefined') { var localObject = {};} // localObject.geo will save a list of loaded counties for multiple states
@@ -1530,9 +1531,10 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
       stateAbbr = hash.state.split(",")[0].toUpperCase();
     }
 
+    // Occurs twice in page
     let modelsite = Cookies.get('modelsite');
     if (!stateAbbr && modelsite) {
-        if (modelsite == "model.georgia") { // Add loop if other states added to settings.
+        if (modelsite == "model.georgia" || location.host.indexOf("georgia") >= 0 || location.host.indexOf("locations.pages.dev")) { // Add loop if other states added to settings.
             stateAbbr = "GA";
         }
     }
@@ -3620,7 +3622,11 @@ if (modelpath == "./") {
 //var modelroot = ""; // For links that start with /
 
 // 2024 June - Override everything above to allow for other localsite ports not having local files.
-modelpath = local_app.modelearth_root();
+// If navigation.js is loaded first, this will be...
+if (typeof local_app.modelearth_root === 'function') {
+    modelpath = local_app.modelearth_root();
+}
+//alert("modelpath " + modelpath)
 
 if(location.host.indexOf('localhost') < 0 && location.host.indexOf('model.') < 0 && location.host.indexOf('neighborhood.org') < 0) { // When not localhost or other site that has a fork of io and community.
     // To do: allow "Input-Output Map" link in footer to remain relative.
@@ -4845,9 +4851,10 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
                 stateAbbr = stateAbbr.substring(0,2);
             }
 
+            // Occurs twice in page
             let modelsite = Cookies.get('modelsite');
             if (!stateAbbr && modelsite) {
-                if (modelsite == "model.georgia") { // Add loop if other states added to settings.
+                if (modelsite == "model.georgia" || location.host.indexOf("georgia") >= 0 || location.host.indexOf("locations.pages.dev")) { // Add loop if other states added to settings.
                     stateAbbr = "GA";
                 }
             }
