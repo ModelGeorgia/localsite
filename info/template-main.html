@@ -545,7 +545,7 @@
 <!-- HEADER BAR -->
 <div id="headerbar" class="headerbar headerbarheight headerbarhide" style="display:none;position:fixed;overflow:visible;z-index:1002;pointer-events:auto;">
 
-  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; padding-leftX:64px; float:left;">
+  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; float:left;">
     <div id="logospace" class="headerbarheight">
       <div id="logoholder">
         
@@ -594,7 +594,7 @@
       }
 
     </style>
-    <!-- Cool top menu option -->
+    <!-- Cool top menu option: GitHub Desktop style -->
     <div class="localX" style="display:none">
       <div class="hideMobile">
         <div class="topstack">
@@ -1183,7 +1183,7 @@ document.addEventListener('mousedown', function(e) {
                 </div>
 
                 <!-- overflow:scroll; caused rect in lower left -->
-                <div class="geoListCounties" style="overflow:auto;"><!-- margin-bottom:45px -->
+                <div class="geoListCounties" style="width: 100%;overflowX:auto;scrollbar-widthX:none;">
                   <!-- Activate or remove
                   <div style="float:right;margin:12px 0px 0 12px">
                     <input id="showValues" type="checkbox" checked> Show values
@@ -1222,8 +1222,8 @@ document.addEventListener('mousedown', function(e) {
                   </div>
                   -->
 
-                  <div id="tabulator-geocredit" style="display:none; margin-top:8px; font-size: 12px">
-                    Dataset displayed by <a href="../../../localsite/info/data/" target="_blank">Tabulator</a><br><br>
+                  <div id="tabulator-geocredit" class="local" style="display:none; margin-top:8px; font-size: 12px">
+                    Source: <a href="/localsite/info/data/map-filters/">State and Country Data</a><br><br>
                   </div>
                 </div>
                 
@@ -1382,7 +1382,11 @@ Displayed by hashChanged() in navigation.js
 
 <div class="displayOnload displayMapForLoad" style="display:none;position:relative;overflow:hidden;">
 
-  <div id="map1" class="displayMapForLoad resizableDiv" style="display:none; width:100%"><img src='/localsite/img/icon/loading.gif' loading='lazy' class='mapLoadingIcon' style='margin:100px 200px 100px 200px; width:120px'><div class="dragHandle"></div></div>
+  <div id="map1" class="displayMapForLoad resizableDiv" style="display:none; width:100%">
+    <!-- MAP LOADING - Root image path not usable when embedding
+    <img src='/localsite/img/icon/loading.gif' loading='lazy' class='mapLoadingIcon' style='margin:100px 200px 100px 200px; width:120px'>
+    -->
+    <div class="dragHandle"></div></div>
   
   <div id="mapList1Holder" style="display:none" class="darkDivText hideMobile">
     <div class="closeParent close-X-sm" style="position:absolute;top:-10px;right:-10px;padding:18px 14px 30px 30px;color:#777;z-index:10"><i class="material-icons" style="font-size:32px;pointer-events:auto;">&#xE5CD;</i></div>
@@ -1735,7 +1739,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 
     <div class='viewAllLink' style='display:none;float:right'><a class='btn btn-white' onclick='goHash({},["name","loc","m","cat","subcat","q","search"]); return false;' href='#show=" + param["show"] + "'>List All</a></div>
 
-    <div class="listTitle"></div>
+    <div class="listTitle listTitleStyle"></div>
     <div class='listSpecs'></div>
   </div>
 </div>

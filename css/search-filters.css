@@ -2,7 +2,7 @@
   /* RETAIN, needed for topics to appear under tab. */
   /* Retain for now even if causing space at top of ds earth. */
   /* change to display when "Topics" clicked. */
-  display: block !important;
+  display: inline !important;
 }
 #filterEmbedHolder {
     display: block !important;
@@ -24,7 +24,6 @@
   border-radius: 20px;
 }
 .dark .hero-bucket #state_select, .dark #hero-rect #state_select {
-  background-color: #333;
   color: #fff;
 }
 .select-menu-arrow-holder {
@@ -83,6 +82,12 @@
 }
 #stateFiltersHolder {
   padding-right: 40px;
+}
+#filterLocations {
+  background-color: #eee;
+}
+.dark #filterLocations {
+  background-color: #555;
 }
 @media (max-width: 600px) {
   #mapFilters {
@@ -290,7 +295,7 @@ input.filterClick[type="text"] {
   z-index: 1000;
 }
 #geoListHolder {
-    padding-left: 30px;
+    padding-left: 20px;
     display: flex;
     /* flex-flow: column; */
     height: 530px;
