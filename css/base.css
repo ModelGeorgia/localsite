@@ -54,12 +54,6 @@ body {
   color: #eee;
   background-color: #333;
 }
-.notdark {
-  color: #333;
-}
-.notdark select {
-  color: #333 !important;
-}
 .bodyIconMargin {
   margin-left: 64px;
 }
@@ -601,8 +595,8 @@ summary::-webkit-details-marker {
 }
 @media (max-width: 600px) {
   .contentpadding {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 30px;
+    padding-right: 30px;
     min-width: 150px;
   }
 }
@@ -732,7 +726,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   font-size: 15px;
   line-height: 1.55;
 }
-.dark code {
+.dark code, .dark .codetext {
   color: #ddd;
   background-color: #111;
 }
@@ -1140,6 +1134,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 .input-output input[type="text"], .input-output input[type="search"], .input-output select, select {
   font-size: 18px;
   border: 1px solid lightgray;
+  border: 1px solid #444;
   border-radius: 18px;
   min-height: 34px;
   padding: 0 5px 0 10px;
@@ -1151,7 +1146,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   appearance: none; /* Remove default arrow */
   -webkit-appearance: none;
   -moz-appearance: none;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 5px center; /* Custom arrow */
+  background: white url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 5px center; /* Custom arrow */
   background-size: 24px; /* Size of the custom arrow */
 }
 .dark select {
@@ -1159,7 +1154,21 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   color: #fff;
   /* white arrow */
   background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="white" d="M7 10l5 5 5-5z"/></svg>') no-repeat right 5px center; /* Custom white arrow */
+  background-color: #888;
 }
+
+.notdark {
+  color: #333;
+}
+.notdark .content a:link, .notdark .content a:visited {
+  color: #0366d6 !important;
+}
+.notdark select {
+  color: #333 !important;
+  background: #fff url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 5px center; /* Custom arrow */
+  
+}
+
 #logospace {
   float:left;
   borderX: 1px solid blue;
@@ -1228,7 +1237,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   font-weight: 100;
   color: #777;
   letter-spacing: 2px;
-  padding-bottom: 6px;
+  padding-bottom: 5px;
 
   /* Align vertically */
   position: absolute;
@@ -1323,14 +1332,15 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   /* height:82.5px; */
 }
 .headeroffset { /* Does not include bar */
-  height:82.5px;
+  height:79px;
 }
 #local-header {
-  min-height:82.5px;
+  /* min-height:82.5px; */ /* Caused space under current header */
+  min-height:79px;
 }
 @media (max-width: 600px) {
   #headerIcons {
-    margin-top:0px;
+    margin-top:4px;
   }
   .headerbarheight {
     height:64px;
@@ -1735,7 +1745,7 @@ input:checked + .slider:before {
 }
 .large-list h1 {
   font-weight: 700;
-  font-family: Inter,-apple-system,system-ui,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
+  font-family: Roboto,Inter,-apple-system,system-ui,BlinkMacSystemFont,Segoe UI,Helvetica Neue,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
 }
 .large-list h2 {
   position: relative;
@@ -1762,4 +1772,17 @@ input:checked + .slider:before {
 }
 .large-list .txt {
   margin-left: 33px;
+}
+
+/* Hide vertical lines in Tabulator grid */
+.tabulator .tabulator-row .tabulator-cell {
+    border-right: none !important;
+}
+.dark .tabulator .tabulator-row .tabulator-cell {
+    border-bottom: 1px solid #555;
+    background-color: #333;
+}
+/* Hide vertical lines in the column headers */
+.tabulator .tabulator-header .tabulator-col {
+    border-right: none !important;
 }

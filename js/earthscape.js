@@ -143,49 +143,128 @@ function getUrbanDensityForYear(data, year) {
     return result ? result.UrbanDensity : "";
 }
 
-// Function to get county chart - entity Id is geoId of the state, eg, geoId/06 for California
-// TODO - Add code that takes in state name and fetches geoId from the API instead
-async function getCountyChart(chartVariable, entityId, showAll, chartText) {
-    // Fetch all geoIds for counties
-    const response = await fetch(`https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&entity.expression=${entityId}%3C-containedInPlace%2B%7BtypeOf%3ACounty%7D&select=date&select=entity&select=value&select=variable&variable.dcids=${chartVariable}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "dates": ""
-        })
-    });
-    const data = await response.json();
+//Timelinechart for scopes country, state, and county 
+let geoValues = {};
 
-    // Use the geoId list to fetch respective county + state names
-    const geoIds = Object.keys(data.byVariable[chartVariable].byEntity);
-    const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "nodes": geoIds,
-            "property": "->[containedInPlace, name]"
-        })
-    });
-    const data2 = await response2.json();
+async function getTimelineChart(scope, chartVariable, entityId, showAll, chartText) {
+    //alert("getTimelineChart chartVariable: " + chartVariable + ", scope: " + scope)
+    let hash = getHash(); // Add hash check at top of function
+    geoValues = {}; // Clear prior
 
-    // Put county info together
-    const countyData = {};
-    Object.keys(data2.data).forEach(geoId => {
-        node = data2.data[geoId].arcs;
-        stateName = node.containedInPlace.nodes[0]['name'];
-        countyName = node.name.nodes[0]['value'];
-        countyData[geoId] = {
-            name: countyName,
-            state: stateName
-        };
-    })
+    let response, data, geoIds;
+
+    if (scope === "county") {
+        // Fetch county data
+        response = await fetch(`https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&entity.expression=${entityId}%3C-containedInPlace%2B%7BtypeOf%3ACounty%7D&select=date&select=entity&select=value&select=variable&variable.dcids=${chartVariable}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "dates": ""
+            })
+        });
+        data = await response.json();
+        geoIds = Object.keys(data.byVariable[chartVariable].byEntity);
+
+        // Fetch county and state names
+        const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "nodes": geoIds,
+                "property": "->[containedInPlace, name]"
+            })
+        });
+        const data2 = await response2.json();
+
+        Object.keys(data2.data).forEach(geoId => {
+            const node = data2.data[geoId].arcs;
+            const stateName = node.containedInPlace.nodes[0]['name'];
+            const countyName = node.name.nodes[0]['value'];
+            geoValues[geoId] = {
+                name: countyName,
+                state: stateName
+            };
+        });
+    } else if (scope === "state") {
+        // Fetch state data
+        const statesList = ['Florida', 'New Jersey', 'New York State', 'New Mexico', 'Alaska'];
+        response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "nodes": statesList,
+                "property": "<-description{typeOf:State}->dcid"
+            })
+        });
+        data = await response.json();
+        geoIds = data.entities.map(entity => entity.candidates[0].dcid);
+
+        // Fetch state names
+        const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "nodes": geoIds,
+                "property": "->name"
+            })
+        });
+        const data2 = await response2.json();
+
+        Object.keys(data2.data).forEach(geoId => {
+            const stateName = data2.data[geoId].arcs.name.nodes[0]['value'];
+            geoValues[geoId] = {
+                name: stateName,
+                state: stateName
+            };
+        });
+    } else if (scope === "country") {
+        // Fetch country data
+        const selectedCountries = ["US", "CN", "IN"];
+        response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "nodes": selectedCountries,
+                "property": "<-description{typeOf:Country}->dcid"
+            })
+        });
+        data = await response.json();
+        geoIds = data.entities.map(entity => entity.candidates[0].dcid);
+
+        // Fetch country names
+        const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "nodes": geoIds,
+                "property": "->name"
+            })
+        });
+        const data2 = await response2.json();
+
+        Object.keys(data2.data).forEach(geoId => {
+            const countryName = data2.data[geoId].arcs.name.nodes[0]['value'];
+            geoValues[geoId] = {
+                name: countryName,
+                state: countryName
+            };
+        });
+    }
 
     // Fetch observational data using geoIds list
-    const url = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`
+    const url = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
     const response3 = await fetch(url, {
         method: 'POST',
         headers: {
@@ -195,55 +274,135 @@ async function getCountyChart(chartVariable, entityId, showAll, chartText) {
             "date": "",
             "select": ["date", "entity", "value", "variable"]
         })
-    })
-    const data3 = await response3.json();
+    });
+    const timelineData = await response3.json();
 
     // Format data
     const formattedData = [];
-    for (const geoId in countyData) {
-        formattedData.push({
-            county: `${countyData[geoId].name}, ${countyData[geoId].state}`,
-            observations: data3.byVariable[chartVariable].byEntity[geoId].orderedFacets[0]['observations']
-        })
-    }
+    //alert(JSON.stringify(geoValues)) // TO DO: Only send countries that exist in the dataset.
+    for (const geoId in geoValues) {
+        if (timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets) { // Avoids error if country (India) is not in water timeline
+            formattedData.push({
+                name: geoValues[geoId].name,
+                observations: timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0]['observations']
+            });
+        }
+    }  // Fetch population data for the same scope and entity
+    const populationVariable = "Count_Person"; // DCID for population count
+    const populationUrl = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${populationVariable}&entity.dcids=${entityId}`;
+    const populationResponse = await fetch(populationUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ "date": "", "select": ["date", "entity", "value", "variable"] })
+    });
+    const populationData = await populationResponse.json();
+    const populationObservations = populationData.byVariable[populationVariable].byEntity[entityId].orderedFacets[0].observations;
 
+    // Function to calculate per capita values
+    function calculatePerCapita(data, populationData) {
+        return data.map(location => {
+            const perCapitaObservations = location.observations.map(obs => {
+                const populationObs = populationData.find(pop => pop.date === obs.date);
+                const population = populationObs ? populationObs.value : 1; // Avoid division by zero
+                return {
+                    date: obs.date,
+                    value: obs.value / population // Calculate per capita
+                };
+            });
+            return {
+                ...location,
+                observations: perCapitaObservations
+            };
+        });
+    }// Apply per capita calculation to the formatted data
+    const perCapitaData = calculatePerCapita(formattedData, populationObservations);
     // Get unique years
     let yearsSet = new Set();
-    formattedData.forEach(county => {
-        county.observations.forEach(obs => {
+    perCapitaData.forEach(location => {
+        location.observations.forEach(obs => {
             yearsSet.add(obs.date);
         });
     });
     const years = [...yearsSet].sort((a, b) => a - b);
-    
-    // Showing all or top 5 or bottom 5 counties
+
+    // Prepare datasets for the chart
+    const datasets = perCapitaData.map(location => {
+        return {
+            label: location.name,
+            data: years.map(year => {
+                const observation = location.observations.find(obs => obs.date === year);
+                return observation ? observation.value : null;
+            }),
+            borderColor: 'rgb(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ')',
+            backgroundColor: 'rgba(0, 0, 0, 0)',
+        };
+    });  /*   
+
+    // Showing all or top 5 or bottom 5
     let selectedData;
-    formattedData.forEach(county => {
-        county.averageLandCover = county.observations.reduce((sum, obs) => sum + obs.value, 0) / county.observations.length;
+    perCapitaData.forEach(location => {
+        location.averageValue = location.observations.reduce((sum, obs) => sum + obs.value, 0) / location.observations.length;
     });
-    if (showAll == 'showTop5') {
-        selectedData = formattedData.sort((a, b) => b.averageLandCover - a.averageLandCover).slice(0, 5);
-    } 
-    else if (showAll == 'showBottom5') {
-        selectedData = formattedData.sort((a, b) => a.averageLandCover - b.averageLandCover).slice(0, 5);
-    }
-    else {
+    if (showAll === 'showTop5') {
+        selectedData = perCapitaData.sort((a, b) => b.averageValue - a.averageValue).slice(0, 5);
+    } else if (showAll === 'showBottom5') {
+        selectedData = perCapitaData.sort((a, b) => a.averageValue - b.averageValue).slice(0, 5);
+    } else {
+        selectedData = perCapitaData;
+    }   */
+     
+    /*// Get unique years
+    let yearsSet = new Set();
+    formattedData.forEach(location => {
+        location.observations.forEach(obs => {
+            yearsSet.add(obs.date);
+        });
+    });
+    const years = [...yearsSet].sort((a, b) => a - b);*/
+
+    // Showing all or top 5 or bottom 5
+    let selectedData;
+    formattedData.forEach(location => {
+        if(location.length) {
+            location.averageValue = location.observations.reduce((sum, obs) => sum + obs.value, 0) / location.observations.length;
+        } else {
+            console.log("No location for location.averageValue");
+        }
+    });
+    if (showAll === 'showTop5') {
+        selectedData = formattedData.sort((a, b) => b.averageValue - a.averageValue).slice(0, 5);
+    } else if (showAll === 'showBottom5') {
+        selectedData = formattedData.sort((a, b) => a.averageValue - b.averageValue).slice(0, 5);
+    } else {
         selectedData = formattedData;
     }
 
-    // Get datasets
-    const datasets = selectedData.map(county => {
+    /*// Get datasets
+    const datasets = selectedData.map(location => {
         return {
-            label: county.county,
+            label: location.name,
             data: years.map(year => {
-                const observation = county.observations.find(obs => obs.date === year);
+                const observation = location.observations.find(obs => obs.date === year);
                 return observation ? observation.value : null;
             }),
             borderColor: 'rgb(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ')',
             backgroundColor: 'rgba(0, 0, 0, 0)',
         };
-    });
+    });*/
 
+    // For Area Chart
+    const datasets1 = selectedData.map(location => {
+        return {
+            label: location.name,
+            data: years.map(year => {
+                const observation = location.observations.find(obs => obs.date === year);
+                return observation ? observation.value : null;
+            }),
+            backgroundColor: 'rgba(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ',0.2)',
+            borderColor: 'rgba(0,0,0,0)',
+            fill: true
+        };
+    });      
     const config = {
         type: 'line',
         data: {
@@ -258,7 +417,7 @@ async function getCountyChart(chartVariable, entityId, showAll, chartText) {
                 },
                 title: {
                     display: true,
-                    text: chartText
+                    text:chartText
                 }
             },
             scales: {
@@ -271,261 +430,426 @@ async function getCountyChart(chartVariable, entityId, showAll, chartText) {
                 y: {
                     title: {
                         display: true,
-                        text: chartText
+                        text: `${chartText} (Per Capita)` // Update y-axis label//chartText
                     }
                 }
             }
         }
     };
 
-    // Delete chart if it already exists
-    if (myChart instanceof Chart) {
-        myChart.destroy();
+    // For Area Chart
+    let chartVariableSelect = document.getElementById('chartVariable');
+    let chartTitle = chartVariableSelect.options[chartVariableSelect.selectedIndex].text;
+
+    const data1 = {
+        labels: years,
+        datasets: datasets1
+      };
+    const config1 = {
+            type: 'line',
+            data: data1,
+            options: {
+              responsive: true,
+              plugins: {
+                title: {
+                  display: true,
+                  text: (ctx) => chartTitle
+                },
+                tooltip: {
+                  mode: 'index'
+                },
+              },
+              interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+              },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Years'
+                }
+              },
+              y: {
+                stacked: true,
+                title: {
+                  display: true,
+                  text: 'County Population'
+                } 
+              }
+            }
+            }
     }
-    const ctx = document.getElementById('myChart').getContext('2d');
-    myChart = new Chart(ctx, config);
-}
 
-// Function to get country chart - takes country names from the URL
-async function getCountryChart(chartVariable, facetId) {
-    // Get countries from URL
-    const currentUrl = window.location.href;
-    const equalParams = currentUrl.split('='); 
-    const countryParams = equalParams[equalParams.length - 1];
-    let selectedCountries = countryParams.split(',');
-
-    // Fetch country codes for selected countries
-    const response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "nodes": selectedCountries,
-            "property": "<-description{typeOf:Country}->dcid"
-        })
-    });
-    const data = await response.json();
-
-    // Make a dictionary of country code -> name
-    const countryCodes = {};
-    data.entities.forEach(entity => {
-        if (entity.node && entity.candidates && entity.candidates[0] && entity.candidates[0].dcid) {
-            countryCodes[entity.candidates[0].dcid] = entity.node;
+        if (hash.output === "json") {
+        // Output JSON data to the page
+        const jsonOutput = {
+            years: years,
+            datasets: selectedData.map(location => ({
+                name: location.name,
+                observations: location.observations
+            })),
+            chartTitle: chartTitle
+        };
+        document.body.innerHTML = '<pre>' + JSON.stringify(jsonOutput, null, 2) + '</pre>';
+    } else {
+        // Delete chart if it already exists
+        if (timelineChart instanceof Chart) {
+            timelineChart.destroy();
         }
-    });
+        
+        const ctx = document.getElementById('timelineChart').getContext('2d');
+        timelineChart = new Chart(ctx, config);
 
-    // Fetch data for selected countries and selected variable
-    const geoIds = Object.keys(countryCodes);
-    const url = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`
-    const response2 = await fetch(url, {
+        if (lineAreaChart instanceof Chart) {
+            lineAreaChart.destroy();
+        }
+        const ctx1 = document.getElementById('lineAreaChart');
+        lineAreaChart = new Chart(ctx1, config1);
+    } /*
+    // Fetch population data for the same scope and entity
+    const populationVariable = "Count_Person"; // DCID for population count
+    const populationUrl = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${populationVariable}&entity.dcids=${entityId}`;
+    const populationResponse = await fetch(populationUrl, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "date": "",
-            "select": ["date", "entity", "value", "variable"]
-        })
-    })
-    const data2 = await response2.json();
-
-    // There's many sources of data so we need to choose one data source and its corresponding facetId
-    // let facetId = "3981252704"; 
-    // for (const facetIdCheck in data2.facets) {
-    //     if (data2.facets[facetIdCheck].provenanceUrl === "https://datacatalog.worldbank.org/dataset/world-development-indicators/") {
-    //         facetId = facetIdCheck;
-    //     }
-    // }
-
-    // Use facetId to build formatted data
-    const formattedData = []
-    for (const geoId of geoIds) {
-        formattedData.push({
-            country: countryCodes[geoId],
-            observations: data2.byVariable[chartVariable].byEntity[geoId].orderedFacets.find((element) => element.facetId == facetId)['observations']
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ "date": "", "select": ["date", "entity", "value", "variable"] })
+    });
+    const populationData = await populationResponse.json();
+    const populationObservations = populationData.byVariable[populationVariable].byEntity[entityId].orderedFacets[0].observations;
+    // Function to calculate per capita values
+    function calculatePerCapita(data, populationData) {
+        return data.map(location => {
+            const perCapitaObservations = location.observations.map(obs => {
+                const populationObs = populationData.find(pop => pop.date === obs.date);
+                const population = populationObs ? populationObs.value : 1; // Avoid division by zero
+                return {
+                    date: obs.date,
+                    value: obs.value / population // Calculate per capita
+                };
+            });
+            return {
+                ...location,
+                observations: perCapitaObservations
+            };
+        });
     }
+     // Print populationData
+     console.log("Population Data:", populationData);
+    // Apply per capita calculation to the formatted data
+    const perCapitaData = calculatePerCapita(formattedData, populationObservations);
+    function generateTablePerCapita(tableData) {
+        const table = document.createElement("table");
+    
+        // Create table header
+        const headerRow = document.createElement("tr");
+        ["Country", "Year", "Per Capita Value"].forEach(header => {
+            const headerCell = document.createElement("th");
+            headerCell.textContent = header;
+            headerRow.appendChild(headerCell);
+        });
+        table.appendChild(headerRow);
+    
+        // Create table rows
+        tableData.forEach(location => {
+            location.observations.forEach(obs => {
+                const row = document.createElement("tr");
+                const countryCell = document.createElement("td");
+                countryCell.textContent = location.name;
+                row.appendChild(countryCell);
+    
+                const yearCell = document.createElement("td");
+                yearCell.textContent = obs.date;
+                row.appendChild(yearCell);
+    
+                const valueCell = document.createElement("td");
+                valueCell.textContent = obs.value.toFixed(4); // Format per capita value
+                row.appendChild(valueCell);
+    
+                table.appendChild(row);
+            });
+        });
+    
+        // Add the table to the container
+        const container = document.getElementById("table-containerPerCapita");
+        container.appendChild(table);
+    }
+    
+    if (hash.goal !== "health") {
+        // Call the table generation function with per capita data
+        generateTablePerCapita(perCapitaData);
+    }*/
+    
+}
+function refreshTimeline() {
+    let hash = getHash();
+    let scope = "country";
+    if (hash.scope) {
+        scope = hash.scope;
+    }
+    //waitForElm('#chartVariable').then((elm) => { // Avoid this since values won't be there yet.
+        //let chartVariable = 'Count_Person';
+        let chartVariableSelect = document.getElementById('chartVariable');
+        //setTimeout(() => { // Hack - wait 3 seconds. Later we'll wait for #chartVariable to have a value.
+                        
+            let chartVariable = chartVariableSelect.options[chartVariableSelect.selectedIndex].value;
 
-    // Get unique years
-    let yearsSet = new Set();
-    formattedData.forEach(country => {
-        country.observations.forEach(obs => {
-            yearsSet.add(obs.date);
+            let showAll = document.querySelector('input[name="whichLines"]:checked').value;
+            if(!showAll) {showAll = 'showTop5';}
+
+            let entityIdSelect = document.getElementById('entityId');
+            let entityId = entityIdSelect.options[entityIdSelect.selectedIndex].value;
+            let chartText = document.getElementById('chartVariable').options[document.getElementById('chartVariable').selectedIndex].text;
+
+            //alert(chartVariable + " " + chartText)
+            getTimelineChart(scope, chartVariable, entityId, showAll, chartText);
+        //},3000);
+    //});
+}
+function updateScopeOptions(availableScopes) {
+    waitForElm('#selectScope').then((elm) => {
+        $("#selectScope option").each(function () {
+            $(this).prop("hidden", !availableScopes.includes(this.value));
         });
     });
-    const years = [...yearsSet].sort((a, b) => a - b);
+}
+async function updateDcidSelectFromSheet(scope) {
 
-    // Get datasets
-    const datasets = formattedData.map(country => {
-        return {
-            label: country.country,
-            data: years.map(year => {
-                const observation = country.observations.find(obs => obs.date === year);
-                return observation ? observation.value : null;
-            }),
-            borderColor: 'rgb(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ')',
-            backgroundColor: 'rgba(0, 0, 0, 0)',
-        };
+    let hash = getHash();
+    if (!scope && hash.scope) {
+        scope = hash.scope;
+    }
+    // Temp
+    if (scope == "country" && hash.goal == "health") {
+        scope = "country" // Until Google Sheet has counties for health
+        updateHash({"scope":scope}); // Used by refreshTimeline()
+
+    }
+
+    // Temp here, will be in it's own function for choosing current goal view
+    const airTimelinesLink = document.getElementById("airTimelinesLink");
+    const healthTimelinesLink = document.getElementById("healthTimelinesLink");
+    if (hash.goal === "air" || !hash.goal) {
+      if (airTimelinesLink) airTimelinesLink.style.display = "none";
+      if (healthTimelinesLink) healthTimelinesLink.style.display = "block";
+    } else if (hash.goal === "health" ) {
+      if (healthTimelinesLink) healthTimelinesLink.style.display = "none";
+      if (airTimelinesLink) airTimelinesLink.style.display = "block";
+    } else {
+      if (airTimelinesLink) airTimelinesLink.style.display = "none";
+      if (healthTimelinesLink) healthTimelinesLink.style.display = "none";
+    }
+
+    const dcidSelect = document.getElementById('chartVariable');
+    if (!dcidSelect) {
+        alert("Dropdown element with ID 'chartVariable' not found.");
+        return;
+    }
+
+    // When getting a Google link for a .csv pull, also uncheck "Restrict access..."
+    dcidSelect.innerHTML = ''; // Clear existing options
+    // air tab
+    let sheetUrl = "https://docs.google.com/spreadsheets/d/1IGyvcMV5wkGaIWM5dyB-vQIXXZFJUMV3WRf_UmyLkRk/export?format=csv&gid=0"; // air
+    if (hash.goal == "water") {
+        sheetUrl = "https://docs.google.com/spreadsheets/d/1IGyvcMV5wkGaIWM5dyB-vQIXXZFJUMV3WRf_UmyLkRk/pub?gid=2049347939&single=true&output=csv"; // water
+    } else if (hash.goal == "health") {
+        sheetUrl = "https://docs.google.com/spreadsheets/d/1IGyvcMV5wkGaIWM5dyB-vQIXXZFJUMV3WRf_UmyLkRk/pub?gid=1911215802&single=true&output=csv"; // health
+    } else if (hash.goal == "jobs") {
+        sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTBiwDM6b0i_jnaE37fq_GFxCyigP0OondJk17dMRgE8QFiIMNHabFymizwIUYOAVdxh6nj6ZueBak/pub?gid=1835621753&single=true&output=csv";
+    } else if (hash.goal == "economy") {
+        sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTBiwDM6b0i_jnaE37fq_GFxCyigP0OondJk17dMRgE8QFiIMNHabFymizwIUYOAVdxh6nj6ZueBak/pub?gid=2098911331&single=true&output=csv";
+    } else if (hash.goal == "biodiverse") {
+        sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTBiwDM6b0i_jnaE37fq_GFxCyigP0OondJk17dMRgE8QFiIMNHabFymizwIUYOAVdxh6nj6ZueBak/pub?gid=288814302&single=true&output=csv";
+    }
+
+    //loadGoalsDropdown("aquifers","https://docs.google.com/spreadsheets/d/1IGyvcMV5wkGaIWM5dyB-vQIXXZFJUMV3WRf_UmyLkRk/pub?gid=484745180&single=true&output=csv");
+
+    //loadGoalsDropdown("conservation","https://docs.google.com/spreadsheets/d/1IGyvcMV5wkGaIWM5dyB-vQIXXZFJUMV3WRf_UmyLkRk/pub?gid=374006451&single=true&output=csv");
+
+    //loadGoalsDropdown("zipcodeleveldata","https://docs.google.com/spreadsheets/d/1IGyvcMV5wkGaIWM5dyB-vQIXXZFJUMV3WRf_UmyLkRk/pub?gid=492624247&single=true&output=csv");
+    
+
+    const response = await fetch(sheetUrl);
+    const csvText = await response.text();
+
+    console.log("CSV Data:", csvText); // Log the entire CSV data for debugging
+
+    // Parse CSV data correctly, handling quoted commas
+    const rows = parseCSV(csvText);
+
+    console.log("Parsed Rows:", rows); // Log parsed rows for debugging
+
+    const headers = rows[0]; // Assuming the first row contains headers
+    console.log("Headers:", headers); // Log headers to ensure correct column names
+
+    // Find the indices for the Scope, Value, and Text columns
+    const scopeIndex = headers.indexOf('Scope');
+    const valueIndex = headers.indexOf('DCID'); // Assuming 'Value' is stored in the 'DCID' column
+    const textIndex = headers.indexOf('Title'); // Assuming 'Text' is stored in the 'Title' column
+
+    if (scopeIndex === -1 || valueIndex === -1 || textIndex === -1) {
+        console.error("Missing required columns in the CSV data.");
+        return;
+    }
+
+    // Normalize the provided scope (trim and lowercase for comparison)
+    const normalizedScope = scope.trim().toLowerCase();
+
+    // Filter rows by the selected scope (case-insensitive)
+    const filteredOptions = rows.slice(1).filter(row => {
+        const scopeColumn = row[scopeIndex]?.trim(); // Get the Scope column value
+        if (!scopeColumn) {
+            console.log("Skipping row with empty Scope column:", row); // Log empty rows for debugging
+            return false;
+        }
+
+        // Handle comma-separated values within quotes in the Scope column
+        const scopes = scopeColumn.replace(/"/g, '').split(',').map(s => s.trim().toLowerCase());
+
+        console.log("Row Scope Column:", scopeColumn); // Log the original Scope column value
+        console.log("Row Split Scopes:", scopes); // Log split scopes
+
+        // Compare each scope against the user-provided scope (case-insensitive)
+        const matchFound = scopes.some(s => s === normalizedScope); // Use 'some' for matching any of the scopes
+        console.log(`Match found for scope '${normalizedScope}':`, matchFound); // Log the result of the match check
+
+        return matchFound; // Return true if scope matches
     });
 
-    const config = {
-        type: 'line',
-        data: {
-            labels: years,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Population'
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Year'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Population'
-                    }
-                }
-            }
-        }
-    };
-
-    // Delete chart if it already exists
-    if (myChart instanceof Chart) {
-        myChart.destroy();
+    // TO DO: Apply based on incoming Google Sheet rows
+    if (hash.goal == "health" || hash.goal == "water") {
+        updateScopeOptions(["country"]);
+    } else {
+        updateScopeOptions(["country","state","county"]); // TO DO: Zip not yet activated, add to function
     }
-    const ctx = document.getElementById('countryChart').getContext('2d');
-    myChart = new Chart(ctx, config);
+    console.log("Filtered Options:", filteredOptions); // Log the filtered options to verify
 
-    // Use the following to track hash changes -
-    // document.addEventListener('hashChangeEvent', () => {
-    //    chartVariable = 'Count_Person';
-    //    facetId = '3981252704';
-    //    getCountryChart(chartVariable, facetId);
-    // })
+    // Populate dropdown
+    filteredOptions.forEach(row => {
+        const value = row[valueIndex]?.trim();
+        const text = row[textIndex]?.trim();
+        if (value && text) {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.text = text;
+            dcidSelect.add(opt);
+        }
+    });
+
+    // Set default selection if options exist
+    if (filteredOptions.length > 0) {
+        dcidSelect.value = filteredOptions[0][valueIndex].trim(); // Set to the first option's value
+        refreshTimeline();
+    } else {
+        alert("No datasets in the Google Sheet for scope \"" + normalizedScope + "\" with the goal \"" + hash.goal + "\"");
+        console.warn("No options matched the provided scope:", normalizedScope);
+    }
+
+    // Commented out since we don't need to show the rows from the Google Sheet.
+    // Maybe the generateTable() function is not needed?
+
+    /* call table function */
+    //generateTable(rows);
+
 }
 
-// Function to get US states chart - Takes in an array of state names
-async function getStateChart(chartVariable, statesList, facetId) {
-    // For US States only
-    // Fetch geoIds of all given states
-    const response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "nodes": statesList,
-            "property": "<-description{typeOf:State}->dcid"
-        })
-    });
-    const data = await response.json();
-    
-    // Make a dictionary of state code -> name
-    const stateCodes = {};
-    data.entities.forEach(entity => {
-        if (entity.node && entity.candidates && entity.candidates[0] && entity.candidates[0].dcid) {
-            stateCodes[entity.candidates[0].dcid] = entity.node;
-        }
-    });
+/* Function to generate table, takes the data to be loaded on to the table as an argument, start */
 
-    // Fetch data for states and selected variable
-    const geoIds = Object.keys(stateCodes);
-    const url = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`
-    const response2 = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "date": "",
-            "select": ["date", "entity", "value", "variable"]
-        })
-    })
-    const data2 = await response2.json();
-    
-    // Use facetId to build formatted data
-    const formattedData = []
-    for (const geoId of geoIds) {
-        formattedData.push({
-            state: stateCodes[geoId],
-            observations: data2.byVariable[chartVariable].byEntity[geoId].orderedFacets.find((element) => element.facetId == facetId)['observations']
-        })
+function generateTable(tableData) {
+    // check if table already exixts and remove it to generate the required table
+    const tableExist = document.getElementById("table-container");
+    if(tableExist) {
+        const checkTable = tableExist.querySelector(".table");
+        if(checkTable) {
+            checkTable.remove();
+        }
     }
 
-    // Get unique years
-    let yearsSet = new Set();
-    formattedData.forEach(state => {
-        state.observations.forEach(obs => {
-            yearsSet.add(obs.date);
+    const table = document.createElement("table");
+    //table.setAttribute("border", "1"); // Add border for visibility
+
+    // Create table header via JS
+    const headerRow = document.createElement("tr");
+    tableData[0].forEach((element) => {
+        const headerCell = document.createElement("th");
+        headerCell.textContent = element.replace(/\r/g, "").toUpperCase(); // remove any occurances of the characters \r and capitalize header names.
+        headerCell.className = element.replace(/\r/g, ""); // assigning classname to control CSS
+        headerRow.appendChild(headerCell);
+    });
+    table.appendChild(headerRow);
+
+    // Create table rows for each data entry without the first element of the table data array since it contains the table header and is not required for populating the other rows
+    let newTableData = tableData.slice(1);
+    newTableData.forEach((item) => {
+        const row = document.createElement("tr");
+        item.forEach((elem, index) => {
+            const cell = document.createElement("td");
+            cell.className = "num"+index;
+            if(elem == "" || elem == null || elem == undefined) {
+                cell.textContent = '---'; // replace empty cell data with "---"
+            } else {
+                cell.textContent = elem.replace(/\r/g, "");
+                if(cell.textContent == "") {
+                    cell.textContent = '---'; // replace empty cell data after replacing \r above, with "---"
+                }
+            }
+            row.appendChild(cell);
         });
+        table.appendChild(row);
+        //console.log(`DATA ROW CONTAINS ${item}`);
     });
-    const years = [...yearsSet].sort((a, b) => a - b);
 
-    // Get datasets
-    const datasets = formattedData.map(state => {
-        return {
-            label: state.state,
-            data: years.map(year => {
-                const observation = state.observations.find(obs => obs.date === year);
-                return observation ? observation.value : null;
-            }),
-            borderColor: 'rgb(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ')',
-            backgroundColor: 'rgba(0, 0, 0, 0)',
-        };
-    });
-    
-    const config = {
-        type: 'line',
-        data: {
-            labels: years,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Population'
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Year'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Population'
-                    }
-                }
-            }
+    // Add the constructed table to the container.
+    const container = document.getElementById("table-container");
+    if(location.host.indexOf("dreamstudio") < 0) {
+        //check if it's the health table or the air table and append className accordingly
+        switch(tableData[1][0]) {
+            case "Emissions": 
+                table.className = "air table";
+                break;
+
+            case "Mortality":
+                table.className = "health table";
+                break;
+
+            default:
+                table.className = "col table"
         }
-    };
-
-    // Delete chart if it already exists
-    if (stateChart instanceof Chart) {
-        stateChart.destroy();
+        container.appendChild(table);
     }
-    const ctx = document.getElementById('stateChart').getContext('2d');
-    stateChart = new Chart(ctx, config);
 }
+/* Function to generate table, end */
+
+// CSV Parsing function to handle quoted commas
+function parseCSV(csvText) {
+    // Split rows by newlines
+    const rows = csvText.split('\n').map(row => {
+        // Use a regular expression to handle commas inside quotes
+        const regex = /(?:,|\r?\n|^)(?:"([^"]*)"|([^",]*))/g;
+        const columns = [];
+        let match;
+        while ((match = regex.exec(row)) !== null) {
+            columns.push(match[1] || match[2]); // Take the value inside quotes or the normal value
+        }
+        return columns;
+    });
+    return rows;
+}
+function toggleDivs() {
+    // Get selected value from radio buttons
+    const selectedValue = document.querySelector('input[name="toogleChartType"]:checked').value;
+    if (selectedValue == "both") {
+        document.getElementById('div1').style.display = 'block';
+        document.getElementById('div2').style.display = 'block';
+        return;
+    }
+    // Hide both divs initially
+    document.getElementById('div1').style.display = 'none';
+    document.getElementById('div2').style.display = 'none';
+
+    // Show the selected div
+    document.getElementById(selectedValue).style.display = 'block';
+}
+//Population data for different scope
+

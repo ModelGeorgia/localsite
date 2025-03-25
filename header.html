@@ -60,12 +60,47 @@ Could use these state shapes: https://github.com/coryetzkorn/state-svg-defs
     background-color:#555;
 }
 </style>
+
+<div class="dreamstudio" style="display:none">
+
+    <!-- Generate Images https://dreamstudio.ai/generate  -->
+    <!--
+    <a href="/dreamstudio/seasons/" class="navlink-generate btn btn-magenta navcolumnIndent" style="max-width:180px; text-align:center">Cleo Framework</a><br>
+    -->
+
+    <b><a href="/dreamstudio/home/">ABOUT</a></b>
+    <a href="/dreamstudio/home/">DreamStudio</a>
+    <a href="/dreamstudio/earth/">Earth Generation</a>
+    <a href="/dreamstudio/seasons/">Story Seasons</a>
+    <br>
+
+    <b><a href="/projects">PROJECTS</a></b>
+    <a href="/data-commons/docs/data">Goal Timelines</a>
+    <a href="/dreamstudio/feed">Feed Player</a>
+    <a href="/dreamstudio/requests">Storyboard</a>
+    <a href="/dreamstudio/community">Model.earth</a>
+    <a href="https://www.democracylab.org/projects/834">DemocracyLab</a>
+    <br>
+
+    <b><a href="/dreamstudio/projects">DATA SCIENCE</a></b>
+    <a href="/projects/about/">About Our Projects</a>
+    <a href="/projects/">Active Projects</a>
+    <a href="/io/coders/">Coding Meetups</a>
+    <a href="/realitystream/models">RealityStream ML</a>
+    <!-- data-pipeline contains 10+ files over 25 MB -->
+    <br>
+
+    <!--a href="/dreamstudio/localsite/">Localsite Framework</a-->
+
+    <br>
+</div>
+
 <div class="earth menuset" style="display:none">
     <div class="dev toggle-container" style="display:none">
+    <b><a href="/home/" style="margin-bottom:8px;">VISUALIZE</a></b>
     <b><a href="/data-commons/" onclick="toggleDiv('.goalsSub');return false;">GOALS</a></b>
-    <div class="goalsSub" style="display:none">
-        <a href="/data-commons/">Data Commons</a>
-        <a href="/data-commons/dist/jobs">1. Great Jobs</a>
+    <div class="goalsSub" id="goalsSub" style="display:none">
+        <a href="/data-commons/docs/jobs">1. Great Jobs</a>
         <a href="/data-commons/dist/food">2. Healthy Food</a>
         <a href="/data-commons/dist/health">3. Excellent Health</a>
         <a href="/data-commons/dist/education">4. Quality Education</a>
@@ -77,7 +112,7 @@ Could use these state shapes: https://github.com/coryetzkorn/state-svg-defs
         <a href="/data-commons/dist/open">10. Inclusive and Open</a>
         <a href="/data-commons/dist/biodiversity">11. Biodiverse Habitats</a>
         <a href="/data-commons/dist/conservation">12. Restoring Treecover</a>
-        <a href="/data-commons/dist/air">13. Air and Climate</a>
+        <a href="/data-commons/docs/data">13. Air and Climate</a>
         <a href="/data-commons/dist/aquatic">14. Thriving Aquatic Life</a>
         <a href="/data-commons/dist/wildlife">15. Abundant Wildlife</a>
         <a href="/data-commons/dist/peace">16. Peace and Justice</a>
@@ -148,19 +183,21 @@ Could use these state shapes: https://github.com/coryetzkorn/state-svg-defs
 
     <b><a href="/community/projects/">PROJECTS</a></b>
     <a href="/projects/">Active Projects</a>
-    <a href="/localsite/">Localsite Framework</a>
-    <a href="/data-commons/">Google Data Commons</a>
-    <a href="/data-pipeline/">Python Data Pipeline</a>
-    <a href="/OpenFootprint/trade/">International Trade Flow</a>
-    <a href="/io/about/">State Models for Google</a>
-    <a href="/useeio.js/footprint/">USEEIO Javascript</a>
-    <a href="/RealityStream/">RealityStream ML</a>
-    <a href="/data-pipeline/research/stream/">Generated Images</a>
-    <a href="/OpenFootprint/">Open Footprint</a>
-    <a href="/community/projects/">Moonshot Challenges</a>
+    
+    <a href="/data-commons/docs/data/">1. Goal Timelines (JS)</a>
+    <a href="/home/repo/">2. Planet Javascript (AI)</a>
+    <a href="/RealityStream/">3. RealityStream (ML)</a>
+    <a href="/profile/trade/">4. Trade Flow (IO)</a>
+    <a href="/io/template/">5. Build Transparency (BT)</a>
+    <a href="/feed/">6. FeedPlayer (React)</a>
+    <a href="/community/projects/">7. Moonshot Challenges</a>
     
     <!--
-    <a href="/community/projects/#profile-editor">Profile Editor</a>
+    <a href="/localsite/">Localsite Framework</a>
+    <a href="/useeio.js/footprint/">USEEIO Javascript</a>
+    <a href="/io/about/">State Models for Google</a>
+    <a href="/data-pipeline/">Python Data Pipeline</a>
+    <a href="/data-pipeline/research/stream/">Generated Images</a>
     -->
     <br>
 
@@ -245,45 +282,6 @@ Could use these state shapes: https://github.com/coryetzkorn/state-svg-defs
     <br>
 </div>
 
-<div class="dreamstudio" style="display:none">
-
-    <a href="https://dreamstudio.ai/generate" class="navlink-generate btn btn-magenta navcolumnIndent" style="max-width:180px; text-align:center">Generate Images</a><br>
-
-    <b><a href="/dreamstudio/about/">ABOUT</a></b>
-    <a href="/dreamstudio/about/">Dream Studio</a>
-    <a href="https://stability.ai/stable-assistant">Stable Assitant</a>
-    <a href="https://stability.ai/stable-artisan">Stable Artisan</a>
-    <a href="https://stableaudio.com">Stable Audio</a>
-    <a href="https://stability.ai/stable-video">Stable Video</a>
-    <a href="/dreamstudio/studio/">Stable Studio</a>
-    <a href="/swarm/">Stable Swarm</a>
-    <!--
-    <a href="https://stablediffusionweb.com/Visual-ChatGPT">Visual ChatGPT</a>
-    -->
-    
-    <a href="https://stability.ai/stable-image">Image Models</a>
-    <a href="/dreamstudio/animation/">Animation SDK</a>
-    <br>
-    <!--
-    <b><a href="/dreamstudio/seasons/">STORIES</a></b>
-    <a href="/dreamstudio/seasons/">Story Seasons</a>
-    <a href="/dreamstudio/seasons/mentors/">Core Characters</a>
-    -->
-    <!--a href="/dreamstudio/localsite/">Localsite Framework</a-->
-
-    <b><a href="/dreamstudio/api/">API PLATFORM</a></b>
-    <a href="/dreamstudio/api/start/">Get Started</a>
-    <a href="/dreamstudio/api/features/">API Features</a>
-    <a href="/dreamstudio/api/status/">API Status</a>
-    <br>
-
-    <b><a href="https://stability.ai">NEWS</a></b>
-    <a href="https://stability.ai/about">Stability.ai</a>
-    <a href="https://stability.ai/blog">Announcements</a>
-    <a href="https://stability.ai/blog">Press Articles</a>
-    <a href="https://dreamstudio.ai/support">Contact Us</a>
-    <br>
-</div>
 
 </div>
 

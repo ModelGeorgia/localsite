@@ -54,7 +54,7 @@
   left: 0px;
   background-color: rgb(239 239 239);
   border-bottom: #aaa;
-  z-index: 10000;
+  z-index: 9999;
 }
 /* brave still sees this since it's darkmode ignores the use of prefers-color-scheme: dark */
 @media (not (prefers-color-scheme: dark)) {
@@ -62,6 +62,7 @@
     background-color: inherit;
     background-color: rgb(250 250 250);
     border-bottom: 1px solid #eee;
+    border-bottom: 0px solid #eee;
   }
   .filterFieldsHolderFixed {
     background-color: rgb(255 255 255/95%);
@@ -71,17 +72,22 @@
     border-bottom: 0px solid #686868;
   }
 }
-
+/*
+#filterFieldsHolder, .filterFieldsHolderFixed {
+  background-color: rgba(33,33,33,0.75);
+}
+*/
 .filterFieldsHolderFixed .hamburger-circle {
   content: url("/localsite/img/icon/hamburger-lite.png");
 }
 #filterFieldsMain {
-    min-height:57px;
+    min-height:54px;
     overflowX: hidden;
     position: relative;
 }
 #stateFiltersHolder {
   padding-right: 40px;
+  max-height: 52px;
 }
 #filterLocations {
   background-color: #eee;
@@ -91,7 +97,7 @@
 }
 @media (max-width: 600px) {
   #mapFilters {
-    padding-left: 20px;
+    padding-left: 10px;
   }
   #stateFiltersHolder {
     padding-left: 12px;
@@ -299,9 +305,10 @@ input.filterClick[type="text"] {
   z-index: 1000;
 }
 #geoListHolder {
-    padding-left: 20px;
-    display: flex;
-    /* flex-flow: column; */
+    displayX: flex;
+    overflow: hidden;
+    padding-left: 15px;
+    padding-right: 20px;
     height: 530px;
     border: 10px solid blue;
 }
@@ -345,6 +352,7 @@ input.filterClick[type="text"] {
   }
   #geoListHolder, .listHolderFooter {
     padding-left: 0px;
+    padding-right: 0px;
   }
   #geomapHolder {
     float: none;
@@ -380,8 +388,8 @@ input.filterClick[type="text"] {
 
 .close-X {
   cursor:pointer;
-  padding:10px 26px 15px 26px;
-  font-size:28px;
+  padding:7px 26px 15px 26px;
+  font-size:23px;
   color:#bbb;
 }
 #honeycombPanel {
@@ -709,3 +717,16 @@ input.filterClick[type="text"] {
   top: 44px;
   max-width: 600px;
 }
+#mainHero #datascape {
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+}
+#mainHero #filterFieldsHolder {
+  background-color: rgba(33,33,33,0.3);
+}
+#mainHero #filterFieldsHolder > #showNavColumn {
+  color: #fff;
+  background-color: rgba(33,33,33,0.3);
+}
+

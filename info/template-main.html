@@ -97,6 +97,13 @@
               </div>
 
               -->
+              <div class="local" style="display:none">
+                <div class="showDesktop rightTopItem">
+                    <i class="material-icons menuTopIcon">&#xE1B1;</i>
+                    <span>Home</span>
+                </div>
+              </div>
+
               <div class="hideEmbed">
                   <div class="showSections rightTopItem active" style="padding-top:14px; padding-right:10px">
                       <i class="material-icons menuTopIcon">&#xE5C3;</i>
@@ -157,13 +164,6 @@
               <div class="showSettings rightTopItem">
                   <i class="material-icons menuTopIcon">&#xE8B8;</i>
                   <span>Settings</span>
-              </div>
-
-              <div class="local" style="display:none">
-                <div class="showDesktop rightTopItem">
-                    <i class="material-icons menuTopIcon">&#xE1B1;</i>
-                    <span>Desktop</span>
-                </div>
               </div>
 
               <!--
@@ -301,6 +301,7 @@
               <div class="setLeft">Model Site</div>
               <div class="setOverflow"><div class="setRight">
                   <select id="modelsite">
+                    <option value="dreamstudio">DreamStudio</option>
                     <option value="model.earth" selected>Model Earth</option>
                     <option value="model.africa">Model Africa</option>
                     <option value="model.europe">Model Europe</option>
@@ -458,7 +459,27 @@
         <!-- Desktop Panel -->
         <div id="desktopPanel" class="menuExpanded topMenuOffset" style="display:none; font-size: 18.5px;">
           <div class="menuExpandedScroll always-show-scroll">
-              <div id="desktopDiv" class="menuTitle">Desktop</div>
+
+              <div style="margin-bottom:5px">Display</div>
+              <div class="setOverflow"><div class="setRight">
+                  <select id="mainhero">
+                    <option value="gitrepo">My GitHub Site</option>
+                    <option value="goals" selected>Global Timelines</option>
+                    <option value="globe">Weather Explorer</option>
+                  </select>
+              </div></div>
+
+              <div id="gitrepoHolder">
+                <div style="font-size:.9em;margin-bottom:5px;clear:both">Github Account/Repo</div>
+                <input id="gitrepo" style="width:100%; min-width:250px; max-width:300px;" class="mobileWide textInput si-input" type="text" value=""><br><br>
+
+                <div style="float:left">
+                  <a class="btn btn-success" style="margin:0 0 20px 0; min-width:90px;">Save</a>
+                </div>
+              </div>
+
+              <div style="clear:both"></div>
+
               <br><br><br>
           </div>
         </div>
@@ -468,11 +489,17 @@
         <div id="accountPanel" class="menuExpanded topMenuOffset" style="display:none">
           <div class="menuExpandedScroll">
             <div style="font-size:16pt; margin-bottom:20px">Account</div>
+            
 
-            <!-- fields here instead from recap -->
+            <div style="margin-bottom:5px;">Email 
+              <span style="font-size:.9em;">- stored only in browser</span></div>
+            <input id="input123" autocompleteX="off" style="width:100%; min-width:250px;max-width:300px;" class="mobileWide textInput si-input" type="text" value=""><br><br>
 
-            <div style="margin-bottom:5px">Your email address</div>
-            <input id="input123" autocompleteX="off" style="width:100%; min-width:250px" class="mobileWide textInput si-input" type="text" value=""><br><br>
+              <div style="margin-bottom:8px">My Image</div>
+              <input type="checkbox" id="getGravatar" style="margin-right:4px" checked><span style="font-size:.9em;">Display <a href="https://gravatar.com/" target="gravatar">my gravatar.com image</a></span>
+            <br><br>
+
+            <div id="gravatarImg"></div>
 
             <div class="uIn btn btn-success" style="margin-bottom:20px;float:left">Continue</div>
 
@@ -484,8 +511,6 @@
             <div style="float:left">
               <a class="uOut btn btn-primary" style="margin:0 0 20px 0;">Log Out</a>
             </div>
-
-            <div style="clear:both"></div>
 
           </div>
         </div>
@@ -620,14 +645,14 @@
     <div id="upIconTrayText" class="hideMobile" style="float:left; padding:32px 10px 0 0">
       <div id="dreamstudio-nav" class="dreamstudio" style="display:none">
         <span class="hideMobile" style="float:left">
-          <a href="/dreamstudio/about/" class="navlink-about"><span style="white-space: nowrap; margin-right:6px">About</span></a> 
+          <a href="/dreamstudio/home/" class="navlink-about"><span style="white-space: nowrap; margin-right:6px">About</span></a> 
           <!--
           <a href="/dreamstudio/studio/" class="navlink-studio"><span style="white-space: nowrap; margin-right:3px">Studio</span></a>
           -->
           <a href="/dreamstudio/earth/" class="navlink-earth"><span style="white-space: nowrap; margin-right:3px">Earth</span></a> 
           <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
-          <a href="/dreamstudio/api/" class="navlink-api"><span style="white-space: nowrap">API</span></a>  
-          <a href="https://dreamstudio.ai/generate" class="navlink-generate" target="gen"><span style="white-space: nowrap">Generate</span></a>
+          <a href="/dreamstudio/swarm/" class="navlink-swarm"><span style="white-space: nowrap">Swarm</span></a>  
+          <a href="/community/projects/" class="navlink-moonshots" target="me"><span style="white-space: nowrap">Moonshots</span></a>
         </span>
       </div>
 
@@ -646,7 +671,7 @@
 
     <div id="headerIcons">
       <div class="earth dreamstudio garesource" style="display:none">
-        <div id="showSideTabs" class="showSideTabs" style="padding:12px 0px 10px 10px; margin-right:10px; min-height:64px">
+        <div id="showSideTabs" class="showSideTabs" style="padding:6px 0px 10px 10px; margin-right:10px; min-height:64px">
           <i class="material-icons show-on-load" style="font-size:40px;font-weight:550" data="apps">&#xE5C3;</i>
         </div>
       </div>
@@ -922,10 +947,25 @@ document.addEventListener('mousedown', function(e) {
                 <option value="none">Geoview...</option>
                 <option value="earth">Earth</option>
                 <option value="countries">Countries</option>
-                <option value="country">United States</option>
+                <option value="country">US</option>
                 <option value="state" selected>State</option><!-- was counties -->
               </select>
-
+              <div class="local" style="display:none;float:left;">
+                <select id="selectScope">
+                  
+                  <!--
+                  <option value="">Scope...</option>
+                  -->
+                  <option value="continent" hidden>Scope: By Continent</option>
+                  <option value="country" selected>Scope: By Country</option>
+                  <option value="state">Scope: By State/Territory</option>
+                  <option value="county">Scope: By County</option>
+                  <option value="zip" hidden>Scope: By Zip Code</option>
+                  <option value="person" hidden>Scope: By Person</option>
+                  <option value="voxel" hidden>Scope: By Brain Voxels</option>
+                  
+                </select>
+              </div>
               <b><!--States--></b>
               <div id="state_select_holder" class="earth" style="displayX:none;float:left">
                 <select id="state_select" name="state" style="max-width:285px;">
@@ -1020,6 +1060,13 @@ document.addEventListener('mousedown', function(e) {
                 </div>
             </div>
           </div>
+
+          <select id="selectYear" name="state" style="float:right;margin-right:20px;display:none">
+                 <option value="">Year</option>
+                 <option value="2017">2017</option>
+                 <option value="2018">2018</option>
+                 <option value="2019">2019</option>
+          </select>
       </div>
 
         <!-- GOOGLE ADDRESS AUTOCOMPLETE -->
@@ -1177,7 +1224,7 @@ document.addEventListener('mousedown', function(e) {
           <div>
           <!-- Avoid padding-right:25px since makes too narrow in sidetab -->
           <div id="geoListHolder" style="border:0px solid #ccc; position:relative">
-
+            <div style="overflow-x: auto;">
                 <div class="listHolder">
                   <!--Cities -->
                 </div>
@@ -1212,8 +1259,7 @@ document.addEventListener('mousedown', function(e) {
                   
                   <div id="tabulator-statetable" style="min-width:510px"></div>
                   <div id="tabulator-geotable" style="min-width:510px;overflowX:visible"></div>
-                  <!-- min-width 510px added because 1/3 loads were not visible. (Bug continues with 5.5) -->
-                  <!-- min-height:200px seemed to break verticle scroll. min-height was added for short Hawaii bug. -->
+                  <!-- min-width 510px added because 1/3 loads were not visible. min-height:200px breaks verticle scroll. -->
                   
                   <!--
                   <div style="width:100%" class="output_table rotateHeader">
@@ -1222,8 +1268,8 @@ document.addEventListener('mousedown', function(e) {
                   </div>
                   -->
 
-                  <div id="tabulator-geocredit" class="local" style="display:none; margin-top:8px; font-size: 12px">
-                    Source: <a href="/localsite/info/data/map-filters/">State and Country Data</a><br><br>
+                  <div id="tabulator-geocredit" style="margin:10px 0 12px 8px; font-size: 12px">
+                    <a href="/localsite/info/data/map-filters/">About location filters</a>
                   </div>
                 </div>
                 
@@ -1237,6 +1283,7 @@ document.addEventListener('mousedown', function(e) {
 
               </div>
 
+            </div>
           </div>
         </div>
 
@@ -1305,6 +1352,11 @@ Displayed by hashChanged() in navigation.js
       min-height: 65vh;
       width: 100%;
   }
+  @media (max-width: 600px) {
+    iframe {
+      min-height: 40vh;
+    }
+  }
   #mainbucket {
     position: absolute;
     right: 80px;
@@ -1326,7 +1378,7 @@ Displayed by hashChanged() in navigation.js
 <div id="nullschoolHeader" style="position:relative; display:none">
 
   
-  <div id="earthZoom" class="earthZoom" style="position: absolute; z-index:100; right:20px; bottom:20px">
+  <div id="earthZoom" class="earthZoom" style="display:none; position:absolute; z-index:100; right:20px; bottom:20px">
     <!-- Needs fixing...
     <div id="earthClose" style="padding-left:20px">CLOSE</div>
     -->
@@ -1335,22 +1387,31 @@ Displayed by hashChanged() in navigation.js
   
 
   <div class="hideMobile">
-  <div class="earth georgia" style="display:none">
+  <div class="earth georgia dreamstudio" style="display:none">
   <div id="mainbucket" class="darkDivText" style="display:none">
 
     <!--
     <a href="../io/charts/"><img src="/community/img/logo/epa-circle.png" style="width:115px;float:left;margin-right:16px;"></a>
     -->
 
-    <div style="padding-top:5px;overflow:auto" class="hideOnProjectsPage">
-      Exploring Earth's systems<br>through collaborative modeling.<br>
-      <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
-    </div>
-    <div style="display:none" class="projectsPage">
-      Build your school projects and dissertations<br>
-      using USEEIO environmentally-extended data.<br>
+    <div style="display:none" class="dreamstudio">
+      Global weather conditions<br>
+      Air, wind, oceans, space<br>
 
-      <a href="/io/learn/" class="btn btn-warning" style="margin-top:10px;">For Research Projects</a>
+      <a href="https://earth.nullschool.net" class="btn btn-primary" style="margin-top:10px;">Launch NullSchool</a>
+    </div>
+
+    <div class="earth georgia" style="display:none">
+      <div style="padding-top:5px;overflow:auto" class="hideOnProjectsPage">
+        Exploring Earth's systems<br>through collaborative modeling.<br>
+        <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
+      </div>
+      <div style="display:none" class="projectsPage">
+        Build your school projects and dissertations<br>
+        using USEEIO environmentally-extended data.<br>
+
+        <a href="/io/learn/" class="btn btn-warning" style="margin-top:10px;">For Research Projects</a>
+      </div>
     </div>
     <!--
     <a href="projects/">Current Projects</a> and <a href="/localsite/info/">Data Visualizations</a><br>
@@ -1400,7 +1461,7 @@ Displayed by hashChanged() in navigation.js
     <div id="allLegends"></div>
   </div>
   
-  <div id="mapInfo" class="mapInfo content" style="display:none"></div>
+  <div id="mapInfo" class="mapInfo content contentpadding" style="display:none"></div>
 
 </div>
 
@@ -1775,21 +1836,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
           <div id="dataList"></div>
           
           <div id="detaillistHolder"></div>
-          <div id="narrowlist" style="display:none"></div>
 
-          <div id="dataListTop" class='exporter products' style="display:none;overflow:auto;margin-bottom:8px">
-
-            <div style='float:left'>
-              Select up to 10 companies when requesting contact info.
-            </div>
-
-            <div id="rightButtons" style="float:right;">
-              <div id="showMap" class="detailbutton" style="display:none; float:left;margin-right:10px">Map</div>
-              <div id="toggleList" class="detailbutton localonly" style="display:none;float:left;margin-right:10px">Toggle</div>
-                <div id="requestInfo" class='orangeButton detailbutton lowerButton' style="float:left;">Request Contact Info</div>
-            </div>
-
-          </div>
       </div>
 
     </div><!-- /hublist -->

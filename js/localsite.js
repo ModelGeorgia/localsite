@@ -12,7 +12,12 @@ Define a new object if localsite library does not exist yet.
 */
 
 var localStart = Date.now(); // A var so waitForVariableNav detects in navigation.js.
-let onlineApp = true;
+
+if(typeof onlineApp == 'undefined') {
+  var onlineApp = true;
+} else {
+  consoleLog("ALERT: Page loads localsite.js more than once.")
+}
 let localsiteTitle = "Localsite";
 let defaultState = "";
 if (location.host.indexOf('localhost') >= 0) {
@@ -320,17 +325,29 @@ function getHashOnly() {
   return (function (pairs) {
     if (pairs == "") return {};
     var result = {};
-    pairs.forEach(function(pair) {
+    pairs.forEach(function (pair) {
       // Split the pair on "=" to get key and value
-      var keyValue = pair.split('=');
-      var key = keyValue[0];
-      var value = keyValue.slice(1).join('=');
+      let keyValue = pair.split('=');
+      let key = keyValue[0];
+      let value = keyValue.slice(1).join('=');
 
       // Replace "%26" with "&" in the value
       value = value.replace(/%26/g, '&');
 
-      // Set the key-value pair in the result object
-      result[key] = value;
+      // Handle nested keys with periods
+      let keys = key.split('.');
+      let current = result;
+
+      for (let i = 0; i < keys.length; i++) {
+        if (i === keys.length - 1) {
+          // Last key, set the value
+          current[keys[i]] = value;
+        } else {
+          // Intermediate key, ensure it's an object
+          if (!current[keys[i]]) current[keys[i]] = {};
+          current = current[keys[i]];
+        }
+      }
     });
     return result;
   })(window.location.hash.substr(1).split('&'));
@@ -365,7 +382,9 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
     
     hash = mix(newObj,hash); // Gives priority to addToHash
 
-    var hashString = decodeURIComponent($.param(hash)); // decode to display commas in URL
+    //var hashString = decodeURIComponent($.param(hash)); // decode to display commas in URL
+    //const hashString = new URLSearchParams(hash).toString();
+    const hashString = decodeURIComponent(new URLSearchParams(hash).toString()); // decode to display commas and slashes in URL hash values
     var pathname = window.location.pathname.replace(/\/\//g, '\/')
     var queryString = "";
     if (window.location.search) { // Existing, for parameters that are retained as hash changes.
@@ -378,15 +397,47 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
     window.history.pushState("", searchTitle, pathname + queryString);
 }
 function goHash(addToHash,removeFromHash) {
-  consoleLog("goHash ")
-  console.log(addToHash)
+  consoleLog("goHash\n" + JSON.stringify(addToHash, null, 2));
+  // Get and normalize the current hash
+  const currentHash = normalizeHash(window.location.hash);
   updateHash(addToHash,true,removeFromHash); // true = Include all of existing hash
-  triggerHashChangeEvent();
+  // Get and normalize the new hash after updateHash() runs
+  const newHash = normalizeHash(window.location.hash);
+  // Only trigger the event if the normalized hash actually changed
+  if (currentHash !== newHash) {
+    triggerHashChangeEvent();
+  }
 }
 function go(addToHash) {
   consoleLog("go ")
+  // Get and normalize the current hash
+  const currentHash = normalizeHash(window.location.hash);
   updateHash(addToHash,false); // Drop existing
-  triggerHashChangeEvent();
+  // Get and normalize the new hash after updateHash() runs
+  const newHash = normalizeHash(window.location.hash);
+  // Only trigger the event if the normalized hash actually changed
+  if (currentHash !== newHash) {
+    triggerHashChangeEvent();
+  }
+}
+
+// Used only when comparing if hash has changed.
+// Function to normalize the hash by sorting key-value pairs and converting keys to lowercase
+function normalizeHash(hashString) {
+  if (!hashString.startsWith("#")) return "";
+
+  const params = new URLSearchParams(hashString.substring(1));
+  const sortedParams = new URLSearchParams();
+
+  // Normalize keys to lowercase, keep values unchanged, and sort by keys
+  [...params.entries()]
+    .map(([key, value]) => [key.toLowerCase(), value]) // Only lowercase keys
+    .sort()
+    .forEach(([key, value]) => {
+      sortedParams.append(key, value);
+    });
+
+  return sortedParams.toString();
 }
 
 // Used by navigation.js, map.js
@@ -699,6 +750,9 @@ function loadLocalTemplate() {
         relocatedStateMenu.appendChild(state_select); // For apps hero
         $(".stateFilters").hide();
       }
+      if (typeof relocatedScopeMenu != "undefined") {
+        relocatedScopeMenu.appendChild(selectScope); // For apps hero
+      }
       waitForElm('#filterClickLocation').then((elm) => {
         if (param.showstates != "false") {
             $("#filterClickLocation").show();
@@ -726,7 +780,7 @@ function loadLocalTemplate() {
             });
           });
         }
-        if(location.host.indexOf("dreamstudio") >= 0) {
+        if(location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0) {
           $("#dreamstudio-nav a").each(function() {
             $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
           });
@@ -739,6 +793,9 @@ function loadLocalTemplate() {
       if (location.host.indexOf('model') >= 0) {
         $(".showSearch").show();
         $(".showSearch").removeClass("local");
+      }
+      if (param.showyear == "true") {
+        $("#selectYear").show();
       }
     });
   });
@@ -876,22 +933,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
         //event.stopPropagation();
       });
-      $(document).on("click", ".uIn", function(event) {
-        var email = $('#input123').val();
-        if (isValidEmail(email)) {
-          localStorage.email = email;
-          if (isValid(email)) {
-            Cookies.set('golog', window.location.href);
-            window.location = "/explore/menu/login/azure/";
-            return;
-          } else {
-            window.location = "/";
-          }
-        } else {
-          alert("email required"); // TO DO: Display in browser
-          $("#input123").focus();
-        }
-      });
+
+
       function isValidEmail(email) {
           var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           return emailRegex.test(email);
@@ -899,6 +942,102 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       function isValid(email) { // loc a
           var vDom=['Z2VvcmdpYS5vcmc=', 'Z2FhcnRzLm9yZw==']; var eDom=email.split('@')[1]; for (var i = 0; i < vDom.length; i++) {if (eDom === atob(vDom[i])) {return true;}} return false;
       }
+
+      // The handleEvent(e) function is wrapped inside an Immediately Invoked Function Expression (IIFE), 
+      // so it becomes scoped and cannot be accessed from elsewhere in the code.
+      (function() {
+
+          $(document).on("click", ".uIn", function(event) {
+            handleEmail(event);
+          });
+
+          $(document).on('keypress', function(e) {
+            if (e.which === 13 && $('#input123').is(':focus')) { // Return is key code 13.
+                //alert("return")
+                handleEmail(e);
+                //console.log("Return key pressed in #input123");
+            }
+          });
+
+          function handleEmail(e) {
+              // For both keypress and click events
+              let email = $('#input123').val();
+              if (isValidEmail(email)) {
+                localStorage.email = email;
+
+                if (isValid(email)) {
+                  Cookies.set('golog', window.location.href);
+                  window.location = "/explore/menu/login/azure/";
+                  return;
+                } else {
+                  //window.location = "/";
+                }
+
+                if ($("#getGravatar").is(":checked")) {
+                  // BUGBUG - Redirect above will bypass.
+                  loadScript('http://pajhome.org.uk/crypt/md5/md5.js', function(results) {
+                    let userImg = $.gravatar(email);
+                    if (userImg) {
+                      localStorage.userImg = userImg;
+                      //alert("userImg: " + localStorage.userImg)
+                      $("#gravatarImg").html("<img src='" + localStorage.userImg + "' style='width:100%;max-width:200px;border-radius:30px;'><br><br>")
+                    }
+                  });
+                }
+
+              } else {
+                alert("email required"); // TO DO: Display in browser
+                $("#input123").focus();
+              }
+          }
+      })();
+
+      $.gravatar = function(emailAddress, overrides)
+      { // Requires http://pajhome.org.uk/crypt/md5/md5.js
+          //alert("what up2 " + emailAddress);
+            let options = $.extend({
+                // Defaults are not hardcoded here in case gravatar changes them on their end.
+                // integer size: between 1 and 512, default 80 (in pixels)
+                size: '300',
+                // rating: g (default), pg, r, x
+                rating: '',
+                // url to define a default image (can also be one of: identicon, monsterid, wavatar)
+                image: '',
+                // secure
+                secure: true,
+                // support css on img element
+                classes: ''
+            }, overrides);
+
+            let baseUrl = options.secure ? 'https://secure.gravatar.com/avatar/' : 'http://www.gravatar.com/avatar/';
+
+            return baseUrl +
+                hex_md5(emailAddress) +
+                '.jpg?' +
+                (options.size ? 's=' + options.size + '&' : '') +
+                (options.rating ? 'r=' + options.rating + '&' : '') +
+                (options.image ? 'd=' + encodeURIComponent(options.image) : '');
+
+            return $('<img src="' + baseUrl +
+                hex_md5(emailAddress) +
+                '.jpg?' +
+                (options.size ? 's=' + options.size + '&' : '') +
+                (options.rating ? 'r=' + options.rating + '&' : '') +
+                (options.image ? 'd=' + encodeURIComponent(options.image) : '') +
+                '"' +
+                (options.classes ? ' class="' + options.classes + '"' : '') +
+                ' />').bind('error', function()
+                {
+                    $(this).remove();
+                });
+        
+      };
+
+      (function() {
+    function handleEvent(e) {
+        // Your shared logic for both keypress and click events
+    }
+})();
 
       // Load when body div becomes available, faster than waiting for all DOM .js files to load.
       waitForElm('#bodyloaded').then((elm) => {
@@ -946,10 +1085,15 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         }
         if (param.display == "everything") {
           let infoFile = theroot + "info/template-charts.html #template-charts"; // Including #template-charts limits to div within page, prevents other includes in page from being loaded.
-          //console.log("Before template Loaded infoFile: " + infoFile);
+          //alert("Before template Loaded infoFile: " + infoFile);
           $("#infoFile").load(infoFile, function( response, status, xhr ) {
-            consoleLog("Info Template Loaded: " + infoFile);
-            $("#industryFilters").appendTo("#append_industryFilters");
+
+            /*
+            waitForElm('#industryFilters').then((elm) => {
+              alert("Info Template Loaded: " + infoFile);
+              $("#industryFilters").appendTo("#append_industryFilters");
+            });
+            */
           });
         }
 
@@ -1841,8 +1985,6 @@ function showSearchFilter() {
   let loadFilters = false;
   let headerHeight = $("#headerbar").height(); // Not sure why this is 99 rather than 100
   //closeSideTabs(); // Later search will be pulled into side tab.
-
-
   if (!$("#filterFieldsHolder").length) { // Resides in template-main.html. Filter doesn't exist yet, initial map/index.html load.
     //if (!$("#datascape").length) {
     //  $('body').prepend("<div id='datascape'></div>");
@@ -1850,7 +1992,7 @@ function showSearchFilter() {
     //loadLocalTemplate(); // Loaded a second time on community page
     loadSearchFilterCss();
     loadScript(theroot + 'js/navigation.js', function(results) {
-      console.log('DEACTIVATED %cloadLeafletAndMapFilters called by showSearchFilter(). Might cause dup', 'color: red; background: yellow; font-size: 14px');
+      //console.log('DEACTIVATED %cloadLeafletAndMapFilters called by showSearchFilter(). Might cause dup', 'color: red; background: yellow; font-size: 14px');
       //loadLeafletAndMapFilters();
     });
     $('html,body').scrollTop(0);
@@ -1901,55 +2043,10 @@ function showSearchFilter() {
         */
       });
     }
-    return;
-
-
-
-      // NOT CURRENTLY USED
-
-
-      //$(".filterFields").hide();
-    
-
-      //$(".moduleBackgroundImage").addClass("moduleBackgroundImageDarken"); // Not needed since filters are not over image.
-      //$(".siteHeaderImage").addClass("siteHeaderImageDarken"); // Not needed since filters are not over image.
-
-      //$('.topButtons').show(); // Avoid showing bar when no layer.
-      $(".layerContent").show(); // For main page, over video.
-
-      //$(".showFilters").hide(); // Avoid hiding because title jumps.
-      //$(".hideFilters").show();
-
-      // Coming soon - Select if searching Georgia.org or Georgia.gov
-      //$(".searchModuleIconLinks").show();
-      $(".hideWhenFilters").hide();
-
-      $(".filterPanelHolder").show();
-      //$(".filterPanelWidget").show();
-      $("#filterPanel").show(); // Don't use "normal", causes overflow:hidden.
-      $(".searchHeader").show();
-      $("#panelHolder").show();
-
-
-      $(".showFiltersClick").hide();
-      $(".hideFiltersClick").show();
-
-      // Would remove active from Overview Map
-      $(".horizontalButtons .layoutTab").removeClass("active");
-      $(".showFiltersButton").addClass("active");
-
-      $(".hideSearch").show();
-      //$(".hideFilters").show(); // X not needed since magnifying glass remains visible now.
-      //$("#hideSearch").show();
-      if ($("#menuHolder").is(':visible')) {
-          $('.hideMetaMenu').trigger("click");
-      }
-      //updateOffsets();
-
-      // Hide because map is displayed, causing overlap.
-      // Could be adjusted to reside left of search filters.
-      //$(".quickMenu").hide();
+    //alert("no sidetab");
+    goHash({"sidetab":""});
   }
+
 }
 function closeSideTabs() {
   console.log("closeSideTabs()");
@@ -1992,6 +2089,7 @@ function loadIframe(iframeName, url) {
       //alert("loadIframe" + url)
       $iframe.attr('src',url);
       $("#nullschoolHeader #mainbucket").show();
+      $("#nullschoolHeader #earthZoom").show();
       return false;
   }
   return true;
@@ -2171,7 +2269,7 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
   } else if (attempts < 300) { // Wait and try again
     setTimeout( function() {
       //consoleLog("try loadMarkdown again")
-      loadMarkdown(pagePath, divID, target, attempts+1, callback); // Do we need , callback here?
+      loadMarkdown(pagePath, divID, target, attempts+1, callback);
     }, 30 );
     return;
   } else {
@@ -2271,9 +2369,16 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
         */
       }
 
-      // Append rather than overwrite
-      
-      loadIntoDiv(pageFolder,divID,html,callback);
+      // Appends rather than overwrites
+      loadIntoDiv(pageFolder,divID,html, function() {
+        // Call the main callback after loadIntoDiv finishes
+        if (typeof callback === 'function') {
+          //alert("valid") // BUGBUG Not reaching
+          setTimeout( function() {
+            callback();
+          }, 30 );
+        }
+      });
 
     });
   });
@@ -2335,14 +2440,14 @@ function loadIntoDiv(pageFolder,divID,html,callback) {
       if (currentElement.getAttribute("href").toLowerCase().indexOf("http") < 0) {
         // Update the href attribute with the pageFolder
         currentElement.setAttribute("href", pageFolder + currentElement.getAttribute('href'));
-        console.log("Showdown link update: " + pageFolder + " plus " + currentElement.getAttribute('href'));
+        //console.log("Showdown link update: " + pageFolder + " plus " + currentElement.getAttribute('href'));
       }
       // Check if the link is not a full URL
       else if (!/^http/.test(currentElement.getAttribute("href"))) {
         console.log("ALERT Adjust: " + currentElement.getAttribute('href'));
         // Update the href attribute with the pageFolder
         currentElement.setAttribute("href", pageFolder + currentElement.getAttribute('href'));
-        console.log("Showdown link update2: " + pageFolder + " plus " + currentElement.getAttribute('href'));
+        //console.log("Showdown link update2: " + pageFolder + " plus " + currentElement.getAttribute('href'));
       }
     });
 
@@ -2582,6 +2687,7 @@ function initSitelook() {
     let devmode;
     let globecenter;
     let modelsite;
+    let gitrepo;
 
     if(typeof Cookies != 'undefined') {
         if (Cookies.get('sitelook')) {
@@ -2610,6 +2716,10 @@ function initSitelook() {
             $("#modelsite").val(Cookies.get('modelsite'));
             modelsite = Cookies.get('modelsite');
         }
+        if (Cookies.get('gitrepo')) {
+            $("#gitrepo").val(Cookies.get('gitrepo'));
+            gitrepo = Cookies.get('gitrepo');
+        }
     }
     if (param["sitelook"]) { // From URL
         sitelook = param["sitelook"]; 
@@ -2617,6 +2727,7 @@ function initSitelook() {
     setSitelook(sitelook);
     setDevmode(devmode);
     setModelsite(modelsite);
+    setGitrepo(modelsite);
     setGlobecenter(globecenter);
     if (localStorage.email) {
       $("#input123").val(localStorage.email);
@@ -2634,6 +2745,10 @@ function setSitelook(siteLook) {
 
     //let root = "/explore/"; // TEMP
     //let root = "/localsite/";
+
+    if (siteLook == "default" && (Cookies.get('modelsite') == "dreamstudio" || location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0)) {
+      siteLook = "dark"
+    }
     consoleLog("setSiteLook: " + siteLook);
     
     // Force the brower to reload by changing version number. Avoid on localhost for in-browser editing. If else.
@@ -2744,7 +2859,13 @@ function geoSuccess(pos) {
 function setModelsite(modelsite) {
   if (modelsite != "") {
     console.log("setModelsite() is not currently used.");
-    // Avoid calling refrehsh here since runs when page loads.
+    // Avoid calling refresh here since runs when page loads.
+  }
+}
+function setGitrepo(modelsite) {
+  if (gitrepo != "") {
+    console.log("setGitrepo() is not currently used.");
+    // Avoid calling refresh here since runs when page loads.
   }
 }
 
@@ -3054,4 +3175,49 @@ function isValidJSON(str) {
         return false;
     }
 }
+
+// Might move this into a new format.js file. Used in projects repo.
+function formatBuckets(divID) {
+  document.addEventListener('DOMContentLoaded', function() {
+  waitForElm('#' + divID).then((elm) => {
+
+    // BUGBUG not working yet
+    
+    // Get the target element (either by ID or the entire body)
+    var targetElement = divID === 'body' ? document.body : document.getElementById(divID);
+
+    if (!targetElement) {
+        alert(`Element with ID ${divID} not found.`);
+        return;
+    }
+
+    var content = Array.from(targetElement.childNodes);
+    var currentBucket = null;
+
+    content.forEach(function(node) {
+      alert("123 " + node.tagName)
+        if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'H2') {
+            
+            // Create a new .bucket div when encountering an <h2>
+            currentBucket = document.createElement('div');
+            currentBucket.classList.add('bucket');
+
+            var bucketContent = document.createElement('div');
+            bucketContent.classList.add('bucketcontent');
+
+            // Append the <h2> to the bucket content
+            bucketContent.appendChild(node);
+            currentBucket.appendChild(bucketContent);
+
+            // Append the bucket to the target element
+            targetElement.appendChild(currentBucket);
+        } else if (currentBucket) {
+            // Append non-<h2> elements to the current bucket content
+            currentBucket.querySelector('.bucketcontent').appendChild(node);
+        }
+    });
+  });
+  });
+}
+
 consoleLog("end localsite");

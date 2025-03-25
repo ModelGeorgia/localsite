@@ -1,12 +1,23 @@
-# Push from Colab to Github
+# Push files from a Colab to Github
 
-### Step 1: Retreice GitHub Personal Token
+### Step 1: Retrieve GitHub Personal Token
 
-**Create a Personal Access Token**:  
-	Generate a personal access token on GitHub with the necessary `repo` permissions.
-    
-**Store the Token in Colab**:  
-	Save this token in the Colab notebook's Secrets section as `YOUR_COLAB_TOKEN_SECRET_NAME`. Ensure that the notebook has access to this secret.
+**Create a fine-grained token for one repo**:  
+
+Generate a [Fine-Grained Token](https://github.com/settings/personal-access-tokens).
+In your GitHub account, navigate to Settings (for all repos under upper right menu), then to Developer settings (lower left).
+
+**Set 3 permissions for 1 of your repositories**<!--It may not be necessary to set both of these first two-->
+Contents: Read and write
+Deployments: Read and write
+Metadata: Read-only (gets set automatically)
+
+**Store the Token in Colab** 
+Place the token in the Colab step that sends report output to the repo.
+
+Or save the token in the Colab notebook's Secrets section as `YOUR_COLAB_TOKEN_SECRET_NAME` or `ModelEarth` in the StatesFilter Colab.
+
+Ensure that the notebook has access to this secret.
 
 ### Step 2: Install Git and Set Up User Information
 
@@ -52,11 +63,9 @@ Clone the repo
 		!git commit -m "YOUR_MESSAGE"
 		!git push {repo_url}
 
+<br>
 
-# Send Data from Streamlit to GitHub
+# Use Personal Supabase Key in Google Colab
 
-Our Realitystream Streamlit app can push user-generated model performance reports directly to a designated repository location [/output/user_generated_json](https://github.com/ModelEarth/RealityStream/tree/main/output/user_generated_json). 
+In the left navigation panel, click on the key icon to input the secret value for your Supabase personal key. Add a new secret, name it 'supabase_key', and paste your key value. Then, grant notebook access to your ExiobaseSupabase Colab.
 
-To configure your credentials, simply copy the example_secrets.toml file to secrets.toml and update it with your own information. The secret is stored under the [.streamlit directory](https://github.com/ModelEarth/RealityStream/tree/main/.streamlit).
-
-When a user runs a model, the report is sent to the specified repository location, and a download option is provided.
