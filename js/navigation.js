@@ -971,9 +971,11 @@ function showSideTabs() {
             $(".rightTopMenuInner div").removeClass("active");
             $(".menuExpanded").hide(); // Hide any open
             if (hash.sidetab == "sections") {
-                //showSections();
                 $(".showSections").addClass("active");
                 $("#sectionsPanel").show();
+            } else if (hash.sidetab == "resources") {
+                $(".showResources").addClass("active");
+                $("#resourcesPanel").show();
             } else if (hash.sidetab == "seasons") {
                 $(".showSeasons").addClass("active");
                 $("#seasonsPanel").show();
@@ -4432,7 +4434,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         document.head.appendChild($favicon)
       }
     }
-    if (modelsite=="dreamstudio" || location.href.indexOf("dreamstudio") >= 0 || param.startTitle == "DreamStudio" || location.href.indexOf("/swarm/") >= 0 || location.href.toLowerCase().indexOf("lineara") >= 0 || location.href.indexOf("planet.live") >= 0) {
+    if (modelsite=="dreamstudio" || modelsite=="planet.live" || location.href.indexOf("dreamstudio.com") >= 0 || param.startTitle == "DreamStudio" || location.href.indexOf("/swarm/") >= 0 || location.href.toLowerCase().indexOf("lineara") >= 0 || location.href.indexOf("planet.live") >= 0) {
         param.titleArray = [];
         let siteRoot = "";
         localsiteTitle = "DreamStudio";
@@ -4442,32 +4444,38 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
             siteRoot = "/dreamstudio";
         }
         param.headerLogoNoText = "<img src='/localsite/img/logo/dreamstudio/favicon.png' style='float:left;width:38px;margin-right:7px'>";
-        if (location.href.indexOf("planet.live") >= 0 || location.href.indexOf("datahaus") >= 0) {
+        if (modelsite=="planet.live" || location.href.indexOf("planet.live") >= 0) {
             localsiteTitle = "Planet.Live"
             $(".siteTitleShort").text("Planet.Live")
-            param.headerLogoSmall = "<img src='https://planet.live/seasons/img/logo/eye/faveye-lg.png' style='width:40px;opacity:0.85'>"
+            param.headerLogoSmall = "<img src='/localsite/img/logo/planetlive/faveye-lg.png' style='width:40px;opacity:0.85'>"
             param.titleArray = ["planet","live"]
-            param.headerLogoNoText = "<img src='https://planet.live/seasons/img/logo/eye/faveye-lg.png' style='float:left;width:38px;margin-right:7px'>";
-            param.headerLogo = "<a href='" + siteRoot + "/'><img src='https://planet.live/seasons/img/logo/eye/faveye-lg.png' style='float:left;width:38px;margin-right:16px'><img src='https://planet.live/video/img/logo/planet-live-text.png' alt='PlanetLive' style='height:16px; margin-top:15px' class='headerLogoDesktop'></a>";
+            param.headerLogoNoText = "<img src='/localsite/img/logo/planetlive/faveye-lg.png' style='float:left;width:38px;margin-right:7px'>";
+            //param.headerLogo = "<a href='" + siteRoot + "/'><img src='/localsite/img/logo/planetlive/faveye-lg.png' style='float:left;width:38px;margin-right:16px'><img src='https://planet.live/video/img/logo/planet-live-text.png' alt='Planet.Live' style='height:16px; margin-top:15px' class='headerLogoDesktop'></a>";
+            param.headerLogo = "<a href='" + siteRoot + "/'><img src='/localsite/img/logo/planetlive/faveye-lg.png' style='float:left;width:38px;margin-right:10px'><img src='/localsite/img/logo/planetlive/planet.live.png' alt='planet.live' style='height:24px; margin-top:8px' class='headerLogoDesktop'></a>";
+            
+            // Quick fix, need to adjust for period in class name on datah page.
+            showClassInline(".planetlive");
         } else {
             if (!param.headerLogo) {
                 param.headerLogo = "<a href='" + siteRoot + "/'><img src='/localsite/img/logo/dreamstudio/favicon.png' style='float:left;width:38px;margin-right:7px'><img src='/localsite/img/logo/dreamstudio/text.png' alt='DreamStudio' style='height:22px; margin-top:9px' class='headerLogoDesktop'></a>";
             }
+            showClassInline(".dreamstudio");
         }
         if (param.icon) {
             changeFavicon(param.icon);
         } else if (location.href.indexOf("planet.live") >= 0 || location.href.indexOf("datahaus") >= 0) {
-            changeFavicon("https://planet.live/seasons/img/logo/eye/faveye-lg.png");
+            changeFavicon("/localsite/img/logo/planetlive/faveye-lg.png");
         } else {
             changeFavicon("/localsite/img/logo/dreamstudio/favicon.png");
         }
         if (location.host.indexOf("dreamstudio") >= 0) {
             //param.headerLogo = param.headerLogo.replace(/\/dreamstudio\//g,"\/");
         }
-        showClassInline(".dreamstudio");
-        if (location.href.indexOf("/seasons") >= 0) {
+        
+        // modelsite will not always be available
+        //alert("modelsite " + modelsite)
+        //showClassInline("." + modelsite); // Not working for planet yet
 
-        }
     } else if (location.href.indexOf("atlanta") >= 0) {
         showLeftIcon = true;
         $(".siteTitleShort").text("Civic Tech Atlanta");
@@ -4721,25 +4729,29 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                                 colCloneLeft.id = "cloneLeft";
                                 $("#cloneLeftTarget").append(colCloneLeft);
 
-                                waitForElm('#topicsMenu').then((elm) => { // From info/template-main.html
+                                waitForElm('#resourcesMenu').then((elm) => { // From info/template-main.html
                                     let colEleRight = document.querySelector('#sidecolumnContent');
                                     let colCloneRight = colEleRight.cloneNode(true)
                                     colCloneRight.id = "cloneRight";
 
-                                    $("#topicsMenu").prepend(colCloneRight);
+                                    $("#sectionsMenu").prepend(colCloneRight);
 
-                                    if (location.href.indexOf('desktop') >= 0 || location.host.indexOf('dreamstudio') >= 0 || location.href.indexOf('dreamstudio') >= 0 || location.href.indexOf('/swarm/') >= 0 || location.href.indexOf('/LinearA/') >= 0 || location.href.indexOf("planet.live") >= 0) {
+                                    if (location.href.indexOf('desktop') >= 0 || modelsite=="dreamstudio" || location.host.indexOf('dreamstudio') >= 0 || location.href.indexOf('dreamstudio') >= 0 || location.href.indexOf('/swarm/') >= 0 || location.href.indexOf('/LinearA/') >= 0 || location.href.indexOf("planet.live") >= 0 || modelsite=="planet.live") {
+                                        let prependFolder = "";
                                         let storiesFile = "https://dreamstudio.com/seasons/episodes.md";
                                         //console.log("location.href index: " + location.href.indexOf("/dreamstudio/"));
                                         if(location.host.indexOf('localhost') >= 0) {
-                                            storiesFile = "/dreamstudio/seasons/episodes.md";
+                                            prependFolder = "/dreamstudio"
+                                            storiesFile = prependFolder + "/seasons/episodes.md";
                                         } else if (location.href.indexOf("dreamstudio") >= 0 || location.href.indexOf("planet.live") >= 0) {
                                             storiesFile = "/seasons/episodes.md";
                                         }
                                         waitForElm('#storiesDiv').then((elm) => {
                                             // TO DO - Lazy load elsewhere, and avoid if already loaded
                                             loadMarkdown(storiesFile, "storiesDiv", "_parent");
-                                            console.log("after storiesFile")
+                                            //alert("after storiesFile")
+                                            let resourcesFile = prependFolder + "/resources.md";
+                                            loadMarkdown(resourcesFile, "resourcesMenu", "_parent");
                                         });
                                     }
                                 });
@@ -4820,9 +4832,6 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                                 changeFavicon(param.favicon);
                             }
 
-                            // WAS LIMITED TO HEADER
-                            //$(document).ready(function() { // Needed for info/index.html page. Fast, but could probably use a timeout delay instead since we are already within the header.html load.
-                            //alert("test2");
                             // Equivalent to checking for #headerbar, but using #localsiteDetails since template pages already have a #headerbar.
                             //waitForElm('#localsiteDetails').then((elm) => {
                             waitForElm('#headerbar').then((elm) => {
@@ -4930,7 +4939,8 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
             earthFooter = true; // Need to drive localhost by settings in a file ignored by .gitignore
         }
         if (param["showfooter"] && param["showfooter"] == "false") {
-        } else if (earthFooter || param.footer) {
+
+        } else if (earthFooter || param.footer || location.href.indexOf("dreamstudio") >= 0 || location.href.indexOf("planet.live") >= 0) {
             var footerClimbpath = "";
             // Had ..
             let footerFile = modelpath + "/localsite/footer.html"; // modelpath remains relative for site desgnated above as having a local copy of io and community.
@@ -5008,11 +5018,15 @@ $(document).ready(function () {
     });
 });
 
-// SInce we may sometimes load before JQuery avoiding $(document).on("click", ".showSections", function(event) { etc.
+// Since we may sometimes load before JQuery avoiding $(document).on("click", ".showSections", function(event) { etc.
 document.addEventListener('click', function(event) {
     if (event.target.classList.contains('showSections')) {
         goHash({'sidetab':'sections'});
-        event.stopPropagation();  
+        event.stopPropagation();
+    }
+    if (event.target.classList.contains('showResources')) {
+        goHash({'sidetab':'resources'});
+        event.stopPropagation();
     }
     if (event.target.classList.contains('showTopics')) {
         goHash({'sidetab':'topics'});
@@ -5209,13 +5223,17 @@ $(document).on("click", ".showTheMenu", function(event) { // Seasons
 
 $(document).on("click", ".showSideTabs", function(event) {
     let hash = getHash();
+    let modelsite = Cookies.get('modelsite');
     if (hash.sidetab) {
         goHash({'sidetab':''});
     } else {
+        // && location.host.indexOf("planet.live") >= 0 && modelsite != "planet.live"
         if(location.href.indexOf("/seasons") >= 0) {
             goHash({'sidetab':'seasons'});
-        } else {
+        } else if (modelsite == "dreamstudio" || location.host.indexOf("dreamstudio") >= 0) {
             goHash({'sidetab':'sections'});
+        } else {
+            goHash({'sidetab':'resources'});
         }
     }
     event.stopPropagation();
@@ -5731,7 +5749,7 @@ function activateSideColumn() {
         //console.log('fromTop ' + fromTop);
         // Get id of current scroll item
         var cur = scrollItems.map(function(){
-            // scrollItems is the sections fron nav.html, but just return the current one.
+            // scrollItems fron header.html, but just return the current one.
             //console.log('offset().top ' + $(this).offset().top)
             if ($(this).offset().top < fromTop) {
                 //console.log('offset().top < fromTop ' + $(this).offset().top + ' < ' + fromTop);
@@ -5766,7 +5784,7 @@ function activateSideColumn() {
           menuItems.removeClass("active");
           if (currentSection && currentSection.length) {
             if (id.length == 0) {
-                // Page without sections
+                // Page without sections/resources
             } else if (id == "intro") {
                 // To do: Change to highlight the uppermost section.
                 menuItems.filter("[href='..\/tools\/#']").addClass("active");
@@ -6006,7 +6024,11 @@ function showApps(menuDiv) {
             updateHash({"appview":"topics"});
             console.log("call showThumbMenu from navidation.js");
             if (!hash.geoview) {
-                closeExpandedMenus($(".showSections")); // Close all sidetab's prior to opening new tab
+                if (modelsite=="dreamstudio" || location.host.indexOf("dreamstudio") >= 0) {
+                    closeExpandedMenus($(".showSections")); // Close all sidetab's prior to opening new tab
+                } else {
+                    closeExpandedMenus($(".showResources"));
+                }
             }
             $("#topicsPanel").show();
 
