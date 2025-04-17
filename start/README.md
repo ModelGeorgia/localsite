@@ -40,7 +40,7 @@ Data from the US EPA and NAICS, Exiobase, Google Data Commons - [Data Pipelines]
 
 
 ## <span class="num">3</span><span class="txt">Integrate Machine Learning</span>
-Contribute to our machine learning [RealityStream](../../RealityStream/)
+Contribute to our machine learning [RealityStream](../../realitystream/)
 Integrate Observable with Google in our <a href="/data-commons/docs/data/">Data Commons Timelines</a>
 
 ## <span class="num">4</span><span class="txt">Chart Starter Ideas</span>
@@ -115,7 +115,7 @@ Responsible sourcing allows manufacturers to...
 
 ## <span class="num">9</span><span class="txt">Collaboration and Teaching</span>
 
-[Join in our weekly ModelEarth Meetups](/io/coders/)
+[Join in our weekly coding meetups](/io/coders/)
 
 
 [Use our Lifecycle Tools for Research and Teaching](/io/learn/)
