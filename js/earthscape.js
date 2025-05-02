@@ -1,6 +1,10 @@
 // EARTHSCAPE
 // A single function that calls multiple visualizations for a dataset
 
+// Declare global chart variables so they can be accessed in resize handler
+let timelineChart;
+let lineAreaChart;
+
 function loadEarthScape(my) {
     loadScript(theroot + 'js/d3.v5.min.js', function (results) {
         waitForVariable('customD3loaded', function () {
@@ -145,7 +149,7 @@ function getUrbanDensityForYear(data, year) {
 
 //Timelinechart for scopes country, state, and county 
 let geoValues = {};
-
+const MIN_YEAR = 1900; // Minimum year to filter data
 async function getTimelineChart(scope, chartVariable, entityId, showAll, chartText) {
     //alert("getTimelineChart chartVariable: " + chartVariable + ", scope: " + scope)
     let hash = getHash(); // Add hash check at top of function
@@ -305,7 +309,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
     });
     const timelineData = await response3.json();
    // Format data
-   const formattedData = [];
+    /*const formattedData = [];
     //alert(JSON.stringify(geoValues)) // TO DO: Only send countries that exist in the dataset.
     for (const geoId in geoValues) {
         if (timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets) { // Avoids error if country (India) is not in water timeline
@@ -314,7 +318,24 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
                 observations: timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0]['observations']
             });
         }
+    }*/
+        // Format data
+        const formattedData = [];
+//alert(JSON.stringify(geoValues)) // TO DO: Only send countries that exist in the dataset.
+for (const geoId in geoValues) {
+    console.log("GeoId:", geoId, "Name:", geoValues[geoId].name);
+    if (timelineData.byVariable[chartVariable]?.byEntity?.[geoId]?.orderedFacets?.[0]?.observations) {
+        const filteredObservations = timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0].observations.filter(obs => {
+            const year = parseInt(obs.date.split('-')[0]);
+            return year >= MIN_YEAR && year <= 2022; // Added the upper year limit
+        });
+        formattedData.push({
+            name: geoValues[geoId].name,
+            observations: filteredObservations
+        });
     }
+}
+    console.log("formattedData:",formattedData)
      
     // Get unique years
     let yearsSet = new Set();
@@ -327,19 +348,41 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
 
     // Showing all or top 5 or bottom 5
     let selectedData;
-    formattedData.forEach(location => {
-        if(location.length) {
-            location.averageValue = location.observations.reduce((sum, obs) => sum + obs.value, 0) / location.observations.length;
-        } else {
-            console.log("No location for location.averageValue");
+    // Create a deep copy to avoid modifying the original array
+    const dataCopy = JSON.parse(JSON.stringify(formattedData));
+    // Get the latest year across all observations
+    let latestYear = '';
+    dataCopy.forEach(location => {
+        if (location.observations && location.observations.length > 0) {
+            location.observations.forEach(obs => {
+                const year = obs.date.split('-')[0]; // Normalize to year only
+                if (year > latestYear) latestYear = year;
+            });
         }
     });
+    console.log(`Latest year identified: ${latestYear}`);
+    // Calculate latest value for each location
+    dataCopy.forEach(location => {
+        if (location.observations && location.observations.length > 0) {
+            // Find the observation for the latest year
+            const latestObs = location.observations.find(obs => obs.date.split('-')[0] === latestYear);
+            location.latestValue = latestObs ? latestObs.value : null;
+        } else {
+            location.latestValue = null;
+        }
+    });
+    // Filter out locations with no valid latest value
+    const validData = dataCopy.filter(location => location.latestValue !== null);
     if (showAll === 'showTop5') {
-        selectedData = formattedData.sort((a, b) => b.averageValue - a.averageValue).slice(0, 5);
+        selectedData = validData
+            .sort((a, b) => b.latestValue - a.latestValue)
+            .slice(0, Math.min(5, validData.length));
     } else if (showAll === 'showBottom5') {
-        selectedData = formattedData.sort((a, b) => a.averageValue - b.averageValue).slice(0, 5);
+        selectedData = validData
+            .sort((a, b) => a.latestValue - b.latestValue)
+            .slice(0, Math.min(5, validData.length));
     } else {
-        selectedData = formattedData;
+        selectedData = dataCopy;
     }
 
     // Get datasets
@@ -376,30 +419,52 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
         },
         options: {
             responsive: true,
+            
             plugins: {
                 legend: {
-                    position: 'top',
+                    position: 'bottom', //Better on small screens
+                    labels: {
+                        boxwidth: 12,
+                        font: {
+                            size: 13 // smaller text for legends
+                        }
+                    }
                 },
                 title: {
                     display: true,
-                    text:chartText
+                    text:chartText,
+                    font:{
+                        size: 14
+                    }
                 }
+            },
+            layout: {
+                padding: 5
             },
             scales: {
                 x: {
-                    title: {
-                        display: true,
-                        text: 'Year'
+                  title: {
+                    display: true,
+                    text: 'Year'
+                  },
+                  ticks: {
+                    font: {
+                      size: 12 // smaller font size for better mobile readability
                     }
+                  }
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: `${chartText}` // Update y-axis label//chartText
-                        //text: `${chartText} (Per Capita)` // Update y-axis label//chartText
+                  title: {
+                    display: true,
+                    text: `${chartText}`
+                  },
+                  ticks: {
+                    font: {
+                      size: 10
                     }
+                  }
                 }
-            }
+              }
         }
     };
 
@@ -415,38 +480,65 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             type: 'line',
             data: data1,
             options: {
-              responsive: true,
-              plugins: {
-                title: {
-                  display: true,
-                  text: (ctx) => chartTitle
+                responsive: true,
+                 // Important for fluid resizing
+                plugins: {
+                  title: {
+                    display: true,
+                    text: (ctx) => chartTitle,
+                    font: {
+                      size: 14 // Slightly smaller for mobile balance
+                    }
+                  },
+                  tooltip: {
+                    mode: 'index'
+                  },
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      boxWidth: 12,
+                      font: {
+                        size: 12
+                      }
+                    }
+                  }
                 },
-                tooltip: {
-                  mode: 'index'
+                interaction: {
+                  mode: 'nearest',
+                  axis: 'x',
+                  intersect: false
                 },
-              },
-              interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-              },
-            scales: {
-              x: {
-                title: {
-                  display: true,
-                  text: 'Years'
+                layout: {
+                  padding: 10
+                },
+                scales: {
+                  x: {
+                    title: {
+                      display: true,
+                      text: 'Years'
+                    },
+                    ticks: {
+                      font: {
+                        size: 12
+                      }
+                    }
+                  },
+                  y: {
+                    stacked: true,
+                    title: {
+                      display: true,
+                      text: `${chartText}`
+                    },
+                    ticks: {
+                      font: {
+                        size: 12
+                      }
+                    },
+                    
+                  }
                 }
-              },
-              y: {
-                stacked: true,
-                title: {
-                  display: true,
-                  text: `${chartText}` 
-                 // text:`${chartText} (Per Capita)`// 'County Population'
-                } 
               }
-            }
-            }
+              
     }
 
         if (hash.output === "json") {
@@ -751,3 +843,15 @@ function toggleDivs() {
 }
 //Population data for different scope
 
+// Handle window resize to ensure charts adjust correctly when the window size changes
+// Chart.js automatically handles shrinking, but to handle expansion properly, 
+// we need to manually trigger a resize on each chart instance.
+// Without this, charts may not redraw correctly when window size increases after load.
+window.addEventListener('resize', function() {
+    if (timelineChart instanceof Chart) {
+        timelineChart.resize();
+    }
+    if (lineAreaChart instanceof Chart) {
+        lineAreaChart.resize();
+    }
+});
