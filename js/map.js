@@ -100,7 +100,7 @@ function clearListDisplay() {
   $(".listSpecs").html(""); // Clear
   $(".sideListSpecs").html(""); // Clear
   $("#listcolumnList").html(""); // Clear
-  $("#dataList").html(""); // Clear
+  $("#mainList").html(""); // Clear
   $("#detaillist").html(""); // Clear
 }
 
@@ -466,6 +466,17 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.markerType = "google";
         dp.color = "#933";
         dp.datastates = ["GA"];
+      } else if (show == "cities") {
+        dp.shortTitle = "GDEcD Team Map"; // In side nav
+        dp.listTitle = "GDEcD Team Map";
+        dp.dataTitle = "GDEcD Team Map";
+        dp.datatype = "csv";
+        dp.dataset = "/display/team/map/cities.csv";
+        dp.markerType = "google";
+        dp.nameColumn = "city";
+        dp.search = {"In City": "City", "In County Name": "County"};
+        dp.datastates = ["GA"];
+        dp.mapInfo = "Georgia Department of Economic Development Cities";
       } else if (show == "cameraready-locations") {
         dp.listTitle = "CameraReady Film Locations";
         dp.dataTitle = "Filming Locations";
@@ -853,7 +864,7 @@ function centerMap(lat,lon,name,map,whichmap) {
     
     // Hide all listings, show clicked listing
     //$("#detaillist .detail").hide();
-    //$("#dataList").hide();
+    //$("#mainList").hide();
     //$("#detaillist .detail[name='" + locname +"']").show();
 
     var listingsVisible = $('#detaillist .detail:visible').length;
@@ -932,10 +943,21 @@ $(document).on("click", ".showLocMenu", function(event) {
   $(".locMenu").show();
   //event.stopPropagation();
 });
-$('#hideSideMap').click(function () {
+$(document).on("click", "#hideSideMap", function(event) {
   $("#sidemapCard").hide(); // map2
+  $("#hublist").addClass("hublistWide");
+  $(".showSideMap").show();
 });
-
+$(document).on("click", ".viewonmap", function(event) {
+  //alert("viewonmap click");
+  $("#sidemapCard").show();
+  $("#hublist").removeClass("hublistWide")
+});
+$(document).on("click", ".showSideMap", function(event) {
+  //alert("showSideMap")
+  $("#sidemapCard").show();
+  $("#hublist").removeClass("hublistWide")
+});
 function shortenMapframe(mapframeLong) {
   let mapframeUrl = "";
   if (mapframeLong && mapframeLong.length) {
@@ -1064,6 +1086,11 @@ function showList(dp,map) {
     $(document).on("click", ".filterBubble", function(event) {
         console.log('filterBubble click (stopPropagation so other boxes can be checked)')
         event.stopPropagation(); // To keep location filter open when clicking .selected_col checkboxes
+    });
+    $(document).on("click", ".viewonmap", function(event) {
+        //alert(".viewOnMap click");
+        $("#sidemapCard").show();
+        $("#hublist").removeClass("hublistWide")
     });
   }
 
@@ -1226,6 +1253,11 @@ function showList(dp,map) {
     }
   }
 
+  if (hash.name) {
+    // WORK IN PROGRESS
+    //alert("detailLink hide")
+    $(".detailLink").hide();
+  }
   if (dp.valueColumn) { // Avoids showing "Category" twice since catergory is already in default details.
     avoidRepeating.push(dp.valueColumn);
   }
@@ -1730,7 +1762,8 @@ function showList(dp,map) {
         //console.log("dp.valueColumn 1 " + element[dp.valueColumn]); // Works, but many recyclers have blank Category value.
         //console.log("dp.valueColumn 3 " + element["category"]); // Lowercase required (basing on recyclers)
 
-        output += "<div style='padding-bottom:4px;float:left'><div class='detailBullet' style='background:" + bulletColor + "'></div></div>";
+        let nameLetter = name ? name[0] : "";
+        output += "<div style='padding-bottom:4px;float:left'><div class='detailBullet' style='background:" + bulletColor + "'>" + nameLetter + "</div></div>";
 
         //output += "<div style='position:relative'><div style='float:left;min-width:28px;margin-top:2px'><input name='contact' type='checkbox' value='" + name + "'></div><div style='overflow:auto'><div>" + name + "</div>";
         
@@ -1765,7 +1798,7 @@ function showList(dp,map) {
             }
 
             // Assumes that if sheet also has these columns, they are not in the address row. (Farmfresh)
-            if (element.city) {
+            if (element.city && name != element.city) {
               outaddress += element.city;
             }
             if (element.state || element.zip) {
@@ -1778,7 +1811,9 @@ function showList(dp,map) {
               outaddress += element.zip;
             }
             if (element.city || element.state || element.zip) {
-              outaddress += "<br>";
+              if (outaddress) {
+                outaddress += "<br>";
+              }
             }
             
           }
@@ -1916,14 +1951,14 @@ function showList(dp,map) {
             if (googleMapLink) {
                 output += '<a href="' + googleMapLink + '" target="_blank">Google Map</a>';
             }
-            
-            if (hash.details != "true") {
-              if (hash.name) {
-                output += " | <a href='" + window.location + "&details=true'>Details</a>";
-              } else {
-                output += " | <a href='" + window.location + "&name=" + name.replace(/ & /g,' AND ').replace(/ /g,"+") + "&details=true'>Details</a>";
-              }
+
+            let pathJoiner = window.location.href.includes("#") ? "&" : "#";
+            if (hash.name) {
+              output += " | <a class='detailLink' href='" + window.location + pathJoiner + "details=true'>Details</a>";
+            } else {
+              output += " | <a class='detailLink' href='" + window.location + pathJoiner + "name=" + name.replace(/ & /g,' AND ').replace(/ /g,"+") + "&details=true'>Details</a>";
             }
+            
             if (dp.editLink) {
               if (googleMapLink) {
                 output += " | "
@@ -1999,11 +2034,11 @@ function showList(dp,map) {
     // At this point we don't yet know if any are null. So "no subcategory" link is appended later.
     if (subcatArray.length > 1) {
       if (!hash.name) { // Omit when looking at listing detail
-        $("#dataList").prepend("<a href='#' onClick='showSubcatList(); return false;' id='viewAllCategories'>View All Categories</a>");
-        $("#dataList").prepend("<ul id='subcatListUL' style='margin:0px;display:none'>" + subcatList + "</ul><br>");
+        $("#mainList").prepend("<a href='#' onClick='showSubcatList(); return false;' id='viewAllCategories'>View All Categories</a>");
+        $("#mainList").prepend("<ul id='subcatListUL' style='margin:0px;display:none'>" + subcatList + "</ul><br>");
         if(hash.cat){
           //Already appears above
-          //$("#dataList").prepend("<h3>" + hash.cat.replace(/_/g,' ') + "</h3>");
+          //$("#mainList").prepend("<h3>" + hash.cat.replace(/_/g,' ') + "</h3>");
         }
       }
     }
@@ -2017,9 +2052,9 @@ function showList(dp,map) {
           spreadsheetLink = " <a href='" + dp.editLink + "'>Google Sheet</a>";
         }
       }
-      $("#dataList").append("<b>Volunteer Project</b><br>" + subcatObject["null"].count + " " + hash.cat.toLowerCase() + " listings need a subcategory.<br><a href='/localsite/info/input/'>Contact us</a> to help update the " + spreadsheetLink + ".<br>");
+      $("#mainList").append("<b>Volunteer Project</b><br>" + subcatObject["null"].count + " " + hash.cat.toLowerCase() + " listings need a subcategory.<br><a href='/localsite/info/input/'>Contact us</a> to help update the " + spreadsheetLink + ".<br>");
       //  Volunteer
-      $("#dataList").append("<br>");
+      $("#mainList").append("<br>");
     }
     console.log("Total " + dp.dataTitle + " " + countDisplay + " of " + count);
 
@@ -2076,7 +2111,7 @@ function showList(dp,map) {
 
     var imenu = "<div style='display:none'>";
     imenu += "<div id='listingMenu' class='popMenu filterBubble'>";
-    imenu += "<div>View On Map</div>";
+    imenu += "<div class'viewOnMap'>View On Map</div>";
     imenu += "<div class='localonly mock-up' style='display:none'>Supplier Impact</div>";
     imenu += "<div class='localonly mock-up' style='display:none'>Production Impact</div>";
     imenu += "<div class='localonly mock-up' style='display:none'>Add to Collections</div>";
@@ -2167,15 +2202,15 @@ function showList(dp,map) {
     let showAllLink = " <span class='viewAllLink' style='display:none;'><a onclick='goHash({},[\"name\",\"loc\",\"cat\",\"subcat\"]); return false;' href='#show=" + param["show"] + "'>Show All</a></span>";
     //$(".sidelistText").html(searchFor + viewListLink);
 
-    //$("#dataList").append(showAllLink); // Maybe move elsewhere, not needed with View All button lower down.
+    //$("#mainList").append(showAllLink); // Maybe move elsewhere, not needed with View All button lower down.
     $("#resultsPanel").show();
-    $("#dataList").show();
+    $("#mainList").show();
 
     if (dataMatchCount > 0) {
       $("#hublist .listTitle").show();
     } else {
       $("#hublist .listTitle").hide();
-      $("#dataList").append("No match found in " + count + " records. <a href='' onclick='return clearButtonClick();'>Clear Filters</a><br>");
+      $("#mainList").append("No match found in " + count + " records. <a href='' onclick='return clearButtonClick();'>Clear Filters</a><br>");
         
       // Remove use of dataSet? No available   " + (dataSet.length - 1) + " 
       let noMatch = "<div>No match found in records. <a href='' onclick='return clearButtonClick();'>Clear filters</a>.</div>"
@@ -3388,8 +3423,14 @@ function addIcons(dp,map,whichmap,layerGroup,zoom,markerType) {  // layerGroup r
         if (element.address) {
           output += element.address + "<br>";
         } else {
-          if (element.city) {
+          if (element.city && name != element.city) {
             output += element.city;
+          }
+          if (element.county) {
+            if (element.city && name != element.city) {
+              output += ", ";
+            }
+            output += element.county + " County";
           }
           if (element.state || element.zip) {
             output += ", ";
@@ -3607,6 +3648,7 @@ function hashChangedMap() {
   //alert("priorHash.cat: " + priorHash.cat + " " + hash.cat);
   //alert("hash.name " + hash.name + " priorHash.name " + priorHash.name)
 
+  $("#sidemapCard").show();
   if (hash.name !== priorHash.name) {
     if (!hash.name) { // Reveal list
       $("#detaillist .detail").show(); // Show all

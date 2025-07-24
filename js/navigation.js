@@ -1394,9 +1394,9 @@ catArray = [];
 
         // Infinite loop - locks up the browser
         // BUGBUG: Map quickly gets progressively darker
+        console.log("regionSelect() goHash was previously disabled due to possible map update loop.")
         //goHash({'state':hash.state, 'regiontitle':selectMenu.value,'geo':''});
-        console.log("regionSelect goHash disabled due to possible map update loop")
-
+        
         // Try this instead
         updateHash({'regiontitle':selectMenu.value,'geo':''});
     }
@@ -1510,11 +1510,11 @@ catArray = [];
 
     });
     $('#toggleList').click(function () {
-        if ($('#dataList').css('display') != 'none') {
+        if ($('#mainList').css('display') != 'none') {
             $('#dataGrid').show();
-            $('#dataList').hide();
+            $('#mainList').hide();
         } else {
-            $('#dataList').show();
+            $('#mainList').show();
             $('#dataGrid').hide();
         }
         //event.stopPropagation();
@@ -3394,7 +3394,7 @@ function updateSelectedTableRows(geo, geoDeselect, attempts) {
 
     // Loop until geotable.getRows is available (about 10 times)
     // This functions DOES NOT cause bug that redirects off geoview and geo from
-    // Texas link and others: http://localhost:8887/io/communities/
+    // Texas link and others: http://localhost:8887/io/
 
     console.log("updateSelectedTableRows"); // Got called when removing everything from localsite.js include. Occurs 10 times here: http://localhost:8887/explore/locations/#geo=US13251
                     
@@ -3772,7 +3772,7 @@ String.prototype.split2 = function(separator) {
 function displayRow(rowArray) {
     // NOT USED?
     // <input name='contact' type='checkbox' value='" + rowArray[0] + "'> 
-    $("#dataList").append( "<div><div><div style='float:right'>Add</div>" + rowArray[0] + "</div><div><b class='exporter'>Export Categories: </b><span class='exporter'> " + rowArray[2] + "</span></div><div>" + rowArray[3] + "</div><div>" + rowArray[4] + "</div><div><b>Product HS Codes: </b>" + rowArray[5] + "</div></div>");
+    $("#mainList").append( "<div><div><div style='float:right'>Add</div>" + rowArray[0] + "</div><div><b class='exporter'>Export Categories: </b><span class='exporter'> " + rowArray[2] + "</span></div><div>" + rowArray[3] + "</div><div>" + rowArray[4] + "</div><div><b>Product HS Codes: </b>" + rowArray[5] + "</div></div>");
     //<div>" + rowArray[6] + "</div><div>" + rowArray[7] + "</div>
 }
 
@@ -3782,14 +3782,14 @@ function displayListX() {
     console.log("displayList");
     var matchCount = 0;
 
-    $("#dataList").html("");
+    $("#mainList").html("");
     for(var i = 0; i < dataSet.length; i++) {
         if (i > 2) {
             //if (entry[0] > (startRange*100) && entry[0] < (endRange*100+99)) {
                 matchCount++;
                 // <input name='contact' type='checkbox' value='" + dataSet[i][0] + "'> 
-                $("#dataList").append( "<div><div style='float:right'>Add<div></div>" + dataSet[i][0] + "</div><div><b class='exporter'>Export Categories: </b><span class='exporter'> " + dataSet[i][2] + "</span></div><div><b>Description: </b>" + dataSet[i][3] + "</div>");
-                $("#dataList").append( "<div><b>Product HS Codes: </b>" + dataSet[i][5] + "</div></div>");
+                $("#mainList").append( "<div><div style='float:right'>Add<div></div>" + dataSet[i][0] + "</div><div><b class='exporter'>Export Categories: </b><span class='exporter'> " + dataSet[i][2] + "</span></div><div><b>Description: </b>" + dataSet[i][3] + "</div>");
+                $("#mainList").append( "<div><b>Product HS Codes: </b>" + dataSet[i][5] + "</div></div>");
                     //<div>" + dataSet[i][6] + "</div><div>" + dataSet[i][7] + "</div>
             //}
         }
@@ -4536,26 +4536,44 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         }
     } else if ((modelsite=="neighborhood.org" || param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
         showLeftIcon = true;
-        $(".siteTitleShort").text("Neighborhood Modeling");
         param.titleArray = ["neighbor","hood"]
         param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
         localsiteTitle = "Neighborhood.org";
         changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png")
         showClassInline(".neighborhood");
+        showClassInline(".earth");
         earthFooter = true;
-    } else if (!Array.isArray(param.titleArray) && (location.host.indexOf("democracy.lab") >= 0)) {
-        showLeftIcon = true;
+    } else if (modelsite=="democracylab" || location.host.indexOf("democracylab") >= 0) {
+        if (location.host.indexOf('localhost') >= 0) {
+            showLeftIcon = true;
+            earthFooter = true;
+        } else {
+            showLeftIcon = false;
+        }
+        param.showLeftIcon = false;
+        localsiteTitle = "DemocracyLab 2.0";
+        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/democracylab/favicon.png")
         $(".siteTitleShort").text("Democracy Lab");
-
-        param.headerLogo = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/partners/democracy-lab.png' style='width:190px;margin-top:15px'>";
-        param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/partners/democracy-lab-icon.jpg' style='width:32px;margin:4px 8px 0 0'>";
-        showClassInline(".dlab'");
-        earthFooter = true;
+        param.titleArray = ["democracy","lab"]
+        //param.headerLogo = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/partners/democracylab/democracy-lab-2.png' style='width:190px;margin-top:15px'>";
+        param.headerLogo = "<a href='/'><img src='https://neighborhood.org/community/img/logo/orgs/democracy-lab-2.png' style='width:170px;margin-top:10px'></a>";
+        
+        //param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/partners/democracylab/democracy-lab-icon.jpg' style='width:32px;margin:4px 8px 0 0'>";
+        param.headerLogoSmall = "<img src='https://neighborhood.org/community/img/logo/orgs/democracy-lab-2.png' style='width:120px;margin:4px 8px 0 0'>";
+        //param.headerLogoNoText = "<a href='https://democracylab2.org'><img src='https://neighborhood.org/community/img/logo/orgs/democracy-lab-2.png' style='width:50px;padding-top:0px;margin-top:-1px'></a>";
+        showClassInline(".dlab");
+    } else if (modelsite=="membercommons" || location.host.indexOf("membercommons.org") >= 0) {
+        localsiteTitle = "MemberCommons";
+        $(".siteTitleShort").text("MemberCommons");
+        param.titleArray = ["Member","Commons"];
+        param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
+        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png")
+        showClassInline(".membercommons");
     } else if (!Array.isArray(param.titleArray) && !param.headerLogo) {
     //} else if (location.host.indexOf('model.earth') >= 0) {
         showLeftIcon = true;
         $(".siteTitleShort").text("Model Earth");
-        param.titleArray = ["model","earth"]
+        param.titleArray = ["model","earth"];
         localsiteTitle = "Model Earth";
         param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/modelearth/model-earth.png' style='width:34px; margin-right:2px'>";
         changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/modelearth/model-earth.png")
@@ -4722,7 +4740,6 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                     //alert("headerFile " + headerFile);
                     waitForElm('#local-header').then((elm) => { 
                     $("#local-header").load(headerFile, function( response, status, xhr ) {
-                        //alert("headerFile loaded");
                         waitForElm('#sidecolumnContent').then((elm) => { // Resides in header.html
                             //alert("got sidecolumnContent");
                             console.log("Doc is ready, header file loaded, place #cloneLeft into #navcolumn")
@@ -4810,33 +4827,37 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                                 // Since deactivated above due to conflict with header logo in app.
                                 $('.neighborhood').css('display', 'block');
                             }
-                            if (param.titleArray && !param.headerLogo) {
-                                if (param.titleArray[1] == undefined) {
-                                    if (param.titleArray[0] != undefined) {
-                                        $('#headerSiteTitle').html(param.titleArray[0]);
-                                    }
-                                } else {
-                                    //let titleValue = "<span style='float:left'><a href='" + climbpath + "' style='text-decoration:none'>";
-                                    let titleValue = "<span style='float:left'><a href='/' style='text-decoration:none'>";
-                                    
-                                    let modelsite = Cookies.get('modelsite');
-                                    if (modelsite && modelsite.length && modelsite != "model.earth") {
-                                        param.titleArray = modelsite.split(".");
-                                    }
+                            waitForElm('#headerSiteTitle').then((elm) => { // Resides in template-main.html
+                                if (param.titleArray && !param.headerLogo) {
+                                    if (param.titleArray[1] == undefined) {
+                                        if (param.titleArray[0] != undefined) {
+                                            $('#headerSiteTitle').html(param.titleArray[0]);
+                                        }
+                                    } else {
+                                        //let titleValue = "<span style='float:left'><a href='" + climbpath + "' style='text-decoration:none'>";
+                                        let titleValue = "<span style='float:left'><a href='/' style='text-decoration:none'>";
+                                        
+                                        let modelsite = Cookies.get('modelsite');
+                                        if (!param.titleArray && modelsite && modelsite.length && modelsite != "model.earth") {
+                                            param.titleArray = modelsite.split(".");
+                                        }
+                                        titleValue += "<span style='color: #777;'>" + param.titleArray[0] + "</span>";
+                                        for (var i = 1; i < param.titleArray.length; i++) {
+                                            titleValue += "<span id='titleTwo' style='color:#bbb;margin-left:1px'>" + param.titleArray[i] + "</span>";
+                                        }
+                                        
+                                        titleValue += "</a></span>";
+                                        
+                                            $('#headerSiteTitle').html(titleValue);
+                                        
 
-                                    titleValue += "<span style='color: #777;'>" + param.titleArray[0] + "</span>";
-                                    for (var i = 1; i < param.titleArray.length; i++) {
-                                        titleValue += "<span id='titleTwo' style='color:#bbb;margin-left:1px'>" + param.titleArray[i] + "</span>";
-                                    }
-                                    
-                                    titleValue += "</a></span>";
-                                    $('#headerSiteTitle').html(titleValue);
-                                    let theState = $("#state_select").find(":selected").text();
-                                    if (theState) {
-                                        //$(".locationTabText").text(theState);
+                                        let theState = $("#state_select").find(":selected").text();
+                                        if (theState) {
+                                            //$(".locationTabText").text(theState);
+                                        }
                                     }
                                 }
-                            }
+                            });
 
                             if (param.favicon) {
                                 changeFavicon(param.favicon);
@@ -5133,6 +5154,9 @@ $(document).on("change", "#devmode", function(event) { // Public or Dev
 $(document).on("change", "#onlinemode", function(event) { // Online or Offline
     if (typeof Cookies != 'undefined') {
         Cookies.set('onlinemode', $("#onlinemode").val());
+    }
+    if ($("#onlinemode").val() == "false") {
+        Cookies.set('showlog','1'); // Could be an icon
     }
     setOnlinemode($("#onlinemode").val());
 });
@@ -5618,11 +5642,15 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
 
 function showClassInline(theclass) {
 
-    //$(theclass).css('display', 'inline');
+    
 
     // Load when body head becomes available, faster than waiting for all DOM .js files to load.
     // Append -hide to hide a div for a site.
     waitForElm('head').then((elm) => {
+        //alert("showClassInline " + theclass)
+        //$(theclass).css('display', 'inline');
+        //$(".dlab").css('display', 'inline');
+
         var div = $("<style />", {
             html: theclass + ' {display: inline !important} ' + theclass + '-hide {display:none}'
         }).appendTo("head");

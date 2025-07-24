@@ -328,34 +328,55 @@ function getHashOnly() {
       let keyValue = pair.split('=');
       let key = keyValue[0];
       let value = keyValue.slice(1).join('=');
-
       // Replace "%26" with "&" in the value
       value = value.replace(/%26/g, '&');
-
-      // Handle nested keys with periods
-      let keys = key.split('.');
-      let current = result;
-
-      for (let i = 0; i < keys.length; i++) {
-        if (i === keys.length - 1) {
-          // Last key, set the value
-          current[keys[i]] = value;
-        } else {
-          // Intermediate key, ensure it's an object
-          if (!current[keys[i]]) current[keys[i]] = {};
+      
+      // Handle nested object structure for any dotted keys
+      if (key.includes('.')) {
+        let keys = key.split('.');
+        let current = result;
+        
+        // Navigate/create the nested structure
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (!current[keys[i]]) {
+            current[keys[i]] = {};
+          }
           current = current[keys[i]];
         }
+        
+        // Set the final value
+        current[keys[keys.length - 1]] = value;
+      } else {
+        result[key] = value;
       }
     });
     return result;
   })(window.location.hash.substr(1).split('&'));
 }
-function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids triggering hash change event. Also called by goHash, which does trigger hash change event.
+function getHashOnlyX() {
+  return (function (pairs) {
+    if (pairs == "") return {};
+    var result = {};
+    pairs.forEach(function (pair) {
+      // Split the pair on "=" to get key and value
+      let keyValue = pair.split('=');
+      let key = keyValue[0];
+      let value = keyValue.slice(1).join('=');
+      // Replace "%26" with "&" in the value
+      value = value.replace(/%26/g, '&');
+      result[key] = value;
+    });
+    return result;
+  })(window.location.hash.substr(1).split('&'));
+}
+// Avoids triggering hash change event. Also called by goHash, which does trigger hash change event.
+function updateHash(addToHash, addToExisting, removeFromHash) {
     let hash = {}; // Limited to this function
     if (addToExisting != false) {
       hash = getHashOnly(); // Include all existing. Excludes hiddenhash.
     }
     console.log(addToHash)
+
     const newObj = {}; // For removal of blank keys in addToHash
     Object.entries(addToHash).forEach(([k, v]) => {
       if (v === Object(v)) {
@@ -377,11 +398,9 @@ function updateHash(addToHash, addToExisting, removeFromHash) { // Avoids trigge
           delete hiddenhash[removeFromHash[i]];
       }
     }
-    
+
     hash = mix(newObj,hash); // Gives priority to addToHash
 
-    //var hashString = decodeURIComponent($.param(hash)); // decode to display commas in URL
-    //const hashString = new URLSearchParams(hash).toString();
     const hashString = decodeURIComponent(new URLSearchParams(hash).toString()); // decode to display commas and slashes in URL hash values
     var pathname = window.location.pathname.replace(/\/\//g, '\/')
     var queryString = "";
@@ -728,9 +747,7 @@ function loadLocalTemplate() {
   let datascapeFileDiv = "#datascape";
   waitForElm(datascapeFileDiv).then((elm) => {
 
-    //$(datascapeFileDiv).load(datascapeFile, function( response, status, xhr ) { // This overwrote navcolumn and listcolumn
     $.get(datascapeFile, function(theTemplate) { // Get and append template-main.html to #datascape
-      //$(theTemplate).find("#insertedText").appendTo(datascapeFileDiv);
       $(theTemplate).appendTo(datascapeFileDiv);
 
       //$("#insertedTextSource").remove(); // For map/index.html. Avoids dup header.
@@ -763,10 +780,7 @@ function loadLocalTemplate() {
         $("#local-header").prependTo("#fullcolumn");
         $("#headerbar").prependTo("#fullcolumn");
       });
-      //waitForElm('#local-header').then((elm) => {
-      //  $("#local-header").prependTo("#fullcolumn"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
-      //});
-
+      
       waitForElm('#fullcolumn').then((elm) => {
         $("#headerbar").prependTo("#fullcolumn"); // Move back up to top.
         //$("#bodyMainHolder").prependTo("#fullcolumn"); // Move back up to top.
@@ -1042,7 +1056,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       // Load when body div becomes available, faster than waiting for all DOM .js files to load.
       waitForElm('#bodyloaded').then((elm) => {
-       consoleLog("#bodyloaded becomes available");
+      consoleLog("#bodyloaded becomes available");
+      waitForElm('#datascape').then((elm) => { // Wait for navigation.js to set
+        let modelsite = Cookies.get('modelsite');
         if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
           var div = $("<div />", {
               html: '<style>.local{display:inline-block !important}.local-block{display:block !important}.localonly{display:block !important}.hidelocal{display:none}</style>'
@@ -1064,9 +1080,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           $('body').prepend("<div id='datascape'></div>");
         }
 
-        if(param.showheader == "true") {
-          // border:1px solid #555;
-          // sideIconsLower
+        if (param.showLeftIcon != false) { // && param.showheader == "true"
           $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;display:none'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border: 1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
         }
 
@@ -1108,6 +1122,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         if (foundTemplate == false) { // An initial move to the bottom - occurs when the template is not yet available.
           $("#local-footer").appendTo("body");
         }
+      });
       }); // End body ready
 
       $(document).ready(function () {
@@ -1299,9 +1314,11 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
     !function() {
       // Setting up listener for font checking
       var font = "1rem 'Material Icons'";
-      document.fonts.addEventListener('loadingdone', function(event) {
-          console.log("Font loaded: ${font}: ${ document.fonts.check(font)}");
-      })
+
+      // Not sure why we had this. It renders on load, and then again each time browser is resized.
+      //document.fonts.addEventListener('loadingdone', function(event) {
+      //    console.log("Font loaded: ${font}: ${ document.fonts.check(font)}");
+      //})
 
       // Loading font
       let link = document.createElement('link'),
@@ -1324,12 +1341,12 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       
       if (!document.getElementById(link.id)) { // Prevents multiple loads.
         head.appendChild(link);
-        consoleLog("head.appendChild link for font");
+        console.log("head.appendChild link for font");
         $(document).ready(function () {
           //body.appendChild(link); // Doesn't get appended. Error: body is not defined
         });
       } else {
-        consoleLog("link.id " + link.id);
+        console.log("link.id " + link.id);
       }
     }();
   }
@@ -2044,8 +2061,7 @@ function showSearchFilter() {
         */
       });
     }
-    //alert("no sidetab");
-    goHash({"sidetab":""});
+    goHash({"sidetab":""}); // Hide sidetab when showSearchFilter
   }
 
 }
@@ -2748,11 +2764,12 @@ function setSitemode(sitemode) {
   // Not copied over from settings.js
 }
 function setSitelook(siteLook) {
-    console.log("setSitelook init: " + sitelook);
-
+    
     //let root = "/explore/"; // TEMP
     //let root = "/localsite/";
-
+    if (!siteLook) {
+      siteLook = "default"
+    }
     if (siteLook == "default" && (Cookies.get('modelsite') == "dreamstudio" || location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0)) {
       siteLook = "dark"
     }
@@ -2818,7 +2835,9 @@ function setOnlinemode(onlinemode) {
     $("#log_display").hide();
   } else if (onlinemode == "false")  {
     onlineApp = false;
-    $("#log_display").show();
+    if (Cookies.get('showlog') != "0") {
+      $("#log_display").show();
+    }
   }
 }
 function setGlobecenter(globecenter, promptForCurrentPosition) {
@@ -2878,7 +2897,7 @@ function setModelsite(modelsite) {
     // Avoid calling refresh here since runs when page loads.
   }
 }
-function setGitrepo(modelsite) {
+function setGitrepo(gitrepo) {
   if (gitrepo != "") {
     console.log("setGitrepo() is not currently used.");
     // Avoid calling refresh here since runs when page loads.

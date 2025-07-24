@@ -147,15 +147,48 @@ function getUrbanDensityForYear(data, year) {
     return result ? result.UrbanDensity : "";
 }
 
+const countryCodeMap = {
+    "AF": "AFG", "AX": "ALA", "AL": "ALB", "DZ": "DZA", "AS": "ASM", "AD": "AND", "AO": "AGO", "AI": "AIA", "AQ": "ATA", "AG": "ATG",
+    "AR": "ARG", "AM": "ARM", "AW": "ABW", "AU": "AUS", "AT": "AUT", "AZ": "AZE", "BS": "BHS", "BH": "BHR", "BD": "BGD", "BB": "BRB",
+    "BY": "BLR", "BE": "BEL", "BZ": "BLZ", "BJ": "BEN", "BM": "BMU", "BT": "BTN", "BO": "BOL", "BQ": "BES", "BA": "BIH", "BW": "BWA",
+    "BV": "BVT", "BR": "BRA", "IO": "IOT", "BN": "BRN", "BG": "BGR", "BF": "BFA", "BI": "BDI", "KH": "KHM", "CM": "CMR", "CA": "CAN",
+    "CV": "CPV", "KY": "CYM", "CF": "CAF", "TD": "TCD", "CL": "CHL", "CN": "CHN", "CX": "CXR", "CC": "CCK", "CO": "COL", "KM": "COM",
+    "CG": "COG", "CD": "COD", "CK": "COK", "CR": "CRI", "CI": "CIV", "HR": "HRV", "CU": "CUB", "CW": "CUW", "CY": "CYP", "CZ": "CZE",
+    "DK": "DNK", "DJ": "DJI", "DM": "DMA", "DO": "DOM", "EC": "ECU", "EG": "EGY", "SV": "SLV", "GQ": "GNQ", "ER": "ERI", "EE": "EST",
+    "ET": "ETH", "FK": "FLK", "FO": "FRO", "FJ": "FJI", "FI": "FIN", "FR": "FRA", "GF": "GUF", "PF": "PYF", "TF": "ATF", "GA": "GAB",
+    "GM": "GMB", "GE": "GEO", "DE": "DEU", "GH": "GHA", "GI": "GIB", "GR": "GRC", "GL": "GRL", "GD": "GRD", "GP": "GLP", "GU": "GUM",
+    "GT": "GTM", "GG": "GGY", "GN": "GIN", "GW": "GNB", "GY": "GUY", "HT": "HTI", "HM": "HMD", "VA": "VAT", "HN": "HND", "HK": "HKG",
+    "HU": "HUN", "IS": "ISL", "IN": "IND", "ID": "IDN", "IR": "IRN", "IQ": "IRQ", "IE": "IRL", "IM": "IMN", "IL": "ISR", "IT": "ITA",
+    "JM": "JAM", "JP": "JPN", "JE": "JEY", "JO": "JOR", "KZ": "KAZ", "KE": "KEN", "KI": "KIR", "KP": "PRK", "KR": "KOR", "KW": "KWT",
+    "KG": "KGZ", "LA": "LAO", "LV": "LVA", "LB": "LBN", "LS": "LSO", "LR": "LBR", "LY": "LBY", "LI": "LIE", "LT": "LTU", "LU": "LUX",
+    "MO": "MAC", "MK": "MKD", "MG": "MDG", "MW": "MWI", "MY": "MYS", "MV": "MDV", "ML": "MLI", "MT": "MLT", "MH": "MHL", "MQ": "MTQ",
+    "MR": "MRT", "MU": "MUS", "YT": "MYT", "MX": "MEX", "FM": "FSM", "MD": "MDA", "MC": "MCO", "MN": "MNG", "ME": "MNE", "MS": "MSR",
+    "MA": "MAR", "MZ": "MOZ", "MM": "MMR", "NA": "NAM", "NR": "NRU", "NP": "NPL", "NL": "NLD", "NC": "NCL", "NZ": "NZL", "NI": "NIC",
+    "NE": "NER", "NG": "NGA", "NU": "NIU", "NF": "NFK", "MP": "MNP", "NO": "NOR", "OM": "OMN", "PK": "PAK", "PW": "PLW", "PS": "PSE",
+    "PA": "PAN", "PG": "PNG", "PY": "PRY", "PE": "PER", "PH": "PHL", "PN": "PCN", "PL": "POL", "PT": "PRT", "PR": "PRI", "QA": "QAT",
+    "RE": "REU", "RO": "ROU", "RU": "RUS", "RW": "RWA", "BL": "BLM", "SH": "SHN", "KN": "KNA", "LC": "LCA", "MF": "MAF", "PM": "SPM",
+    "VC": "VCT", "WS": "WSM", "SM": "SMR", "ST": "STP", "SA": "SAU", "SN": "SEN", "RS": "SRB", "SC": "SYC", "SL": "SLE", "SG": "SGP",
+    "SX": "SXM", "SK": "SVK", "SI": "SVN", "SB": "SLB", "SO": "SOM", "ZA": "ZAF", "GS": "SGS", "SS": "SSD", "ES": "ESP", "LK": "LKA",
+    "SD": "SDN", "SR": "SUR", "SJ": "SJM", "SE": "SWE", "CH": "CHE", "SY": "SYR", "TW": "TWN", "TJ": "TJK", "TZ": "TZA", "TH": "THA",
+    "TL": "TLS", "TG": "TGO", "TK": "TKL", "TO": "TON", "TT": "TTO", "TN": "TUN", "TR": "TUR", "TM": "TKM", "TC": "TCA", "TV": "TUV",
+    "UG": "UGA", "UA": "UKR", "AE": "ARE", "GB": "GBR", "US": "USA", "UM": "UMI", "UY": "URY", "UZ": "UZB", "VU": "VUT", "VE": "VEN",
+    "VN": "VNM", "VG": "VGB", "VI": "VIR", "WF": "WLF", "EH": "ESH", "YE": "YEM", "ZM": "ZMB", "ZW": "ZWE"
+  };
+  const defaultCountries = ['IN', 'CN', 'US', 'GB', 'DE', 'JP', 'BR', 'RU', 'ZA', 'SA', 'AE'];
+
 //Timelinechart for scopes country, state, and county 
 let geoValues = {};
-const MIN_YEAR = 1900; // Minimum year to filter data
+const MIN_YEAR = 1960; // Minimum year to filter data
 async function getTimelineChart(scope, chartVariable, entityId, showAll, chartText) {
     //alert("getTimelineChart chartVariable: " + chartVariable + ", scope: " + scope)
     let hash = getHash(); // Add hash check at top of function
     geoValues = {}; // Clear prior
+    const defaultCountries3Char = defaultCountries.map(code => countryCodeMap[code] || code);
+    const userSelected = hash.country ? hash.country.split(',').map(code => countryCodeMap[code.trim()] || code.trim()) : [];
+    const selectedCountries3Char = [...new Set([...defaultCountries3Char, ...userSelected])];
     const selectedCountries = []; // top-level
     let response, data, geoIds;
+    let whichPer = document.querySelector('input[name="whichPer"]:checked')?.value || 'totals';
 
     if (scope === "county") {
         // Fetch county data
@@ -241,8 +274,14 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             };
         });
 
-    } else if (scope === "country") {// Fetch country ISO codes first
-        const restResponse = await fetch("https://restcountries.com/v3.1/all");
+    }/* else if (scope === "country") {// Fetch country ISO codes first
+        const restResponse = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name"); // cca3 is also available
+    } */else if (scope === "country")
+        
+        {
+        // Fetch country ISO codes first
+        //const restResponse = await fetch("https://restcountries.com/v3.1/all");
+        const restResponse = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name"); // cca3 is also available
         const countriesData = await restResponse.json();
     
         // Get all ISO Alpha-2 codes
@@ -297,6 +336,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
 
     // Fetch observational data using geoIds list
     const url = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
+    console.log("url data:",url)
     const response3 = await fetch(url, {
         method: 'POST',
         headers: {
@@ -308,43 +348,96 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
         })
     });
     const timelineData = await response3.json();
-   // Format data
-    /*const formattedData = [];
-    //alert(JSON.stringify(geoValues)) // TO DO: Only send countries that exist in the dataset.
-    for (const geoId in geoValues) {
-        if (timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets) { // Avoids error if country (India) is not in water timeline
-            formattedData.push({
-                name: geoValues[geoId].name,
-                observations: timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0]['observations']
-            });
-        }
-    }*/
+    console.log("timeline obsevational data for country:",timelineData)
+    let populationData = {};
+if (whichPer === 'percapita') {
+  const popUrl = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=Count_Person&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
+
+  const popResponse = await fetch(popUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      "date": "",
+      "select": ["date", "entity", "value", "variable"]
+    })
+  });
+
+  const popJson = await popResponse.json();
+  populationData = popJson.byVariable["Count_Person"].byEntity;
+}
         // Format data
         const formattedData = [];
 //alert(JSON.stringify(geoValues)) // TO DO: Only send countries that exist in the dataset.
 for (const geoId in geoValues) {
-    console.log("GeoId:", geoId, "Name:", geoValues[geoId].name);
+    //console.log("GeoId:", geoId, "Name:", geoValues[geoId].name);
     if (timelineData.byVariable[chartVariable]?.byEntity?.[geoId]?.orderedFacets?.[0]?.observations) {
-        const filteredObservations = timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0].observations.filter(obs => {
-            const year = parseInt(obs.date.split('-')[0]);
-            return year >= MIN_YEAR && year <= 2022; // Added the upper year limit
-        });
+        const isPopulationGoal = getHash().goal === "population";
+        // Replace the observation filtering logic with this:
+const filteredObservations = timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0].observations.filter(obs => {
+    // Handle both ISO dates (YYYY-MM-DD) and simple years (YYYY)
+    const yearPart = obs.date.split('-')[0];
+    const year = parseInt(yearPart);
+    return year >= MIN_YEAR;
+    
+    // Special handling for population data
+    if (isPopulationGoal) {
+        return year >= MIN_YEAR;
+    }
+    return true; // Keep all observations for other goals
+}).map(obs => {
+    // Normalize date format to just the year for population data
+    if (isPopulationGoal) {
+        return {
+            date: obs.date.split('-')[0], // Keep only the year part
+            value: obs.value
+            
+        };
+    }
+    return obs; // Return original for other data
+});
+      
         formattedData.push({
             name: geoValues[geoId].name,
-            observations: filteredObservations
+            observations: filteredObservations.map(obs =>{
+            //timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0]['observations'].map(obs => {
+                let value = obs.value;
+                if (whichPer === 'percapita') {
+                    let popFacets = populationData[geoId]?.orderedFacets?.[0]?.observations;
+                    if (popFacets) {
+                        let popObs = popFacets.find(p => p.date === obs.date);
+                        if (popObs && popObs.value) {
+                            value = value / popObs.value;
+                        } else {
+                            value = null;
+                        }
+                    } else {
+                        value = null;
+                    }
+                }
+                return { date: obs.date, value: value };
+            })
         });
     }
 }
-    console.log("formattedData:",formattedData)
+  
+console.log("formattedData:",formattedData)
      
     // Get unique years
-    let yearsSet = new Set();
+    /*let yearsSet = new Set();
     formattedData.forEach(location => {
         location.observations.forEach(obs => {
             yearsSet.add(obs.date);
         });
     });
-    const years = [...yearsSet].sort((a, b) => a - b);
+    const years = [...yearsSet].sort((a, b) => a - b);*/
+    // Get unique years
+let yearsSet = new Set();
+formattedData.forEach(location => {
+    location.observations.forEach(obs => {
+        yearsSet.add(obs.date.split('-')[0]); // Always use year part
+    });
+});
+const years = [...yearsSet].sort((a, b) => a - b);
 
     // Showing all or top 5 or bottom 5
     let selectedData;
@@ -362,37 +455,73 @@ for (const geoId in geoValues) {
     });
     console.log(`Latest year identified: ${latestYear}`);
     // Calculate latest value for each location
-    dataCopy.forEach(location => {
-        if (location.observations && location.observations.length > 0) {
-            // Find the observation for the latest year
-            const latestObs = location.observations.find(obs => obs.date.split('-')[0] === latestYear);
-            location.latestValue = latestObs ? latestObs.value : null;
-        } else {
-            location.latestValue = null;
-        }
-    });
+    // Calculate latest value for each location
+dataCopy.forEach(location => {
+    if (location.observations && location.observations.length > 0) {
+        // Create a sorted copy of observations by date
+        const sortedObservations = [...location.observations].sort((a, b) => 
+            new Date(a.date) - new Date(b.date)
+        );
+        
+        // Get the latest observation (last in sorted array)
+        const latestObs = sortedObservations[sortedObservations.length - 1];
+        location.latestValue = latestObs ? latestObs.value : null;
+    } else {
+        location.latestValue = null;
+    }// Add 1960 value specifically for population
+    if (getHash().goal === "population") {
+        const obs1960 = location.observations?.find(obs => obs.date === "1960");
+        location.valueIn1960 = obs1960 ? obs1960.value : null;
+    }
+});
     // Filter out locations with no valid latest value
-    const validData = dataCopy.filter(location => location.latestValue !== null);
-    if (showAll === 'showTop5') {
-        selectedData = validData
-            .sort((a, b) => b.latestValue - a.latestValue)
-            .slice(0, Math.min(5, validData.length));
+    const validData = dataCopy.filter(location => 
+    getHash().goal === "population" 
+        ? location.valueIn1960 !== null 
+        : location.latestValue !== null);
+    console.log("validData:",validData)
+    if (showAll === 'showSelected') {
+        selectedData = formattedData.filter(location => {
+            const geoId = Object.keys(geoValues).find(id => geoValues[id].name === location.name);
+            if (!geoId) return false;
+            const countryCode = geoId.includes('country/') ? geoId.replace('country/', '') : geoId;
+            //console.log(`Checking ${location.name}, geoId: ${geoId}, code: ${countryCode}`); // Debug
+            console.log("Filtered Countries:", selectedData);
+           return selectedCountries3Char.includes(countryCode);
+           
+        });
+    } else if (showAll === 'showTop5') {
+       selectedData = validData
+        .sort((a, b) => 
+            getHash().goal === "population"
+                ? b.valueIn1960 - a.valueIn1960
+                : b.latestValue - a.latestValue
+        )
+        .slice(0, Math.min(5, validData.length));
     } else if (showAll === 'showBottom5') {
         selectedData = validData
-            .sort((a, b) => a.latestValue - b.latestValue)
-            .slice(0, Math.min(5, validData.length));
+        .sort((a, b) => 
+            getHash().goal === "population"
+                ? a.valueIn1960 - b.valueIn1960
+                : a.latestValue - b.latestValue
+        )
+        .slice(0, Math.min(5, validData.length));
+            
     } else {
         selectedData = dataCopy;
     }
+     console.log("Filtered Countries:", selectedData);
 
     // Get datasets
     const datasets = selectedData.map(location => {
         return {
             label: location.name,
             data: years.map(year => {
-                const observation = location.observations.find(obs => obs.date === year);
-                return observation ? observation.value : null;
-            }),
+                const observation = location.observations.find(obs => 
+                obs.date.split('-')[0] === year
+            );
+            return observation ? observation.value : null;
+        }),
             borderColor: 'rgb(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ')',
             backgroundColor: 'rgba(0, 0, 0, 0)',
         };
@@ -432,7 +561,7 @@ for (const geoId in geoValues) {
                 },
                 title: {
                     display: true,
-                    text:chartText,
+                    text:whichPer === 'percapita' ? `${chartText} per person` : chartText,
                     font:{
                         size: 14
                     }
@@ -456,7 +585,7 @@ for (const geoId in geoValues) {
                 y: {
                   title: {
                     display: true,
-                    text: `${chartText}`
+                    text: whichPer === 'percapita' ? `${chartText} per person` : chartText
                   },
                   ticks: {
                     font: {
@@ -485,7 +614,7 @@ for (const geoId in geoValues) {
                 plugins: {
                   title: {
                     display: true,
-                    text: (ctx) => chartTitle,
+                    text: (ctx) => whichPer === 'percapita' ? `${chartText} per person` : chartText,
                     font: {
                       size: 14 // Slightly smaller for mobile balance
                     }
@@ -527,7 +656,8 @@ for (const geoId in geoValues) {
                     stacked: true,
                     title: {
                       display: true,
-                      text: `${chartText}`
+                      text: whichPer === 'percapita' ? `${chartText} per person` : chartText
+
                     },
                     ticks: {
                       font: {
@@ -574,12 +704,9 @@ function refreshTimeline() {
     if (hash.scope) {
         scope = hash.scope;
     }
-    //waitForElm('#chartVariable').then((elm) => { // Avoid this since values won't be there yet.
-        //let chartVariable = 'Count_Person';
-        let chartVariableSelect = document.getElementById('chartVariable');
-        //setTimeout(() => { // Hack - wait 3 seconds. Later we'll wait for #chartVariable to have a value.
-                        
-            let chartVariable = chartVariableSelect.options[chartVariableSelect.selectedIndex].value;
+    let chartVariableSelect = document.getElementById('chartVariable');        
+    let chartVariable = chartVariableSelect.options[chartVariableSelect.selectedIndex].value;
+    updateHash({"scope":scope,"features.dcid":chartVariable}); // Used by refreshTimeline()
 
             let showAll = document.querySelector('input[name="whichLines"]:checked').value;
             if(!showAll) {showAll = 'showTop5';}
@@ -677,6 +804,8 @@ async function updateDcidSelectFromSheet(scope) {
     const scopeIndex = headers.indexOf('Scope');
     const valueIndex = headers.indexOf('DCID'); // Assuming 'Value' is stored in the 'DCID' column
     const textIndex = headers.indexOf('Title'); // Assuming 'Text' is stored in the 'Title' column
+    const startYearIndex = headers.indexOf('StartYear');
+    const endYearIndex = headers.indexOf('EndYear');
 
     if (scopeIndex === -1 || valueIndex === -1 || textIndex === -1) {
         console.error("Missing required columns in the CSV data.");
@@ -855,3 +984,17 @@ window.addEventListener('resize', function() {
         lineAreaChart.resize();
     }
 });
+function handleCountryListClick() {
+    // Store current hash before opening country selection
+    const currentHash = window.location.hash;
+    
+    // Set up an interval to check when we return from country selection
+    const checkReturnInterval = setInterval(() => {
+        if (window.location.hash !== currentHash && 
+            !window.location.hash.includes('geoview=countries')) {
+            // We've returned from country selection
+            clearInterval(checkReturnInterval);
+            refreshTimeline();
+        }
+    }, 10);
+}

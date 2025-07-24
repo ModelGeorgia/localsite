@@ -334,6 +334,8 @@
                     <option value="model.georgia">Model Georgia</option>
                     <option value="model.maine">Model Maine</option>
                     <option value="neighborhood.org">Neighborhood</option>
+                    <option value="democracylab" class="local" style="display:none;">DemocracyLab</option>
+                    <option value="membercommons">MemberCommons</option>
                   </select>
               </div></div>
               <div class="setDiv"></div>
@@ -688,6 +690,19 @@
           <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
           <a href="/dreamstudio/swarm/" class="navlink-swarm"><span style="white-space: nowrap">Swarm</span></a>  
           <a href="/community/projects/" class="navlink-moonshots" target="me"><span style="white-space: nowrap">Moonshots</span></a>
+        </span>
+      </div>
+
+      <div id="dlab-nav" class="dlab" style="display:none">
+        <span class="hideMobile" style="float:left">
+          
+          <a href="/profile/project/commons/" class="navlink-prototype" target="me"><span style="white-space: nowrap">Prototype</span></a>
+
+          <a href="/profile/preferences/" class="navlink-preferences" target="me"><span style="white-space: nowrap">Preferences</span></a>
+
+          <a href="/profile/crm/" class="navlink-crm" target="me"><span style="white-space: nowrap">Partner Tools</span></a>
+          
+
         </span>
       </div>
 
@@ -1472,7 +1487,13 @@ Displayed by hashChanged() in navigation.js
 <!-- ../img/hero/hexagon-pattern.png  -->
 
 <!-- Currently activated by setting Offline (Air Travel) -->
-<div id="log_display" style="display:none"><span style='float:left; font-size:14px'>Offline Log</span><br><textarea id="logText">LogText</textarea></div>
+<div id="log_display" style="display:none"><span style='float:left; font-size:18px'>Console Log</span>
+  
+  <div style="float:right">
+    <i class="material-icons show-on-load" style="font-size:28px;cursor:" onclick="$('#log_display').hide();Cookies.set('showlog','0');return false;">&#xE5CD;</i>
+  </div>
+
+  <br><textarea id="logText">LogText</textarea></div>
 
 
 <div class="displayOnload displayMapForLoad" style="display:none;position:relative;overflow:hidden;">
@@ -1832,7 +1853,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 <div style="border-bottom:1px solid #ccc">
   <div class="content contentpadding contentpaddingMin litePanel" style="max-width:2000px; padding-bottom:0px">
 
-    <div class='viewAllLink' style='display:none;float:right'><a class='btn btn-white' onclick='goHash({},["name","loc","m","cat","subcat","q","search"]); return false;' href='#show=" + param["show"] + "'>List All</a></div>
+    <div class='viewAllLink' style='display:none;float:right'><a class='btn btn-success' onclick='goHash({},["name","loc","m","cat","subcat","q","search"]); return false;' href='#show=" + param["show"] + "'>List All</a></div>
 
     <div class="listTitle listTitleStyle"></div>
     <div class='listSpecs'></div>
@@ -1867,7 +1888,7 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
           </div>
         </div>
 
-          <div id="dataList"></div>
+          <div id="mainList"></div>
           
           <div id="detaillistHolder"></div>
 
