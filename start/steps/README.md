@@ -3,9 +3,20 @@
 
 Our helpful tips for [Yarn, Node, Python, Docker and Conda](../../../io/coders/python/).  
 
-## Start a local web server
 
-Run the following in a local "webroot" folder to start a local http server on port 8887
+## ModelEarth webroot with Claude Code CLI
+
+[Overview of webroot](../../../codechat/) and RAG process.
+
+**Recommended:** [Activate your webroot](https://model.earth/webroot) using Claude Code CLI. &ndash; [Runs on port 8887](http://localhost:8887/projects/)
+
+The bottom of the webroot setup as additional steps for pulling in MRIO repos to work with Multi-Region Input-Output (MRIO) using 721 factors across global trade industries.
+
+And/or just grab a couple repos and start your own webroot...
+
+## Start a local webroot
+
+Run the following in a local "webroot" folder to start an http server on port 8887
 
 	python -m http.server 8887
 

@@ -353,41 +353,23 @@ function getHashOnly() {
     return result;
   })(window.location.hash.substr(1).split('&'));
 }
-function getHashOnlyX() {
-  return (function (pairs) {
-    if (pairs == "") return {};
-    var result = {};
-    pairs.forEach(function (pair) {
-      // Split the pair on "=" to get key and value
-      let keyValue = pair.split('=');
-      let key = keyValue[0];
-      let value = keyValue.slice(1).join('=');
-      // Replace "%26" with "&" in the value
-      value = value.replace(/%26/g, '&');
-      result[key] = value;
-    });
-    return result;
-  })(window.location.hash.substr(1).split('&'));
-}
-// Avoids triggering hash change event. Also called by goHash, which does trigger hash change event.
+
+// Avoids triggering hash change event. 
+// Also called by goHash, which does trigger hash change event.
+
 function updateHash(addToHash, addToExisting, removeFromHash) {
+    //alert("updateHash object: " + JSON.stringify(addToHash))
     let hash = {}; // Limited to this function
     if (addToExisting != false) {
       hash = getHashOnly(); // Include all existing. Excludes hiddenhash.
     }
     console.log(addToHash)
-
     const newObj = {}; // For removal of blank keys in addToHash
     Object.entries(addToHash).forEach(([k, v]) => {
-      if (v === Object(v)) {
-        newObj[k] = removeEmpty(v);
-        delete hash[k];
-        delete hiddenhash[k];
-      } else if (v != null) {
+      if (v != null) {
         newObj[k] = addToHash[k];
       }
     });
-
     // Secondary way to remove, using a string
     if (removeFromHash) {
       if (typeof removeFromHash == "string") {
@@ -398,11 +380,23 @@ function updateHash(addToHash, addToExisting, removeFromHash) {
           delete hiddenhash[removeFromHash[i]];
       }
     }
-
     hash = mix(newObj,hash); // Gives priority to addToHash
-
-    const hashString = decodeURIComponent(new URLSearchParams(hash).toString()); // decode to display commas and slashes in URL hash values
-    var pathname = window.location.pathname.replace(/\/\//g, '\/')
+    
+    // Flatten nested objects for URLSearchParams
+    const flatHash = {};
+    Object.entries(hash).forEach(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            // Flatten nested object properties
+            Object.entries(value).forEach(([subKey, subValue]) => {
+                flatHash[`${key}.${subKey}`] = subValue;
+            });
+        } else {
+            flatHash[key] = value;
+        }
+    });
+    
+    const hashString = decodeURIComponent(new URLSearchParams(flatHash).toString()); // decode to display commas and slashes in URL hash values
+    var pathname = window.location.pathname.replace(/\/\/+/g, '\/')
     var queryString = "";
     if (window.location.search) { // Existing, for parameters that are retained as hash changes.
       queryString += window.location.search; // Contains question mark (?)
@@ -411,6 +405,7 @@ function updateHash(addToHash, addToExisting, removeFromHash) {
       queryString += "#" + hashString;
     }
     let searchTitle = 'Page ' + hashString;
+    //alert(queryString)
     window.history.pushState("", searchTitle, pathname + queryString);
 }
 function goHash(addToHash,removeFromHash) {
@@ -634,7 +629,7 @@ function toggleFullScreen(alsoToggleHeader) {
   }
 }
 
-var theroot = get_localsite_root(); // Avoid using let instead of var, or error: Identifier 'theroot' has already been declared.
+var theroot = get_localsite_root(); // Try using let instead of var to find other declarations.
 function get_localsite_root() { // Also in two other places
   if (localsite_repo3) { // Intensive, so limit to running once.
     //alert(localsite_repo);
@@ -2000,6 +1995,10 @@ function getState(stateCode) {
 }
 
 function showSearchFilter() {
+  if ($("#filterFieldsHolder").is(':visible') ) {
+    $("#filterFieldsHolder").hide();
+    return;
+  }
   let loadFilters = false;
   let headerHeight = $("#headerbar").height(); // Not sure why this is 99 rather than 100
   //closeSideTabs(); // Later search will be pulled into side tab.
@@ -2061,7 +2060,7 @@ function showSearchFilter() {
         */
       });
     }
-    goHash({"sidetab":""}); // Hide sidetab when showSearchFilter
+    //goHash({"sidetab":""}); // Hide sidetab when showSearchFilter
   }
 
 }
@@ -2272,6 +2271,151 @@ const currentPageURL = window.location.href;
 //const newURL = forkEditLink(currentPageURL);
 //alert(newURL);
 
+function escapeUnderscoresOutsideCodeBlocks(markdown) {
+  // Split the markdown into lines for processing
+  const lines = markdown.split('\n');
+  const processedLines = [];
+  
+  let inCodeFence = false;
+  let codeBlockType = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    
+    // Check for code fences (```bash, ```javascript, etc.)
+    if (line.trim().startsWith('```')) {
+      inCodeFence = !inCodeFence;
+      if (inCodeFence) {
+        codeBlockType = line.trim().substring(3);
+      } else {
+        codeBlockType = null;
+      }
+      processedLines.push(line);
+      continue;
+    }
+    
+    // Check for tab-indented code blocks (4 spaces or tab at start)
+    const isTabIndented = line.match(/^(\t|    )/);
+    
+    // If we're in a code block or this line is tab-indented, don't process underscores
+    if (inCodeFence || isTabIndented) {
+      processedLines.push(line);
+      continue;
+    }
+    
+    // Process inline code spans (`code`) by temporarily replacing them
+    // Match pairs of backticks with content between them (including empty)
+    const inlineCodeRegex = /`[^`]*`/g;
+    const inlineCodeBlocks = [];
+    let tempLine = line.replace(inlineCodeRegex, (match) => {
+      const placeholder = `XYZINLINECODEXYZ${inlineCodeBlocks.length}XYZENDXYZ`;
+      inlineCodeBlocks.push(match);
+      return placeholder;
+    });
+    
+    // Process HTML elements by temporarily replacing them
+    // Match HTML tags with attributes that might contain underscores
+    const htmlElementRegex = /<(a|img|pre|code|script|style|link|meta)[^>]*>.*?<\/\1>|<(a|img|pre|code|script|style|link|meta|br|hr|input)[^>]*\/?>/gi;
+    const htmlElements = [];
+    tempLine = tempLine.replace(htmlElementRegex, (match) => {
+      const placeholder = `XYZHTMLELEMENTXYZ${htmlElements.length}XYZENDXYZ`;
+      htmlElements.push(match);
+      return placeholder;
+    });
+    
+    // Also handle HTML attributes specifically (href, src, etc.) that might span lines or be standalone
+    const attributeRegex = /\b(href|src|action|data-[a-z-]+|class|id|style|alt|title)\s*=\s*(['"]?)([^'">\s]*)\2/gi;
+    const attributes = [];
+    tempLine = tempLine.replace(attributeRegex, (match) => {
+      const placeholder = `XYZATTRIBUTEXYZ${attributes.length}XYZENDXYZ`;
+      attributes.push(match);
+      return placeholder;
+    });
+    
+    // Now escape underscores in the remaining text (not already escaped)
+    tempLine = tempLine.replace(/(?<!\\)_/g, '\\_');
+    
+    // Restore attributes
+    attributes.forEach((attribute, index) => {
+      const placeholder = `XYZATTRIBUTEXYZ${index}XYZENDXYZ`;
+      tempLine = tempLine.split(placeholder).join(attribute);
+    });
+    
+    // Restore HTML elements
+    htmlElements.forEach((htmlElement, index) => {
+      const placeholder = `XYZHTMLELEMENTXYZ${index}XYZENDXYZ`;
+      tempLine = tempLine.split(placeholder).join(htmlElement);
+    });
+    
+    // Restore inline code blocks
+    inlineCodeBlocks.forEach((codeBlock, index) => {
+      const placeholder = `XYZINLINECODEXYZ${index}XYZENDXYZ`;
+      tempLine = tempLine.split(placeholder).join(codeBlock);
+    });
+    
+    processedLines.push(tempLine);
+  }
+  
+  return processedLines.join('\n');
+}
+
+function formatBuckets(htmlText) {
+  // Create a temporary div to work with the HTML
+  var tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlText;
+  
+  // Convert to array of child nodes for easier processing
+  var nodes = Array.from(tempDiv.childNodes);
+  
+  // Clear the temp div to rebuild it
+  tempDiv.innerHTML = '';
+  
+  var currentBucket = null;
+  var currentBucketContent = null;
+  
+  // Process each node sequentially
+  nodes.forEach(function(node) {
+    if (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() === 'h2') {
+      // Close previous bucket if it exists
+      if (currentBucket && currentBucketContent) {
+        currentBucket.appendChild(currentBucketContent);
+        tempDiv.appendChild(currentBucket);
+      }
+      
+      // Start new bucket
+      currentBucket = document.createElement('div');
+      currentBucket.className = 'bucket';
+      
+      // Add h2 to the bucket
+      currentBucket.appendChild(node);
+      
+      // Create new bucketcontent div
+      currentBucketContent = document.createElement('div');
+      currentBucketContent.className = 'bucketcontent';
+    } else if (currentBucket && currentBucketContent) {
+      // Add content to current bucket
+      if (node.nodeType === Node.ELEMENT_NODE || 
+          (node.nodeType === Node.TEXT_NODE && node.textContent.trim())) {
+        currentBucketContent.appendChild(node);
+      }
+    } else {
+      // Content before first h2 - add directly to tempDiv
+      if (node.nodeType === Node.ELEMENT_NODE || 
+          (node.nodeType === Node.TEXT_NODE && node.textContent.trim())) {
+        tempDiv.appendChild(node);
+      }
+    }
+  });
+  
+  // Close final bucket if it exists
+  if (currentBucket && currentBucketContent) {
+    currentBucket.appendChild(currentBucketContent);
+    tempDiv.appendChild(currentBucket);
+  }
+  
+  // Return the processed HTML
+  return tempDiv.innerHTML;
+}
 
 function loadMarkdown(pagePath, divID, target, attempts, callback) {
   if (typeof attempts === 'undefined') {
@@ -2359,6 +2503,9 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
 
       // Also try adding simpleLineBreaks http://demo.showdownjs.com/
 
+      // Escape underscores outside of code blocks in the markdown data
+      data = escapeUnderscoresOutsideCodeBlocks(data);
+
       var converter = new showdown.Converter({tables:true, metadata:true, simpleLineBreaks: true}),
       html = editReadme + converter.makeHtml(data);
 
@@ -2384,6 +2531,11 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
 
         html = metadata + html;
         */
+      }
+
+      // Apply formatBuckets when on localhost
+      if (location.host.indexOf('localhost') >= 0) {
+        html = formatBuckets(html);
       }
 
       // Appends rather than overwrites
@@ -2467,6 +2619,7 @@ function loadIntoDiv(pageFolder,divID,html,callback) {
         //console.log("Showdown link update2: " + pageFolder + " plus " + currentElement.getAttribute('href'));
       }
     });
+
 
     if(callback) callback();
   });
@@ -2764,7 +2917,6 @@ function setSitemode(sitemode) {
   // Not copied over from settings.js
 }
 function setSitelook(siteLook) {
-    
     //let root = "/explore/"; // TEMP
     //let root = "/localsite/";
     if (!siteLook) {
@@ -2774,7 +2926,8 @@ function setSitelook(siteLook) {
       siteLook = "dark"
     }
     consoleLog("setSiteLook: " + siteLook);
-    
+    $("#sitelook").val(siteLook);
+
     // Force the brower to reload by changing version number. Avoid on localhost for in-browser editing. If else.
     var forceReload = (location.host.indexOf('localhost') >= 0 ? "" : "?v=3");
     $("body").removeClass("dark");
@@ -3211,48 +3364,74 @@ function isValidJSON(str) {
     }
 }
 
-// Might move this into a new format.js file. Used in projects repo.
-function formatBuckets(divID) {
-  document.addEventListener('DOMContentLoaded', function() {
-  waitForElm('#' + divID).then((elm) => {
 
-    // BUGBUG not working yet
+// AnythingLLM left side navigation header adjustment
+// Monitors header visibility and adjusts top positioning while keeping content within flexMain
+function adjustAnythingLLMNavigation() {
+  if (!document.getElementById('root') || !document.getElementById('root').classList.contains('h-screen')) {
+    return; // Only apply to AnythingLLM instances
+  }
+  
+  const root = document.getElementById('root');
+  const headerbar = document.getElementById('headerbar');
+  const localHeader = document.getElementById('local-header');
+  
+  function updateHeaderState() {
+    const isHeaderbarVisible = headerbar && !headerbar.classList.contains('headerbarhide') && headerbar.style.display !== 'none';
+    const isLocalHeaderVisible = localHeader && localHeader.style.display !== 'none';
+    const hasDoubleHeader = isHeaderbarVisible && isLocalHeaderVisible;
     
-    // Get the target element (either by ID or the entire body)
-    var targetElement = divID === 'body' ? document.body : document.getElementById(divID);
-
-    if (!targetElement) {
-        alert(`Element with ID ${divID} not found.`);
-        return;
+    // Add body class for CSS targeting
+    if (hasDoubleHeader) {
+      document.body.classList.add('double-header');
+    } else {
+      document.body.classList.remove('double-header');
     }
-
-    var content = Array.from(targetElement.childNodes);
-    var currentBucket = null;
-
-    content.forEach(function(node) {
-      alert("123 " + node.tagName)
-        if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'H2') {
-            
-            // Create a new .bucket div when encountering an <h2>
-            currentBucket = document.createElement('div');
-            currentBucket.classList.add('bucket');
-
-            var bucketContent = document.createElement('div');
-            bucketContent.classList.add('bucketcontent');
-
-            // Append the <h2> to the bucket content
-            bucketContent.appendChild(node);
-            currentBucket.appendChild(bucketContent);
-
-            // Append the bucket to the target element
-            targetElement.appendChild(currentBucket);
-        } else if (currentBucket) {
-            // Append non-<h2> elements to the current bucket content
-            currentBucket.querySelector('.bucketcontent').appendChild(node);
-        }
+    
+    // Apply top offset to the entire sidebar container, not just the inner parts
+    const sidebarContainer = root.querySelector('div[style*="width: 292px"], div[style*="width:292px"]'); // AnythingLLM sidebar outer container
+    
+    if (sidebarContainer) {
+      // Ensure the sidebar container has proper positioning
+      sidebarContainer.style.position = 'relative';
+      sidebarContainer.style.zIndex = '10';
+      
+      if (hasDoubleHeader) {
+        // Double header: offset entire sidebar by ~140px on desktop, ~128px on mobile  
+        const offset = window.innerWidth <= 600 ? '128px' : '140px';
+        sidebarContainer.style.paddingTop = offset;
+      } else {
+        // Single header: offset entire sidebar by ~80px on desktop, ~64px on mobile
+        const offset = window.innerWidth <= 600 ? '64px' : '80px';
+        sidebarContainer.style.paddingTop = offset;
+      }
+    }
+    
+    // Reset any padding from root to keep main content in normal position
+    root.style.paddingTop = '';
+    root.style.marginTop = '';
+  }
+  
+  // Initial check
+  updateHeaderState();
+  
+  // Monitor header changes
+  if (headerbar) {
+    const observer = new MutationObserver(updateHeaderState);
+    observer.observe(headerbar, { 
+      attributes: true, 
+      attributeFilter: ['class', 'style'] 
     });
-  });
-  });
+  }
+  
+  // Monitor scroll events that might affect header visibility
+  window.addEventListener('scroll', updateHeaderState);
+  
+  // Monitor window resize for responsive offset adjustments
+  window.addEventListener('resize', updateHeaderState);
 }
+
+// Initialize AnythingLLM navigation adjustments when DOM is ready
+document.addEventListener('DOMContentLoaded', adjustAnythingLLMNavigation);
 
 consoleLog("end localsite");
