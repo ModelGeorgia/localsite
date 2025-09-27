@@ -2,14 +2,101 @@
 Originates at https://modelearth.github.io/localsite/css/base.css 
 Used in localsite, modelearth, io, neighborhood, trees
 */
+:root {
+    --header-height: 80px;  /* Define header height as CSS variable */
+    --side-nav-width: 67px;
 
-/* AnythingLLM specific override - fit within flexmain container */
-.flexmain #root.h-screen {
-  position: relative !important;
-  /* Use flexmain container height instead of viewport, prevents footer overlap */
-  height: 100% !important;
-  min-height: auto !important;
+    --bg-primary: #F9FAFB;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F3F4F6;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --accent-green: #10B981;
+    --accent-blue: #3B82F6;
+    --accent-orange: #F59E0B;
+    --border-light: #E5E7EB;
+    --border-medium: #D1D5DB;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --sidebar-width-expanded: 67px;
+    --sidebar-collapsed: 64px;
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+#side-nav {
+  width: 67px;
+  flex-shrink: 0;
+}
+.main-nav {
+  flexXXX: 0 0 189px !important;
+  width: 189px !important;
+  flex-shrink: 0;
+}
+#side-nav-absolute::-webkit-scrollbar, #side-nav-content::-webkit-scrollbar {
+    display: none;
+}
+.main-nav-full {
+  width: 252px !important;
+  flex-shrink: 0; /* Prevents the column from shrinking below 257px */
+}
+.dark #side-nav-absolute {
+  background-color: #666667;
+}
+@media (max-width: 600px) {
+  .main-nav {
+    width:100% !important;
+  }
+  .main-nav-full {
+    width:100% !important;
+  }
+}
+.sidebar-hidden #side-nav {
+  width: 0px !important;
+  display: none !important;
+}
+.dark {
+    --bg-secondary: #555;
+    --bg-tertiary: #555;
+    --text-secondary: #6B7280; /* too light for icons on team/projects */
+    --text-secondary: #bbb;
+    --text-primary: #eee;
+    --border-light: #aaa;
+    --border-medium: #666;
+}
+@media (max-width: 600px) {
+  :root {
+      --header-height: 60px;
+  }
+  #side-nav-absolute {
+    width:  100% !important;
+    right: 0px !important;
+  }
+}
+/* Also in base.css */
+.flexbody {
+    display: flex;
+    height: 100vh;
+    flex-direction: row;
+}
+
+/* Since pages in team don't have .flexbody in body tag. */
+body {
+    /*
+    display: flex;
+    height: 100vh;
+    flex-direction: row;
+    */
+    -webkit-font-smoothing: antialiased;
+}
+
+header, footer {
+    flex-shrink: 0;
+}
+
 @font-face {
   font-family:'Amaze';font-weight:300;
   src:url("/localsite/css/fonts/ember.woff2") format("woff2"), url("/localsite/css/fonts/ember.woff") format("woff")
@@ -33,7 +120,7 @@ svg{max-width:none;} /* Fix for embedding material icon map points in Drupal */
 
 @media (max-width: 800px) {
   .hideMobile {display:none;}
-  .hideNarrow {display:none;} /* Not activated when sideTabs displayed */
+  .hideNarrow {display:none;} /* Not activated when rightSideTabs displayed */
   .showMobile {display:inline-block !important;}
 }
 @media (max-width: 1800px) {
@@ -85,6 +172,7 @@ body {
   }
 }
 .bodyRightMargin {
+  /* adds extra spec left of header following change to add nav.js */
   margin-right: 500px;
 }
 @media (max-width: 400px) {
@@ -218,15 +306,39 @@ body {
   }
 }
 
-.flexbodyX {
-  display: flex; /* for footer */
-  flex-direction: column; /* for footer */
+/* Also in nav.css - allows #main-nav to extend to footer */
+.flexbody {
+    display: flex;
+    height: 100vh;
+    flex-direction: row;
 }
+
 main, .flexmain {
     flex-grow: 1; /* for footer */
 }
 header, main, .flexfooter {
-    flex-shrink: 0; /* prevent shrinking if content is larger than the screen. */
+    /* Resulted in massive images */
+    /* flex-shrink: 0; */ /* prevent shrinking if content is larger than the screen. */
+}
+#main-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+/* Ensure proper footer positioning */
+#main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+#main-container {
+  flex: 1 0 auto;
+  /* Let content determine height naturally, no forced min-height */
+}
+
+#main-content {
+  width: 100%;
 }
 
 table {
@@ -237,7 +349,14 @@ td {
   vertical-align: top;
 }
 textarea {
-    border-color: #777;
+  border-color: #777;
+}
+.dark textarea {
+  color: #eee;
+  background-color: #222;
+  border-color: #222;
+  border-left: 4px solid green;
+  border-radius: 6px;
 }
 .textInput {
   font-size: 15px;
@@ -287,6 +406,7 @@ h2 {
   padding-top: 12px;
   padding-bottom: 5px;
   border-bottom: 1px solid #ddd;
+  margin-bottom: 18px;
   color: rgb(77, 82, 89);
   color: #333;
   overflow: auto;
@@ -372,8 +492,8 @@ h6 {
 .dark .sector-list .indicator-group {
   color: #bbb;
 }
-.dark .tabulator .tabulator-header {
-  background-color: transparent;
+.dark .tabulator .tabulator-header, .dark .tabulator .tabulator-footer {
+  background-color: #333;
   border-bottom: 1px solid transparent;
 }
 .dark .tabulator .tabulator-tableholder .tabulator-table {
@@ -491,7 +611,7 @@ summary::-webkit-details-marker {
   margin-top: 100px;
   padding-top: 18px;
 }
-@media (min-width: 1800px) {
+@media (min-width: 1600px) {
 	.content {
 	  max-width: 1500px;
 	  font-size: 18px;
@@ -499,9 +619,9 @@ summary::-webkit-details-marker {
 }
 .contentpadding, #observablehq-center {
   padding-top: 25px;
-  padding-left: 66px; /* avoids overlapping left icon menu */
-  padding-right: 40px;
-  padding-bottom: 45px;
+  padding-left: 30px;
+  padding-right: 30px;
+  padding-bottom: 30px;
 }
 .content a, .contentfull a {
   text-decoration: none;
@@ -524,7 +644,9 @@ summary::-webkit-details-marker {
 .liteDiv a {
   color: #333;
 }
-.greyDiv { /* Mix of light and dark text */
+/* Mix of light and dark text - left side nav */
+/*
+.greyDiv { 
   color: #fff;
   background-color: #b1b1b1;
 }
@@ -538,8 +660,8 @@ summary::-webkit-details-marker {
 .greyDiv b a:hover, .greyDiv b a:visited:hover {
   color: #fff;
 }
-.dark .greyDiv { /* Left side nav */
-  background-color: #444;
+.dark .greyDiv {
+  background-color: #444 !important;
   border: 0px;
 }
 .dark .greyDiv a:link, .greyDiv a:visited, .dark .content .greyDiv a:link, .dark .content .greyDiv a:visited {
@@ -548,6 +670,13 @@ summary::-webkit-details-marker {
 .dark .greyDiv b, .dark .greyDiv .maincat, .dark .greyDiv b a, .dark .greyDiv b a:visited, .dark .content .greyDiv b, .dark .content .greyDiv .maincat, .dark .content .greyDiv b a, .dark .content .greyDiv b a:visited {
   color: #fff;
 }
+*/
+
+.dark .greyDiv {
+    color: #fff;
+    background-color: #666 !important;
+}
+
 .litetext {
   color:#888;
 }
@@ -573,16 +702,6 @@ summary::-webkit-details-marker {
   max-width: 2000px;
 }
 
-/* caused cropping on /feed 
-.content ul li {
-  margin-left: -10px;
-}
-*/
-@media (max-width: 800px) {
-    .content {
-      padding: 15px 30px 30px 64px;
-    }
-}
 @media (max-width: 1400px) {
   .contentwide {
     max-width: 1350px;
@@ -757,6 +876,29 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 #hero-content {
   padding: 45px 60px 40px 60px;
 }
+@media (max-width: 1000px) {
+  .bgimg {
+    min-height: 400px !important;
+  }
+}
+@media (max-width: 600px) {
+  .hero-title {
+    margin: 20px;
+    padding-top: 30px;
+    font-size: 28px !important;
+    font-weight: bold !important;
+  }
+  #hero-content {
+    padding: 0px;
+  }
+  #hero-rect {
+    margin: 0px !important;
+  }
+  .bgimg {
+    min-height: 0px !important;
+  }
+}
+
 #hero-mini {
   float: right;
   background-color: rgba(33, 33, 33, 0.85);
@@ -811,7 +953,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    background-color: transparent;
+    /* background-color: transparent; */
     border: 1px solid transparent;
     padding: 0.375rem 1rem;
     line-height: 1.5;
@@ -825,7 +967,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
     margin-bottom:8px;
 }
 .btn:link, .btn:visited, .contentpadding .btn:link, .contentpadding .btn:visited {
-  color: #fff !important; 
+  /* color: #fff !important; */
   text-decoration: none;
 }
 #hero-rect .btn:link, #hero-rect .btn:visited {
@@ -964,10 +1106,6 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 .topLinks b {
   font-weight: 800;
 }
-.main-content {
-  /* margin-top: 40px; */
-  /* overflow:hidden; */  /* prevents footer from residing beside columns, but caused menu/accordion to be cut off. */
-}
 #rightColumn img {
   /* messed up /account page */
   /*
@@ -978,7 +1116,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   cursor:pointer;
   padding:5px 9px 12px 12px;
   font-size:18px;
-  color:#ddd;
+  color:#eee;
   /* If code appear instead of x, check if some other font is being applied. Try activating this line to fix (copied from an x that worked).
   font-family: 'Nunito Sans', Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   */
@@ -1166,6 +1304,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   /* white arrow */
   background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="white" d="M7 10l5 5 5-5z"/></svg>') no-repeat right 5px center; /* Custom white arrow */
   background-color: #888;
+  margin-leftX: 1px; /* prevents border from being cropped when dropdown selected */
 }
 
 .notdark {
@@ -1182,9 +1321,6 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 
 #logospace {
   float:left;
-  borderX: 1px solid blue;
-  line-heightX:32px;
-  margin-leftX:-19px;
   vertical-align:middle;
 }
 /*
@@ -1215,7 +1351,11 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   margin-right: 4.5px;
   float: left;
 }
-
+@media (max-width: 600px) {
+  #headerLogo img {
+    max-width: 120px;
+  }
+}
 /* phase out? */
 .logoholder-state {
   background:url(img/logo/georgia-icon-on-gray.png) no-repeat;
@@ -1254,9 +1394,12 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   position: absolute;
   top: 50%;
   transform: translate(0%, -50%);
-  min-width: 250px; /* Prevents being too narrow in OpenWebUI */
 }
-
+@media (min-width: 601px) {
+  #headerSiteTitle {
+      min-width: 250px; /* Prevents being too narrow in OpenWebUI */
+  }
+}
 #headerLocTitle {
   float:left;
   padding-top:1px;
@@ -1264,11 +1407,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   font-size: 22px;
 }
 .headerbar {
-  background-color: rgb(230 230 230/50%); /* Don't use. Doesn't overlap left side nav */
   background-color: rgb(239 239 239);
-  right: 0px;
-  left: 0px;
-  top: 0px;
   pointer-events: auto;
 }
 .filterFieldsHolderFixed {
@@ -1302,17 +1441,17 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 .headerbar a:link:hover, .headerbar a:visited:hover {
     color: #444;
 }
-/* Seems that brave darkmode ignores the use of prefers-color-scheme: dark */
-@media (not (prefers-color-scheme: dark)) {
-  .headerbar {
-    background: #fff;
-    border-bottom: 1px solid rgb(238,238,238/95%); /* #eee */
-    border-bottom: 1px solid rgb(238,238,238);
-  }
+.headerbar {
+  border-bottom: 1px solid rgb(238,238,238/95%); /* #eee */
+  border-bottom: 1px solid rgb(238,238,238);
+  background-color: #eee;
 }
 .dark .headerbar {
-  background: #333;
+  background: #222;
   border-bottom: 1px solid #333;
+}
+.headerbarheight {
+  min-height:80px;
 }
 .headerbarhide {
   display: none !important;
@@ -1325,6 +1464,40 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   }
 }
 */
+@media (max-width: 600px) {
+  #showSideFromBar {
+    display: none !important;
+  }
+  #mapFilters {
+    margin-left: 6px !important;
+  }
+}
+.headerLeftIcon i {
+  font-size:24px;
+  min-width:28px; 
+  opacity:1;
+  color:#333;
+  padding-left:2px; 
+  padding-right:2px;
+  border:0px solid #555;
+  border-radius:8px;
+  cursor: pointer;
+}
+#showSideFromHeader i {
+  color: #555;
+}
+#showSideFromHeader i:hover {
+  color: #000 !important;
+}
+#showSideFromHeader:hover i {
+  color: #000 !important;
+}
+.dark #showSideFromHeader i {
+  color: #ddd;
+}
+.dark #showSideFromHeader:hover i {
+  color: #fff !important;
+}
 @media (max-width: 380px) {
   .showSearch {
     display: none;
@@ -1339,17 +1512,22 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 #headerIcons:hover {
   background-color: #ddd;
 }
-.headerbarheight {
-  min-height:80px;
+:root {
+  --header-offset-height: 79px; /* Default header offset height */
 }
+
 .headeroffset { /* Does not include bar */
   height:79px;
 }
-#local-header {
+#local-headerXXX {
   /* min-height:82.5px; */ /* Caused space under current header */
   min-height:79px;
 }
 @media (max-width: 600px) {
+  :root {
+    --header-offset-height: 64px; /* Mobile header offset height */
+  }
+  
   #headerIcons {
     margin-top:4px;
   }
@@ -1358,9 +1536,6 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   }
   .headeroffset {
     height:64px;
-  }
-  #local-header {
-    min-height:64px; 
   }
 }
 
@@ -1374,10 +1549,8 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 .upperIcons {
   margin-right: 18px;
 }
-@media (min-width: 300px) {
-  #headerLogoholder {
-    min-widthX: 200px;
-  }
+#headerLogoholder {
+  margin-left: 35px;
 }
 @media (max-width: 600px) {
   .upperIcons {
@@ -1766,7 +1939,6 @@ input:checked + .slider:before {
   font-size: 1.1em;
 }
 .large-list .num {
-  position: absolute;
   font-size: 17px;
   background-color: #999;
   color: #fff;
@@ -1781,10 +1953,15 @@ input:checked + .slider:before {
   border-radius: 13px;
   display: block;
 }
+h2 .num {
+  position: absolute;
+}
 .large-list .txt {
   margin-left: 33px;
 }
-
+.dark .large-list .num {
+  background-color: #000;
+}
 /* Hide vertical lines in Tabulator grid */
 .tabulator .tabulator-row .tabulator-cell {
     border-right: none !important;
@@ -1796,4 +1973,972 @@ input:checked + .slider:before {
 /* Hide vertical lines in the column headers */
 .tabulator .tabulator-header .tabulator-col {
     border-right: none !important;
+}
+
+
+
+
+/* Nav.css */
+
+/* overrides base.css */
+.headerbar { 
+    left: var(--side-nav-width, 62px);
+}
+
+/* On mobile, headerbar should be at left edge when sidebar is hidden */
+@media (max-width: 600px) {
+    body.sidebar-hidden .headerbar {
+        left: 0;
+    }
+}
+
+#sideIcons {
+    left: var(--side-nav-menu, 62px); /* Without !important the 3-bar menu is not visible */
+}
+#sideIcons {
+    position:absolute;
+    left: 64px !important; /* Without !important the 3-bar menu is not visible */
+    width: 32px;
+}
+#pageControls {
+    position: relative;
+}
+/* inserted into bar at top of content on team/projects and other pages */
+#pageControls #sideIcons {
+    position: relative;
+    top: 0;
+    left: 0 !important;
+    flex: 0 0 auto;
+}
+#pageControls #showNavColumn {
+    padding: 0px;
+}
+
+/* Sidebar Styles */
+.sidebarX {
+    flex-direction: column;
+    position: fixed;
+    z-index: 1000;
+}
+#side-nav {
+  transition: var(--transition-smooth);
+  background: var(--bg-secondary);
+  transition: var(--transition-smooth);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  /* Optional: Setting height: 100% carries white backround color behind inner side nav in Light mode */
+}
+
+#side-nav.expanded {
+  width: 300px;
+  width: 238px;
+}
+#side-nav.expanded .nav-link {
+  width: calc(100% - 10px);
+  margin-right: 10px;
+}
+@media (max-width: 600px) {
+  #side-nav.expanded {
+    width: 100%;
+  }
+}
+#side-nav.expanded #main-nav {
+  display: none !important;
+}
+#side-navXX.collapsed {
+  width: 64px;
+  min-width: 64px;
+}
+
+/* Close button for sidebar */
+#side-nav-header {
+  flex-shrink: 0;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+@media (max-width: 600px) {
+  .collapsed #side-nav-header {
+    display: none;
+  }
+}
+#side-nav-content {
+  z-index: 100;
+  border-right: 1px solid #dedede;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary, #ffffff);
+}
+#side-nav-content {
+  z-index: 4000;
+}
+#side-nav-footer{
+    flex-shrink: 0;
+    margin-top: auto; /* Push to bottom */
+    border-top: 1px solid var(--border-light);
+    padding: 8px;
+}
+
+.sidebarX.collapsed {
+    width: var(--sidebar-collapsed);
+}
+
+.sidebarX.collapsed.hovered:not(.locked) {
+    width: var(--sidebar-width-expanded);
+}
+
+/* Global state classes for sidebar width tracking */
+body.sidebar-collapsed {
+    --side-nav-width: var(--sidebar-collapsed);
+}
+
+body.sidebar-expanded {
+    --side-nav-width: calc(var(--sidebar-width-expanded) - 3px);
+}
+
+body.sidebar-hovered {
+    --side-nav-width: calc(var(--sidebar-width-expanded) - 3px);
+}
+
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-smooth);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.sidebar-toggle:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* When expanded: arrow points left, when collapsed: arrow points right */
+.sidebar.collapsed .sidebar-toggle {
+    /* justify-content: center; */
+}
+
+/* Don't apply CSS rotation - let JavaScript handle icon changes */
+.sidebar-toggle i {
+    transform: none;
+}
+
+/* Ensure arrow icon maintains proper size */
+.sidebar-toggle i {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+/* External Site Specific Styles - Add spacing for hidden header */
+/*
+#side-nav-menu
+.sidebar.external-site .nav-section:first-child {
+    padding-top: 42px;
+}
+*/
+/* External Site Specific Styles - Show arrows when expanded, hide when collapsed */
+.sidebar.external-site .nav-arrow {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin-left: 8px !important;
+}
+
+.sidebar.external-site.collapsed .nav-arrow,
+.sidebar.external-site.collapsed.hovered .nav-arrow,
+.sidebar.external-site.collapsed.locked .nav-arrow {
+    display: none !important;
+}
+
+.sidebar.external-site #side-nav-footer,
+.sidebar.external-site.collapsed #side-nav-footer,
+.sidebar.external-site.collapsed.hovered #side-nav-footer,
+.sidebar.external-site.collapsed.locked #side-nav-footer {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    margin-top: auto !important;
+    border-top: 1px solid var(--border-light) !important;
+    padding: 8px !important;
+}
+
+.sidebar.external-site .sidebar-toggle,
+.sidebar.external-site.collapsed .sidebar-toggle,
+.sidebar.external-site.collapsed.hovered .sidebar-toggle,
+.sidebar.external-site.collapsed.locked .sidebar-toggle {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: none !important;
+    border: none !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+    padding: 12px !important;
+    border-radius: var(--radius-sm) !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
+
+/* Cursor for expanding collapsed sidebar */
+.sidebar.collapsed #side-nav-content {
+    cursor: e-resize; /* rightward pointing double-arrow */
+    max-width: 62px;
+}
+.sidebar.collapsed .nav-section .nav-text {
+  display: none !important;
+}
+.sidebar.collapsed .nav-section .nav-link {
+  width: 0px !important;
+  max-width: 0px !important;
+  min-width: 0px !important;
+}
+.sidebar.collapsed .nav-section:hover .nav-link {
+  width: auto;
+  max-width: 200px !important;
+  min-width: 200px !important;
+  transition: none !important;
+}
+.sidebar.collapsed .nav-section:hover .nav-icon {
+  margin-right: 12px !important;
+}
+.sidebar.collapsed .nav-section:hover .nav-link.active {
+  border-radius: 50px !important;
+  width: calc(100% - 16px) !important;
+  height: auto !important;
+  margin: 2px 8px 2px 14px !important;
+  justify-content: space-between !important;
+  padding: 12px 16px 12px 16px !important;
+}
+
+/* Navigation Menu */
+#side-nav-absolute {
+    position: absolute;
+    top: var(--header-height);
+    bottom: 0px;
+    height: calc(100vh - var(--header-height));
+    display: flex;
+    flex-direction: row;
+    overflow-y: auto;
+}
+#side-nav-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+#side-nav-menu {
+    flex: 1;
+    overflow-y: auto;
+}
+.nav-item {
+    margin-bottom: 4px;
+    positionX: relative;
+    min-height: 42px;
+}
+
+.nav-link {
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    padding: 12px 12px 12px 12px;
+    background: none;
+    border: 0px solid transparent;
+    border-radius: 50px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transitionX: var(--transition-smooth);
+    text-align: left;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 2px 8px;
+    font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-decoration: none;
+    /* position: absolute !important; */
+    z-index: 1500 !important;
+}
+.nav-link:link,
+.nav-link:visited {
+    color: var(--text-secondary);
+}
+
+.nav-link:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+
+    align-items: left !important;
+}
+
+/* Use solid background when sidebar is expanded */
+.sidebar.expanded .nav-link:hover,
+.sidebar.hovered:not(.locked) .nav-link:hover {
+    background: var(--bg-tertiary);
+}
+
+.nav-link.active {
+    color: var(--text-primary);
+}
+.dark .nav-link.active  {
+
+}
+/* Active nav styling for different states */
+.nav-link.active {
+    background: var(--bg-tertiary);
+}
+
+/* Expanded state - show full width background */
+#side-nav.expanded .nav-link.active {
+    background: var(--bg-tertiary);
+    width: calc(100% - 16px);
+    height: auto;
+    margin: 2px 8px;
+    justify-content: space-between;
+    padding: 12px 16px 12px 16px;
+}
+
+/* Collapsed state - show circular background */
+.sidebar.collapsed .nav-text {
+  displayX: none !important;
+}
+.sidebar.collapsed .nav-link.active {
+    background: var(--bg-tertiary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    min-width: 40px !important;
+    marginX: 4px auto;
+    margin-left:20px;
+    justify-content: center;
+    padding: 12px;
+}
+.sidebar.collapsed .nav-icon {
+  margin-right: 0px !important;
+}
+
+.sidebar.collapsed.hovered:not(.locked) .nav-link.active {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    width: calc(100% - 16px);
+    height: auto;
+    margin: 2px 8px;
+    justify-content: space-between;
+    padding: 12px 16px 12px 16px;
+}
+
+.nav-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.nav-link:link .nav-icon,
+.nav-link:visited .nav-icon {
+    color: var(--text-secondary);
+}
+
+.nav-text {
+    flex: 1;
+    white-space: nowrap;
+    opacity: 1;
+    transition: var(--transition-smooth);
+    display: block;
+}
+.sidebar.collapsed .nav-text {
+    opacity: 0;
+    width: 0;
+}
+
+.sidebar.collapsed .nav-link:hover .nav-text {
+    opacity: 1;
+    display:block !important; /* Show on circle hover */
+}
+
+.nav-link:hover .nav-text {
+  colorX: #333;
+}
+
+.sidebar.collapsed.hovered:not(.locked) .nav-text {
+    opacity: 1;
+    width: auto;
+    display: block;
+}
+
+.nav-arrow {
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
+    position: relative;
+}
+
+
+.nav-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.sidebar.collapsed .nav-arrow {
+    display: none;
+}
+
+.sidebar.collapsed .nav-link {
+  position: absolute !important; /* Allows rollover to be hidden when nav width is collapsed */
+}
+
+.sidebar.collapsed.hovered:not(.locked) .nav-arrow {
+    opacity: 1;
+    width: 16px;
+}
+
+/* Subnav Styles */
+.subnav {
+    max-height: 0;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+    background: transparent;
+}
+
+.subnav.expanded {
+    max-height: 300px;
+}
+
+.subnav-link {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px 8px 52px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    transition: var(--transition-smooth);
+}
+
+.subnav-link:link,
+.subnav-link:visited {
+    color: var(--text-secondary);
+}
+
+.subnav-link:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Dark mode hover styles - make nav and subnav hovers darker */
+.dark .nav-link:hover {
+    background: #374151 !important;
+}
+
+.dark .subnav-link:hover {
+    background: #374151 !important;
+}
+
+.subnav-link.active {
+    color: var(--accent-blue);
+    background: var(--bg-secondary);
+    font-weight: 500;
+}
+
+.subnav-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.subnav-link:link .subnav-icon,
+.subnav-link:visited .subnav-icon {
+    color: var(--text-secondary);
+}
+
+.sidebar.collapsed .subnav {
+    display: none;
+}
+
+.sidebar.collapsed.hovered:not(.locked) .subnav {
+    display: block;
+}
+
+/* Main Content */
+.main-content {
+    displayX: flex;
+    flexX: 1;
+    transition: var(--transition-smooth);
+    min-height: 100vh;
+    width: 100%;
+}
+
+.sidebar.collapsed ~ .main-content {
+    margin-left: var(--sidebar-collapsed);
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .nav-link {
+    padding-right: 20px;
+  }
+  #side-nav {
+    top: var(--header-height, 60px);
+  }
+  
+  /* Expanded nav arrows on mobile - larger with circle background */
+  #side-nav.expanded .nav-arrow {
+    width: 32px !important;
+    height: 32px !important;
+    background: var(--bg-tertiary) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: 12px !important;
+  }
+  
+  /* Dark mode styling for mobile nav arrow circles */
+  .dark #side-nav.expanded .nav-arrow {
+    background: #333 !important;
+  }
+    #side-navX {
+        width: 64px;
+        position: fixed;
+        top: var(--header-height, 79px);
+        left: 0;
+        height: calc(100vh - var(--header-height, 79px));
+        z-index: 1000;
+    }
+    
+    /* Hide sidebar completely on mobile when hidden */
+    body.sidebar-hidden #side-nav {
+        display: none !important;
+    }
+    
+    /* When mobile-open, expand to full width and overlay */
+    #side-nav.mobile-open {
+        width: 100vw !important;
+        z-index: 2000;
+    }
+    
+    /* Show titles and arrows when mobile-open (expanded) */
+    #side-nav.mobile-open .nav-text {
+        opacity: 1 !important;
+        width: auto !important;
+        display: block !important;
+    }
+    
+    #side-nav.mobile-open .nav-arrow {
+        display: block !important;
+        opacity: 1 !important;
+    }
+    
+    #side-nav.mobile-open .logo-text {
+        opacity: 1 !important;
+        width: auto !important;
+        display: block !important;
+    }
+    
+    /* Fix active nav alignment in mobile-open - don't center when text is visible */
+    #side-nav.mobile-open .nav-link {
+        justify-content: space-between !important;
+        width: calc(100% - 16px) !important;
+        margin: 2px 8px !important;
+        padding-right: 16px !important;
+    }
+    
+    #side-nav.mobile-open .nav-link .nav-icon {
+        margin-right: 12px !important;
+    }
+    
+    /* Fix active nav circle in mobile-open - prevent oval stretching and offset issues */
+    #side-nav.mobile-open .nav-link.active {
+        background: var(--bg-tertiary) !important;
+        border-radius: var(--radius-md) !important;
+        justify-content: space-between !important;
+        width: calc(100% - 16px) !important;
+        height: auto !important;
+        margin: 2px 8px !important;
+        padding: 12px 16px 12px 16px !important;
+    }
+    
+    /* Show subnav in mobile-open mode */
+    #side-nav.mobile-open .subnav {
+        display: block !important;
+        max-height: 0 !important;
+        opacity: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    #side-nav.mobile-open .subnav.expanded {
+        display: block !important;
+        max-height: 300px !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+    }
+    
+    /* Ensure subnav links are visible in mobile-open */
+    #side-nav.mobile-open .subnav-link {
+        display: flex !important;
+        opacity: 1 !important;
+        padding: 8px 20px 8px 52px !important;
+    }
+    
+    /* Hide main content when mobile nav is open */
+    #main-layout {
+        transition: var(--transition-smooth);
+        margin-left: 0; /* No margin on mobile */
+    }
+    
+    /* Only add margin when sidebar is visible and not hidden */
+    body:not(.sidebar-hidden) #main-layout {
+        margin-leftX: 64px;
+    }
+    
+    #side-nav.mobile-open ~ #main-layout {
+        opacity: 0.3;
+        pointer-events: none;
+        margin-left: 0; /* No margin when overlay mode */
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    /* Ensure body doesn't reserve space for hidden sidebar on mobile */
+    body.sidebar-hidden {
+        --side-nav-width: 0px;
+    }
+    
+    .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1999;
+        display: none;
+    }
+    
+    .mobile-overlay.active {
+        display: block;
+    }
+}
+
+/* Tooltips for collapsed sidebar */
+.nav-tooltip {
+    position: fixed;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 0;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 5000;
+    pointer-events: auto;
+    opacity: 0;
+    transition: none;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    min-width: 180px;
+    transform: translateX(3px); /* Shift entire tooltip right by 3px (moved 10px left from original 13px) */
+}
+
+.nav-tooltip.show {
+    opacity: 1;
+}
+
+.tooltip-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    position: absolute;
+    left: 12px; /* Position icon at left edge of tooltip */
+}
+
+.tooltip-text {
+    flex: 1;
+    text-align: center;
+    padding: 0 12px 0 48px; /* Left padding to clear the fixed icon */
+}
+
+.tooltip-link {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0 12px 0 0;
+    font: inherit;
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
+    transition: none;
+}
+
+.tooltip-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode fix for tooltip curved corners */
+.dark .nav-tooltip {
+    background: #6b7280; /* Lighter grey for rollover */
+}
+
+.dark .tooltip-link {
+    border-radius: 24px;
+    margin: 0 -12px;
+}
+
+.dark .tooltip-link:hover {
+    background: #6b7280; /* Lighter grey for rollover */
+}
+
+/* Active icon circle in dark mode */
+.dark .sidebar.collapsed .nav-link.active {
+    background: #6b7280; /* Lighter grey circle around active icon */
+    border-radius: 50%;
+    left:-8px;
+
+    widthX: 40px;
+    heightX: 40px;
+    displayX: flex;
+    align-itemsX: center;
+    justify-contentX: center;
+}
+
+.dark .sidebar.collapsed .nav-link.active .nav-icon {
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.nav-x {
+    float: right;
+    width: 24px;
+    height: 24px;
+    background: var(--bg-secondary);
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4001;
+    transition: var(--transition-smooth);
+    opacity: 0.6;
+    pointer-events: auto;
+}
+
+.nav-x:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #000;
+    opacity: 1;
+}
+
+.dark .nav-x {
+    color: #ccc;
+}
+
+.dark .nav-x:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Show close button when sidebar is visible, regardless of collapsed state */
+
+@media (max-width: 600px) {
+    .nav-x {
+        width: 38px;
+        height: 38px;
+        font-size: 30px;
+        position: static;
+        padding: 12px;
+        margin-bottom: 0px;
+    }
+    
+    /* Keep showSideFromHeader visible on narrow screens */
+    #showSideFromHeader {
+        display: inline-block !important;
+    }
+}
+
+.basePanel {
+    background: white;
+    border-radius: 8px;
+}
+.basePanelTop {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+.dark .basePanel {
+    background: #333;
+}
+.basePanelBackground { /* For control that overlap scrolling list */
+    background: white;
+}
+.dark .basePanelBackground {
+    background: #333;
+}
+.basePanelPadding {
+    padding:15px;
+}
+.basePanelFadeOut {
+    position: relative;
+    mask: linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%);
+    -webkit-mask: linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%);
+}
+/* Reopen button for header */
+.nav-reopen-btn {
+    vertical-align: middle;
+    display: inline-block;
+    margin: 0 auto;
+    padding: 6px;
+    opacity: 0.3;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: none; /* Hidden by default */
+}
+
+.nav-reopen-btn i {
+    font-size: 24px;
+    min-width: 30px;
+    opacity: 1;
+    color: #333;
+    padding-left: 2px;
+    padding-right: 2px;
+    border: 1px solid #555;
+    border-radius: 8px;
+}
+
+.nav-reopen-btn i {
+    color: #555;
+}
+
+.nav-reopen-btn i:hover {
+    color: #000 !important;
+}
+
+.nav-reopen-btn:hover i {
+    color: #000 !important;
+}
+
+.dark .nav-reopen-btn i {
+    color: #ddd;
+}
+
+.dark .nav-reopen-btn:hover i {
+    color: #fff !important;
+}
+
+/* Hide reopen button by default */
+#openNav {
+    display: none !important;
+}
+
+/* Show reopen button when sidebar is hidden */
+body.sidebar-hidden #openNav {
+    display: inline-block !important;
+}
+
+/* Show reopen button by default on mobile width */
+@media (max-width: 600px) {
+    #openNav {
+        display: inline-block !important;
+    }
+    
+    /* Hide reopen button when showSideFromHeader is visible */
+    #showSideFromHeader:not([style*="display: none"]) ~ * #openNav,
+    #showSideFromHeader:not([style*="display:none"]) ~ * #openNav {
+        display: none !important;
+    }
+    
+    /* Alternative approach: hide when showSideFromHeader exists and is visible */
+    body:has(#showSideFromHeader:not([style*="display: none"])) #openNav,
+    body:has(#showSideFromHeader:not([style*="display:none"])) #openNav {
+        display: none !important;
+    }
+}
+
+/* Ensure reopen button is visible */
+#openNav i {
+    display: inline-block;
+    text-align: center;
+    font-size: 24px !important; /* Keep original size for border */
+    line-height: 20px !important; /* 4px smaller line-height */
+    text-shadow: 0 0 1px currentColor, 0 0 1px currentColor, 0 0 1px currentColor !important; /* Make dots appear bolder */
+    font-weight: bold !important;
+}
+
+/* Settings toggle styling - shared across projects */
+#settings-toggle {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-medium);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+}
+
+#settings-toggle:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transform: rotate(45deg);
+}
+
+#settings-toggle svg {
+    stroke-width: 1;
+}
+
+/* Dark mode styles for settings toggle */
+.dark #settings-toggle {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-medium);
+    color: var(--text-secondary);
+}
+
+.dark #settings-toggle:hover {
+    background: #666;
+    color: white;
+    border-color: #777;
+    transform: rotate(45deg);
+}
+
+.dark #settings-toggle svg {
+    stroke: white;
+}
+
+/* Generic button styling to match anchor links */
+.bthButton {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    font-family: inherit !important;
+    min-height: 32px;
+    justify-content: center;
+    box-sizing: border-box;
 }

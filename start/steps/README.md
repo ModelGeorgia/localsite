@@ -6,17 +6,22 @@ Our helpful tips for [Yarn, Node, Python, Docker and Conda](../../../io/coders/p
 
 ## ModelEarth webroot with Claude Code CLI
 
-[Overview of webroot](../../../codechat/) and RAG process.
+<a href="https://model.earth/webroot/" class="btn btn-success">Webroot Setup</a><br>
 
-**Recommended:** [Activate your webroot](https://model.earth/webroot) using Claude Code CLI. &ndash; [Runs on port 8887](http://localhost:8887/projects/)
+**Getting Started** [Activate your webroot](https://model.earth/webroot) using Claude Code CLI or your favorite AI CLI
 
-The bottom of the webroot setup as additional steps for pulling in MRIO repos to work with Multi-Region Input-Output (MRIO) using 721 factors across global trade industries.
+**CodeChat:** [Overview of our webroot and RAG process](../../../codechat/) 
 
-And/or just grab a couple repos and start your own webroot...
+**Contribute Locally:** The webroot [runs on port 8887](http://localhost:8887)
+<br>
 
-## Start a local webroot
+## Alternative: Manual webroot setup
 
-Run the following in a local "webroot" folder to start an http server on port 8887
+[Fork and clone the webroot repo](https://github.com/modelearth/webroot/) - You can pull down with Github Desktop
+
+Or you can fork and clone individual repos (submodules) to start your own custom webroot.
+
+Run the following in a local "webroot" folder to start an http server on port 8887.
 
 	python -m http.server 8887
 
@@ -65,7 +70,7 @@ Fork the [home repo](https://github.com/ModelEarth/home) if you're working on ou
 Fork the [profile repo](https://github.com/ModelEarth/home) if you're working with [Exiobase Trade Flow](/profile/trade), [SuiteCRM](/profile/crm) or [Project Preference Ratings](/profile/preferences/). 
 Fork <a href="https://github.com/ModelEarth/data-commons">data-commons</a> if you're adding [data visualizations](/data-commons/docs/data/) using the Google Data Commons javascript API.  
 Fork <a href="https://github.com/ModelEarth/feed">feed player</a> if you're adding to our React Vite visual [Feed viewer](https://model.earth/feed/) and memberSense for Discord.  
-Fork [useeio.js](https://github.com/ModelEarth/useeio.js) if you're contributing to our <a href="../../../useeio.js/footprint/">State Impact Reports</a> and [Trade Flow](../../../profile/trade/) visualizations.  
+Fork [useeio.js](https://github.com/ModelEarth/useeio.js) if you're contributing to our <a href="../../../profile/footprint/">US State Reports</a> and [Trade Flow](../../../profile/trade/) visualizations.  
 Fork <a href="https://github.com/ModelEarth/realitystream">realitystream</a> if you're contributing python to our Machine Learning visualizations.  
 Fork <a href="https://github.com/ModelEarth/requests">requests</a> if you're adding python to our image and video [Storyboard Generation](https://model.earth/data-pipeline/research/stream).  
 Fork <a href="https://github.com/datascape/open-webui/actions">openwebui (Datascape fork)</a> to contribute within our [Open WebUI location projects](/projects/location/) using Python and Vite.  

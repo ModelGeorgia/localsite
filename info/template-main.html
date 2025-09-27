@@ -1,4 +1,5 @@
-<div id="insertedText" style="width:100%">
+<!--div id="insertedText" style="width:100%"-->
+<!-- insertedText from template-main.html -->
 
 <!-- Start HTML -->
 
@@ -14,8 +15,8 @@
 
 <div id="templateLoaded"></div>
 
-<!-- SIDETABS -->
-<div id="sideTabs" style="position:fixed; z-index:20000; top:0px; bottom:0px; right: 0px; display:none">
+<!-- rightSideTabs -->
+<div id="rightSideTabs" style="position:fixed; z-index:20000; top:0px; bottom:0px; right: 0px; display:none">
   <!-- RIGHT MENU -->
 
   <!-- Menu and Secondary Menus -->
@@ -82,6 +83,8 @@
     .showResources {
       display: block;
     }
+    
+    /* Use generic button class from base.css */
     </style>
 
   <div class="flex-row" style="height:100%">
@@ -305,6 +308,7 @@
                   <option value="default" selected>Default</option>
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
+                  <option value="computer">Match my computer</option>
                 </select>
             </div></div>
             <div class="setDiv"></div>
@@ -419,75 +423,7 @@
                 </div>
               </div>
             </div>
-
-          <!--
-          <div class="setDiv"></div>
-
-          <div class="setLeft"><div>Zoom To</div></div>
-            <div class="setOverflow">
-              <div class="setRight">
-            
-                <select class='center'>
-                  <option value='mylocation'>My Location</option>
-                  <option value='filter'>Nearby</option>
-                  <option value='state'>State</option>
-                  <option value='country'>Country</option>
-                  <option value='world'>World</option>
-                </select>
-            
-            </div>
-          </div>
-          <div class="setDiv"></div>
-
-
-          -->
-
-            <!-- Multilayer Checkboxes -->
-            <!--
-          <div class="setLeft"><div>Layer Checkboxes</div></div>
-            <div class="setOverflow">
-              <div class="setRight">
-              <div class="hideMultiselect settingsButton">Visible</div>
-                <div class="showMultiselect settingsButton" style="display:none; background:#ddd">Hidden</div>
-              </div>
-            </div>
-            <div class="setDiv"></div>
-          -->
-
-            <!--
-            <div class="hideHero layoutTab filterTab buttonUnderCategories" style="margin:15px 10px 0 0;display:none">Hide Hero</div>
-            <div class="showHero layoutTab filterTab buttonUnderCategories" style="margin:15px 10px 0 0;">Show Hero</div>
-
-            <div class="setDiv"></div>
-          -->
-
-          <!--
-          <div><strong>Link</strong></div>
-          <input type="text" value='https://georgiadata.github.io/site/' style='line-height:18pt;display:block;width:100%;font-size:12pt;color:#333;background:#fff;border:1px solid #aaa;'><br>
-          -->
-
-            <!-- Embed Directory -->
-            <!--
-            <div class="setLeft">Embed</div>
-            <div class="setOverflow">
-              <div class="setRight">
-              
-                <div class="showEmbedTag settingsButton">View Sample</div>
-
-              </div>
-            </div>
-            <div class="embedTag" style="display:none">
-              <div style="margin-bottom:4px"><a href="widget.html#aerospace&sitelook=coi">Get HTML</a> - view source</div>
-
-
-              <input type="text" value='<script src="//georgiadata.github.io/site/js/embed.js?site=georgia&v=0.1"></script><div id="map"></div>' 
-              style='display:none;line-height:18pt;width:100%;font-size:12pt;color:#333;background:#fff;border:1px solid #aaa;'>
-            </div>
-            -->
-
-          <br />
-
-
+            <br />
 
           </div>
         </div>
@@ -527,27 +463,36 @@
           <div class="menuExpandedScroll">
             <div style="font-size:16pt; margin-bottom:20px">Account</div>
             
+            <div style="display:none" class="local">
+
+              <div class="sign-in-container" style="margin-left:auto;">
+                  Not yet active (localhost only)<br>
+                  <button id="signInBtn" class="btn btn-primary sign-in-btn bthButton" style="margin-top:10px;width:220px" onclick="showAuthModal()">Auth.js Sign In</button>
+                  <br><br>
+              </div>
+            </div>
 
             <div style="margin-bottom:5px;">Email 
-              <span style="font-size:.9em;">- stored only in browser</span></div>
-            <input id="input123" autocompleteX="off" style="width:100%; min-width:250px;max-width:300px;" class="mobileWide textInput si-input" type="text" value=""><br><br>
+              <span style="font-size:.9em;">(stored only in browser)</span>
+            </div>
 
-              <div style="margin-bottom:8px">My Image</div>
+            <input id="input123" autocompleteX="off" style="width:220px;margin-bottom:7px" class="mobileWide textInput si-input" type="text" value=""><br>
+
+            <div id="gravatarLine" tyle="display:none">
               <input type="checkbox" id="getGravatar" style="margin-right:4px" checked><span style="font-size:.9em;">Display <a href="https://gravatar.com/" target="gravatar">my gravatar.com image</a></span>
-            <br><br>
+            </div><br>
 
             <div id="gravatarImg"></div>
 
-            <div class="uIn btn btn-success" style="margin-bottom:20px;float:left">Continue</div>
+            <div class="uIn btn btn-success" style="margin-bottom:20px;float:left">Save</div>
 
-            <div class="georgia" style="display:none;margin-bottom:20px;float:left">
-              <a class="btn btn-success use-5" href="/resources/" style="display:none;">Staff Resources</a>
-              <a class="btn btn-warning" href="https://partner.exploregeorgia.org/login">Partner Resources</a>
+            <div class="georgia" style="display:none;margin-bottom:20px">
+              <a class="btn btn-success use-5" href="/resources/" style="display:none; width:220px">Staff Resources</a>
+              <a class="btn btn-warning" href="https://partner.exploregeorgia.org/login" style="width:220px">Partner Resources</a>
             </div>
 
-            <div style="float:left">
-              <a class="uOut btn btn-primary" style="margin:0 0 20px 0;">Log Out</a>
-            </div>
+            <a class="uOut btn btn-primary" style="margin:0 0 20px 0; width:220px">Clear Email</a>
+            <br><br><br>
 
           </div>
         </div>
@@ -602,134 +547,146 @@
   </div>
   <!-- /RIGHT MENU -->
 </div>
-<!-- /SIDETABS -->
+<!-- /rightSideTabs -->
 
-<!-- HEADER BAR -->
-<div id="headerbar" class="headerbar headerbarheight headerbarhide" style="display:none;position:fixed;overflow:visible;z-index:1002;pointer-events:auto;">
+<div id="main-header">
+  <!-- HEADER BAR (Moved by localsite.js) -->
+  <div id="headerbar" class="headerbar headerbarheight headerbarhide" style="displayX:none;overflow:visible;z-index:1002;pointer-events:auto;">
 
-  <div id="headerLogoholder" class="contentpadding" style="padding-top:0px; padding-bottom:0px; float:left;">
-    <div id="logospace" class="headerbarheight">
-      <div id="logoholder">
-        
-        <div id="headerLogo">
-        </div>
-        
-        <div id="headerLocTitleHolder">
-          <span id="headerSiteTitle"></span>
+    <div class="headerbarheight" style="display:flex;flex-direction:column;float:left;margin-right:6px">
+      <!--
+      <div class="nav-reopen-btn headerLeftIcon" style="vertical-align:middle;display:inline-block;margin:0 auto;padding:6px;opacity:.3"><i class="material-icons">&#xE5D2;</i></div>
+      -->
+        <div id="showSideFromHeader" class="showNavColumn headerLeftIcon" style="vertical-align:middle;display:inline-block;margin:0 auto;padding:6px;opacity:.3; min-height: 43px"><i class="material-icons">&#xE5D2;</i></div>
+    </div>
+
+    <!-- class="contentpadding" style="padding-top:0px; padding-bottom:0px; float:left;" -->
+    <div id="headerLogoholder">
+      <div id="logospace">
+        <div id="logoholder">
           
-          <a href="../community/tools" class="logolink">
-          <span id="headerLocTitle"></span>
-          </a>
+          <div id="headerLogo">
+          </div>
+          
+          <div id="headerLocTitleHolder">
+            <span id="headerSiteTitle"></span>
+            
+            <a href="../community/tools" class="logolink">
+            <span id="headerLocTitle"></span>
+            </a>
+          </div>
+
         </div>
+      </div>    
+    </div>
 
-      </div>
-    </div>    
-  </div>
-
-  <div style="float:left; border-left:1px solid #ccc;">
-    <style>
-      .topstack {
-        float:left;
-        
-        padding-right: 10px;
-        padding:18px;
-        border-right:1px solid #ccc;
-      }
-      .topsm {
-        font-size: 11px;
-        float: left;
-      }
-      .toplg {
-        clear:both;
-        font-size: 17px;
-        color: #686868;
-      }
-      .arrow_down_sm {
-          width: 0;
-          height: 0;
-          border-left: 4px solid transparent;
-          border-right: 4px solid transparent;
-          border-top: 4px solid #999;
-          margin: 4px;
+    <div style="float:left; border-left:1px solid #ccc;">
+      <style>
+        .topstack {
+          float:left;
+          
+          padding-right: 10px;
+          padding:18px;
+          border-right:1px solid #ccc;
+        }
+        .topsm {
+          font-size: 11px;
           float: left;
-          pointer-events: auto;
-      }
+        }
+        .toplg {
+          clear:both;
+          font-size: 17px;
+          color: #686868;
+        }
+        .arrow_down_sm {
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 4px solid #999;
+            margin: 4px;
+            float: left;
+            pointer-events: auto;
+        }
 
-    </style>
-    <!-- Cool top menu option: GitHub Desktop style -->
-    <div class="localX" style="display:none">
-      <div class="hideMobile">
-        <div class="topstack">
-          <div class="topsm">Locations</div><div class="arrow_down_sm"></div>
-          <div class="toplg">3 counties in Arizona</div>
-        </div>
+      </style>
+      <!-- Cool top menu option: GitHub Desktop style -->
+      <div class="localX" style="display:none">
+        <div class="hideMobile">
+          <div class="topstack">
+            <div class="topsm">Locations</div><div class="arrow_down_sm"></div>
+            <div class="toplg">3 counties in Arizona</div>
+          </div>
 
-        <div class="topstack">
-          <div class="topsm">Goods & Services</div><div class="arrow_down_sm"></div>
-          <div class="toplg">Recycling Industries</div>
-        </div>
+          <div class="topstack">
+            <div class="topsm">Goods & Services</div><div class="arrow_down_sm"></div>
+            <div class="toplg">Recycling Industries</div>
+          </div>
 
-        <div class="topstack">
-          <div class="topsm">Project Teams</div><div class="arrow_down_sm"></div>
-          <div class="toplg">React Developers</div>
+          <div class="topstack">
+            <div class="topsm">Project Teams</div><div class="arrow_down_sm"></div>
+            <div class="toplg">React Developers</div>
+          </div>
         </div>
       </div>
     </div>
+
+    <div id="upIconTray" class="upperIcons noprint navLinks" style="float:right;">
+
+      <div id="upIconTrayText" class="hideMobile" style="float:left; padding:32px 10px 0 0">
+        <div id="dreamstudio-nav" class="dreamstudio" style="display:none">
+          <span class="hideMobile" style="float:left">
+            <a href="/dreamstudio/home/" class="navlink-about"><span style="white-space: nowrap; margin-right:6px">About</span></a> 
+            <!--
+            <a href="/dreamstudio/studio/" class="navlink-studio"><span style="white-space: nowrap; margin-right:3px">Studio</span></a>
+            -->
+            <a href="/dreamstudio/earth/" class="navlink-earth"><span style="white-space: nowrap; margin-right:3px">Earth</span></a> 
+            <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
+            <a href="/dreamstudio/swarm/" class="navlink-swarm"><span style="white-space: nowrap">Swarm</span></a>  
+            <a href="/community/projects/" class="navlink-moonshots" target="me"><span style="white-space: nowrap">Moonshots</span></a>
+          </span>
+        </div>
+
+        <div id="dlab-nav" class="dlab" style="display:none">
+          <span class="hideMobile" style="float:left">
+            <a href="/profile/project/commons/" class="navlink-prototype" target="me"><span style="white-space: nowrap">Prototype</span></a>
+
+            <a href="/profile/preferences/" class="navlink-preferences" target="me"><span style="white-space: nowrap">Preferences</span></a>
+
+            <a href="/profile/crm/" class="navlink-crm" target="me"><span style="white-space: nowrap">Partner Tools</span></a>
+          </span>
+        </div>
+
+        <div class="georgia" style="display:none">
+          <span id="intranet-nav" class="hideMobile" style="float:left">
+            <a href="/io/" class="navlink-io"><span style="white-space: nowrap; margin-right:3px">State Models</span></a>
+            <a href="/explore/locations/" class="navlink-locations"><span style="white-space: nowrap; margin-right:6px">Locations</span></a>
+            <!--
+            <a href="/localsite/info/#geoview=state&state=GA" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
+            -->
+            <a href="/display/exporters/" class="navlink-exporters"><span style="white-space: nowrap; margin-right:3px">Exporters</span></a>
+            <a href="/recycling/georgia/" class="navlink-recyclers"><span style="white-space: nowrap; margin-right:3px">Recyclers</span></a>
+          </span>
+        </div>
+
+      </div>
+
+      <div id="headerIcons">
+        <div class="earth dreamstudio planetlive garesource" style="display:none">
+          <div id="showSideTabs" class="showSideTabs" style="padding:6px 0px 10px 10px; margin-right:10px; min-height:64px">
+            <i class="material-icons show-on-load" style="font-size:40px;font-weight:550" data="apps">&#xE5C3;</i>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
-
-  <div id="upIconTray" class="upperIcons noprint navLinks" style="float:right;">
-
-    <div id="upIconTrayText" class="hideMobile" style="float:left; padding:32px 10px 0 0">
-      <div id="dreamstudio-nav" class="dreamstudio" style="display:none">
-        <span class="hideMobile" style="float:left">
-          <a href="/dreamstudio/home/" class="navlink-about"><span style="white-space: nowrap; margin-right:6px">About</span></a> 
-          <!--
-          <a href="/dreamstudio/studio/" class="navlink-studio"><span style="white-space: nowrap; margin-right:3px">Studio</span></a>
-          -->
-          <a href="/dreamstudio/earth/" class="navlink-earth"><span style="white-space: nowrap; margin-right:3px">Earth</span></a> 
-          <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
-          <a href="/dreamstudio/swarm/" class="navlink-swarm"><span style="white-space: nowrap">Swarm</span></a>  
-          <a href="/community/projects/" class="navlink-moonshots" target="me"><span style="white-space: nowrap">Moonshots</span></a>
-        </span>
-      </div>
-
-      <div id="dlab-nav" class="dlab" style="display:none">
-        <span class="hideMobile" style="float:left">
-          <a href="/profile/project/commons/" class="navlink-prototype" target="me"><span style="white-space: nowrap">Prototype</span></a>
-
-          <a href="/profile/preferences/" class="navlink-preferences" target="me"><span style="white-space: nowrap">Preferences</span></a>
-
-          <a href="/profile/crm/" class="navlink-crm" target="me"><span style="white-space: nowrap">Partner Tools</span></a>
-        </span>
-      </div>
-
-      <div class="georgia" style="display:none">
-        <span id="intranet-nav" class="hideMobile" style="float:left">
-          <a href="/io/" class="navlink-io"><span style="white-space: nowrap; margin-right:3px">State Models</span></a>
-          <a href="/explore/locations/" class="navlink-locations"><span style="white-space: nowrap; margin-right:6px">Locations</span></a>
-          <!--
-          <a href="/localsite/info/#geoview=state&state=GA" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
-          -->
-          <a href="/display/exporters/" class="navlink-exporters"><span style="white-space: nowrap; margin-right:3px">Exporters</span></a>
-          <a href="/recycling/georgia/" class="navlink-recyclers"><span style="white-space: nowrap; margin-right:3px">Recyclers</span></a>
-        </span>
-      </div>
-
-    </div>
-
-    <div id="headerIcons">
-      <div class="earth dreamstudio planetlive garesource" style="display:none">
-        <div id="showSideTabs" class="showSideTabs" style="padding:6px 0px 10px 10px; margin-right:10px; min-height:64px">
-          <i class="material-icons show-on-load" style="font-size:40px;font-weight:550" data="apps">&#xE5C3;</i>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
+  <!--
+  <div id="headeroffset" style="height:80px;"></div>
+  -->
+  <!-- /HEADER BAR -->
 </div>
-<!-- /HEADER BAR -->
-
 
 <div id="menuHolder" style="pointer-events: auto; background:#333; display:none">
 
@@ -785,10 +742,6 @@
 </div>
 <!-- End Menu and Secondary Menus -->
 
-
-<!--
-<div id="headeroffset" style="height:100px;"></div>
--->
 <!-- /RIGHT MENU -->
 
 
@@ -802,9 +755,9 @@
     display: inline-block;
   }
 </style>
-<div id="mapFilters" class="hideWhenPop" style="">
+<div id="mapFilters" class="hideWhenPop" style="padding-top:0px; padding-bottom:0px; margin-bottom:0px; line-height:0px">
 
-  <div id="filterFieldsHolder" class="filterFieldsHidden contentfull noprint" style="display:none; padding-top:0px; width:100%">
+  <div id="filterFieldsHolder" class="filterFieldsHidden contentfull noprint" style="display:none; padding-top:0px; width:100%; padding-left:15px">
   </div><!-- /filterFieldsHolder -->
 
 </div>
@@ -984,7 +937,7 @@ document.addEventListener('mousedown', function(e) {
 
       <div id="locationFilterHolderX" style="position: relative;">
           
-        <div style="position:absolute;top:0;right:0;z-index:1000" class="hideinpop">
+        <div style="position:absolute;top:0;right:0" class="hideinpop">
           <div class="hideAdvanced close-X" style="float:left;padding-left:12px;padding-right:35px">&#10005;
           </div>
         </div>
@@ -1263,8 +1216,7 @@ document.addEventListener('mousedown', function(e) {
         <div id="geoPicker" style="margin-top:2px;display:none;">
           <div id="geomapHolder">
             <!-- Must be displayed initiallly so tiles are visible -->
-              <div id="geomap">
-              </div>
+              <div id="geomap"></div>
           </div>
 
           <div>
@@ -1423,7 +1375,7 @@ Displayed by hashChanged() in navigation.js
 
 <div id="nullschoolHeader" style="position:relative; display:none">
 
-  <div id="earthClose" style="position:absolute;top:15px;right:0px;color:#fff;cursor:pointer"><i class="material-icons show-on-load" style="font-size:34px;">&#xE5E0;</i></div>
+  <div id="earthClose" style="position:absolute;top:11px;right:15px;color:#ddd;cursor:pointer"><i class="material-icons show-on-load" style="font-size:22px;">&#10005;</i></div>
 
   <div id="earthZoom" class="earthZoom" style="display:none; position:absolute; z-index:100; right:20px; bottom:20px">
     
@@ -1449,7 +1401,7 @@ Displayed by hashChanged() in navigation.js
     <div class="earth georgia" style="display:none">
       <div style="padding-top:5px;overflow:auto" class="hideOnProjectsPage">
         Exploring Earth's systems<br>through collaborative modeling.<br>
-        <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
+        <a href="https://model.earth/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
       </div>
       <div style="display:none" class="projectsPage">
         Build your school projects and dissertations<br>
@@ -1950,4 +1902,4 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 
 <!-- End HTML -->
 
-</div><!-- End insertedText -->
+<!-- End insertedText -->

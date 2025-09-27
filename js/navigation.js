@@ -131,7 +131,7 @@ function hashChanged() {
 
         //$("#tableSide").hide();
 
-        if ($("#navcolumn .catList").is(":visible")) {
+        if ($("#main-nav .catList").is(":visible")) {
             $("#selected_states").hide();
         }
 
@@ -831,8 +831,8 @@ function hashChanged() {
             loadGeomap = true;
             // if ((priorHash.sidetab == "locale" && hash.sidetab != "locale") || (priorHash.locpop  && !hash.locpop)) {
                 // Closing sidetab or locpop, move geomap back to holder.
-                $("#filterLocations").prependTo($("#locationFilterHolder")); // Move back from sidetabs
-                $("#geomap").appendTo($("#geomapHolder")); // Move back from sidetabs
+                $("#filterLocations").prependTo($("#locationFilterHolder")); // Move back from rightSideTabs
+                $("#geomap").appendTo($("#geomapHolder")); // Move back from rightSideTabs
 
                 if (!hash.sidetab) { // For when clicking on Location top tab
                     $("#locationFilterHolder").show();
@@ -863,6 +863,1821 @@ function hashChanged() {
         //}
     }
 }
+
+
+
+// Standalone Navigation System - JavaScript
+
+class StandaloneNavigation {
+    constructor(options = {}) {
+        // Singleton pattern to prevent multiple instances
+        if (StandaloneNavigation.instance) {
+            return StandaloneNavigation.instance;
+        }
+        
+        // Auto-detect webroot container from script path
+        const autoDetected = this.detectWebrootFromScriptPath();
+        console.log('[Constructor] Auto-detected values:', autoDetected);
+        console.log('[Constructor] Options passed in:', options);
+        
+        this.options = {
+            basePath: options.basePath || '',
+            currentPage: options.currentPage || 'admin',
+            // Use auto-detected values if they exist, otherwise fall back to options
+            isWebrootContainer: autoDetected.isWebrootContainer !== null ? autoDetected.isWebrootContainer : (options.isWebrootContainer || false),
+            repoFolderName: autoDetected.repoFolderName || options.repoFolderName || null,
+            webrootFolderName: autoDetected.webrootFolderName || options.webrootFolderName || null,
+            isExternalSite: options.isExternalSite || false,
+            ...options
+        };
+        
+        // Override any conflicting options with auto-detected values if they exist
+        if (autoDetected.repoFolderName) {
+            this.options.repoFolderName = autoDetected.repoFolderName;
+        }
+        if (autoDetected.webrootFolderName) {
+            this.options.webrootFolderName = autoDetected.webrootFolderName;
+        }
+        if (autoDetected.isWebrootContainer !== null) {
+            this.options.isWebrootContainer = autoDetected.isWebrootContainer;
+        }
+        
+        console.log('[Constructor] Final options:', this.options);
+        
+        // Initialize collapsed state from localStorage immediately to prevent flash
+        const savedCollapsed = localStorage.getItem('standaloneNavCollapsed');
+        const savedLocked = localStorage.getItem('standaloneNavLocked');
+        const savedHidden = localStorage.getItem('standaloneNavHidden');
+        
+        // Check screen size immediately on refresh
+        this.isMobile = window.innerWidth <= 600;
+        
+        // Set initial state based on screen size
+        if (this.isMobile) {
+            console.log('INIT: Narrow screen detected on refresh - forcing collapsed and hidden state');
+            this.isCollapsed = true;
+            this.isLocked = false;
+            this.isHidden = true; // Hide sidebar on mobile
+        } else {
+            // Use saved preferences on wide screens
+            this.isCollapsed = savedCollapsed === 'true' || savedCollapsed === null; // Default to collapsed
+            this.isLocked = savedLocked === 'true'; // Default to unlocked
+            this.isHidden = savedHidden === 'true'; // Use saved hidden state on desktop
+        }
+        
+        this.mobileOpen = false;
+        
+        console.log('INIT: Screen width:', window.innerWidth, 'isMobile:', this.isMobile, 'isCollapsed:', this.isCollapsed, 'isHidden:', this.isHidden);
+        
+        // Store event listeners for cleanup
+        this.eventListeners = [];
+        this.featherTimeout = null;
+        this.resizeTimeout = null;
+        this.faviconUpdateInterval = null;
+        this.currentFavicon = null;
+        
+        StandaloneNavigation.instance = this;
+        this.loadFeatherIcons();
+        this.init();
+    }
+    
+    init() {
+        //this.checkMobile();
+        
+        // Check for shownav parameter in script src URL
+        let showNav = true;
+        const scripts = document.getElementsByTagName('script');
+        for (const script of scripts) {
+            if (script.src && script.src.includes('navigation.js')) {
+                try {
+                    // Handle both absolute and relative URLs
+                    const scriptUrl = script.src.includes('://') ? 
+                        new URL(script.src) : 
+                        new URL(script.src, window.location.href);
+                    if (scriptUrl.searchParams.get('shownav') === 'false') {
+                        showNav = false;
+                        console.log('Found shownav=false in script URL:', script.src);
+                        break;
+                    }
+                } catch (e) {
+                    // Fallback: parse manually if URL constructor fails
+                    if (script.src.includes('shownav=false')) {
+                        showNav = false;
+                        console.log('Found shownav=false via string match in:', script.src);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Also check page URL for backward compatibility
+        if (showNav) {
+            const urlParams = new URLSearchParams(window.location.search);
+            showNav = urlParams.get('shownav') !== 'false';
+        }
+        
+        if (showNav) {
+            this.createNavigation();
+            this.setupEventListeners();
+            this.setupMobileHandlers();
+        } else {
+            console.log('Navigation disabled due to shownav=false parameter');
+        }
+        
+        this.initializeNavFeatherIcons();
+        this.startPeriodicFaviconUpdate();
+    }
+    
+    // Auto-detect webroot container from script path
+    detectWebrootFromScriptPath() {
+        // Get the current script path
+        const scripts = document.getElementsByTagName('script');
+        let scriptSrc = '';
+        
+        // Find the nav.js script - check both src and resolved URL
+        for (const script of scripts) {
+            if (script.src && script.src.includes('nav.js')) {
+                scriptSrc = script.src;
+                console.log('[WebrootDetector] Found script element with src:', script.getAttribute('src'), 'resolved to:', script.src);
+                break;
+            }
+        }
+        
+        if (!scriptSrc) {
+            console.log('[WebrootDetector] Could not find nav.js script src');
+            return { isWebrootContainer: false, repoFolderName: null, webrootFolderName: null };
+        }
+        
+        console.log('[WebrootDetector] Script src:', scriptSrc);
+        
+        // Parse URL to get pathname
+        try {
+            const url = new URL(scriptSrc);
+            const pathname = url.pathname;
+            console.log('[WebrootDetector] Script pathname:', pathname);
+            
+            // Check for webroot container patterns
+            // Pattern 1: /{webrootFolder}/{repoFolder}/js/nav.js (two-level structure)
+            let match = pathname.match(/^\/([^\/]+)\/([^\/]+)\/js\/nav\.js$/);
+            
+            if (match) {
+                const [, firstFolder, secondFolder] = match;
+                
+                // Check if first folder looks like a webroot container name
+                const webrootNames = ['webroot', 'www', 'public', 'html', 'htdocs', 'public_html'];
+                const isLikelyWebroot = webrootNames.includes(firstFolder.toLowerCase());
+                
+                if (isLikelyWebroot && secondFolder === 'localsite') {
+                    console.log('[WebrootDetector] Detected webroot container with localsite:', { webrootName: firstFolder });
+                    
+                    return {
+                        isWebrootContainer: true,
+                        repoFolderName: 'localsite',
+                        webrootFolderName: firstFolder
+                    };
+                } else if (secondFolder === 'localsite') {
+                    // Cross-repo access pattern like /comparison/localsite/js/nav.js
+                    console.log('[WebrootDetector] Detected cross-repo access to localsite:', { callingRepo: firstFolder });
+                    
+                    return {
+                        isWebrootContainer: true,
+                        repoFolderName: 'localsite',
+                        webrootFolderName: null
+                    };
+                }
+            }
+            
+            // Pattern for direct repo serving: /{repoFolder}/js/nav.js
+            match = pathname.match(/^\/([^\/]+)\/js\/nav\.js$/);
+            if (match) {
+                const [, repoFolder] = match;
+                if (repoFolder === 'localsite') {
+                    console.log('[WebrootDetector] Detected direct localsite serving');
+                    
+                    return {
+                        isWebrootContainer: false,
+                        repoFolderName: 'localsite',
+                        webrootFolderName: null
+                    };
+                }
+            }
+            
+            console.log('[WebrootDetector] No pattern matched, assuming relative path');
+            return { isWebrootContainer: false, repoFolderName: null, webrootFolderName: null };
+            
+        } catch (error) {
+            console.warn('[WebrootDetector] Error parsing script URL:', error);
+            return { isWebrootContainer: false, repoFolderName: null, webrootFolderName: null };
+        }
+    }
+
+    /*
+    // Immediate resize handler for responsive behavior
+    checkMobile() {
+        const wasMobile = this.isMobile;
+        this.isMobile = window.innerWidth <= 600;
+        
+        console.log('CHECK MOBILE: width', window.innerWidth, 'wasMobile:', wasMobile, 'isMobile:', this.isMobile);
+        
+        if (wasMobile !== this.isMobile) {
+            this.handleMobileChange();
+        }
+    }
+    
+    // Helper function to safely set sidebar state classes
+    setSidebarState(sidenav, state) {
+        if (!sidenav) return;
+        
+        // Remove all state classes first to prevent duplicates
+        sidenav.classList.remove('collapsed', 'expanded', 'hovered', 'locked', 'mobile-open');
+        
+        // Add the specified state
+        if (state === 'collapsed') {
+            sidenav.classList.add('collapsed');
+        } else if (state === 'expanded') {
+            sidenav.classList.add('expanded');
+        }
+    }
+
+    handleMobileChange() {
+        //alert("handleMobileChange")
+        //console.log("handleMobileChange() disabled since it expands #side-nav on hover")
+        //return;
+
+        console.log('MOBILE CHANGE: isMobile changed to', this.isMobile, 'isCollapsed:', this.isCollapsed);
+        const sidenav = document.querySelector('#side-nav');
+        const overlay = document.querySelector('.mobile-overlay');
+        
+        if (this.isMobile) {
+            console.log('MOBILE CHANGE: Switching to mobile mode - applying collapsed state');
+            // Apply collapsed state like manual toggle does (to hide titles/arrows)
+            this.setSidebarState(sidenav, 'collapsed');
+            overlay?.classList.remove('active');
+            this.isLocked = false;
+            // Update body class
+            document.body.classList.remove('sidenav-expanded', 'sidenav-hovered');
+            //// document.body.classList.add('sidenav-collapsed');
+        } else {
+            console.log('MOBILE CHANGE: Switching to desktop mode - checking if should restore expanded');
+            sidenav?.classList.remove('mobile-open');
+            this.mobileOpen = false;
+            
+            // Restore expanded state when switching back to desktop if not user-collapsed
+            if (!this.isCollapsed) {
+                console.log('MOBILE CHANGE: Restoring expanded class for desktop');
+                this.setSidebarState(sidenav, 'expanded');
+                //// document.body.classList.add('sidenav-expanded');
+                //// document.body.classList.remove('sidenav-collapsed');
+            } else {
+                console.log('MOBILE CHANGE: Staying collapsed as per user preference');
+                this.setSidebarState(sidenav, 'collapsed');
+                if (this.isLocked) {
+                    sidenav?.classList.add('locked');
+                }
+                //// document.body.classList.add('sidenav-collapsed');
+                //// document.body.classList.remove('sidenav-expanded');
+            }
+        }
+        
+        // Update toggle icon after mobile state change
+        this.debouncedUpdateToggleIcon();
+    }
+    */
+
+    createNavigation() {
+        // Check if navigation already exists to prevent duplicates
+        const existingSidebar = document.getElementById('side-nav');
+        if (existingSidebar) {
+            // Remove existing navigation to recreate it
+            existingSidebar.remove();
+        }
+        
+        // Also remove any existing app-container to ensure clean slate
+        /*
+        const existingAppContainer = document.querySelector('.app-container');
+        if (existingAppContainer) {
+            // Move main content back to body before removing container
+            const mainContent = existingAppContainer.querySelector('.main-content');
+            if (mainContent) {
+                const children = [...mainContent.children];
+                children.forEach(child => {
+                    document.body.appendChild(child);
+                });
+            }
+            existingAppContainer.remove();
+        }
+        */
+
+        const existingAppContainer = document.querySelector('body');
+        const basePath = this.options.basePath || '';
+        const isWebrootContainer = this.options.isWebrootContainer;
+        const repoFolderName = this.options.repoFolderName;
+        const isExternalSite = this.options.isExternalSite;
+        
+        // Calculate paths based on container type
+        let rootPath, adminPath, logoPath, teamPath;
+        const webrootFolderName = this.options.webrootFolderName;
+        if (isExternalSite) {
+            // Called from external site, use absolute paths to repo folder
+            const repoName = repoFolderName || 'localsite';
+            rootPath = `/${repoName}/`;
+            adminPath = `/${repoName}/admin/`;
+            teamPath = `/team/`;
+            // Favicon is in localsite repo
+            logoPath = `/localsite/img/logo/neighborhood/favicon.png`;
+        } else if (isWebrootContainer && repoFolderName) {
+            // In webroot container, need to include both webroot and repo folder in paths
+            if (webrootFolderName) {
+                // Root path points to webroot folder
+                rootPath = `/${webrootFolderName}/`;
+                adminPath = `/${webrootFolderName}/team/admin/`;
+                teamPath = `/${webrootFolderName}/team/`;
+                // Favicon is in localsite repo
+                logoPath = `/${webrootFolderName}/localsite/img/logo/neighborhood/favicon.png`;
+            } else {
+                // Webroot name unknown - root path goes up one level to repo collection
+                rootPath = `../`;
+                adminPath = `../team/admin/`;
+                teamPath = `../team/`;
+                // Favicon is in localsite repo
+                logoPath = `../localsite/img/logo/neighborhood/favicon.png`;
+            }
+        } else {
+
+            // Direct repo serving - go up to root level where all repos are
+            rootPath = basePath ? `${basePath}/../` : '../';
+            adminPath = basePath ? `${basePath}/../team/admin/` : '../team/admin/';
+            teamPath = basePath ? `${basePath}/../team/` : '../team/';
+            // Favicon is in localsite repo
+            // Calculate additional ../ needed based on current URL depth
+            const currentPath = window.location.pathname;
+            const pathSegments = currentPath.split('/').filter(segment => segment && !segment.endsWith('.html'));
+            const extraLevels = Math.max(0, pathSegments.length - 1); // Subtract 1 for the base repo level
+            const additionalDotDots = '../'.repeat(extraLevels);
+            
+            logoPath = basePath ? `${basePath}/../team/img/logo/neighborhood/favicon.png` : `${additionalDotDots}../team/img/logo/neighborhood/favicon.png`;
+            //alert("logoPath " + logoPath)
+        }
+        
+        // Debug logging
+        console.log('Navigation paths:', { 
+            repoFolderName, 
+            webrootFolderName, 
+            isWebrootContainer, 
+            isExternalSite, 
+            basePath, 
+            rootPath, 
+            adminPath, 
+            teamPath,
+            logoPath,
+            'options': this.options
+        });
+        
+        // Apply initial collapsed state to prevent flash
+        const initialClasses = [
+            isExternalSite ? 'external-site' : '',
+            // Apply collapsed class immediately if narrow screen OR user preference
+            this.isCollapsed || this.isMobile ? 'collapsed' : '',
+            this.isLocked && !this.isMobile ? 'locked' : ''
+        ].filter(Boolean).join(' ');
+        
+        // Apply hidden state immediately to prevent flash
+        //const initialStyle = this.isHidden ? 'display: none;' : '';
+        const initialStyle = '';
+        console.log('INIT: Creating navigation with classes:', initialClasses);
+        
+        const navHTML = `
+            <div id="side-nav" class="sidebar ${initialClasses}${!this.isCollapsed && !this.isMobile && !this.isHidden ? ' expanded' : ' collapsed'}" style="${initialStyle}">
+                      
+                <div id="side-nav-absolute">
+
+                    <div id="side-nav-content">
+                        <div id="side-nav-header"><button id="nav-close-btn" class="nav-x" title="Close navigation">✕</button></div>
+                  
+                        <div id="side-nav-menu">
+                            <div class="nav-section">
+                                <div class="nav-item">
+                                    <button class="nav-link" data-section="home" data-href="${teamPath}">
+                                        <i class="nav-icon" data-feather="home"></i>
+                                        <span class="nav-text">Welcome</span>
+                                        <i class="nav-arrow" data-feather="chevron-right"></i>
+                                    </button>
+                                    <div class="subnav">
+                                        <a href="${teamPath}#home" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="smile"></i>
+                                            <span>Welcome</span>
+                                        </a>
+                                        <a href="${teamPath}#home/documentation" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="book"></i>
+                                            <span>Getting Started</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="nav-section earth" style="display:none">
+                                <div class="nav-item">
+                                    <button class="nav-link" data-section="projects" data-href="${rootPath}projects">
+                                        <i class="nav-icon" data-feather="folder"></i>
+                                        <span class="nav-text">Projects</span>
+                                        <i class="nav-arrow" data-feather="chevron-right"></i>
+                                    </button>
+                                    <div class="subnav">
+                                        <a href="${rootPath}projects" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="globe"></i>
+                                            <span>Active Projects</span>
+                                        </a>
+                                        <a href="https://github.com/modelearth/projects/issues/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="check-square"></i>
+                                            <span>ToDos (GitHub)</span>
+                                        </a>
+                                        <a href="${rootPath}projects/hub/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="target"></i>
+                                            <span>Our Project Hub</span>
+                                        </a>
+                                        <a href="https://www.democracylab.org/projects/834" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="code"></i>
+                                            <span>Democracy Lab</span>
+                                        </a>
+                                        <div style="display:none">
+                                        Before removing, investigate via: Reveal opportunities section on the team/index.html page
+                                        <a href="${teamPath}#projects/opportunities" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="target"></i>
+                                            <span>Opportunities</span>
+                                        </a>
+                                        </div>
+                                        <!--
+                                        <a href="${teamPath}#projects/assigned-tasks" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="check-square"></i>
+                                            <span>Assigned Tasks</span>
+                                        </a>
+                                        <a href="/data-commons/docs/data/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="calendar"></i>
+                                            <span>UN Timelines</span>
+                                        </a>
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="nav-section earthX" style="display:none">
+                                <div class="nav-item">
+                                    <button class="nav-link" data-section="people" data-href="${teamPath}#people">
+                                        <i class="nav-icon" data-feather="users"></i>
+                                        <span class="nav-text">People & Places</span>
+                                        <i class="nav-arrow" data-feather="chevron-right"></i>
+                                    </button>
+                                    <div class="subnav">
+                                        <a href="${teamPath}projects/#list=modelteam" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="map"></i>
+                                            <span>Model Team</span>
+                                        </a>
+                                        <a href="${teamPath}#people/people" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="user"></i>
+                                            <span>People</span>
+                                        </a>
+                                        <a href="${teamPath}#people/teams" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="users"></i>
+                                            <span>Teams</span>
+                                        </a>
+                                        <a href="${teamPath}#people/organizations" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="grid"></i>
+                                            <span>Organizations</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="nav-section earthX" style="display:none">
+                                <div class="nav-item">
+                                    <button class="nav-link" data-section="account" data-href="${teamPath}#account">
+                                        <i class="nav-icon" data-feather="user"></i>
+                                        <span class="nav-text">My Account</span>
+                                        <i class="nav-arrow" data-feather="chevron-right"></i>
+                                    </button>
+                                    <div class="subnav">
+                                        <a href="${teamPath}#account/preferences" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="sliders"></i>
+                                            <span>Preferences</span>
+                                        </a>
+                                        <a href="${teamPath}#account/skills" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="award"></i>
+                                            <span>Skills</span>
+                                        </a>
+                                        <a href="${teamPath}#account/interests" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="heart"></i>
+                                            <span>Interests</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="nav-section">
+                                <div class="nav-item">
+                                    <button class="nav-link" data-section="realitystream" data-href="${teamPath}projects/#list=all">
+                                        <i class="nav-icon" data-feather="activity"></i>
+                                        <span class="nav-text">Data Insights</span>
+                                        <i class="nav-arrow" data-feather="chevron-right"></i>
+                                    </button>
+                                    <div class="subnav">
+                                        
+                                        <div style="display:none" class="geo">
+                                        <a href="${teamPath}projects/map/#list=cities" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="map"></i>
+                                            <span>Location Visits Map</span>
+                                        </a>
+                                        </div>
+                                        <div style="display:none" class="geo">
+                                        <a href="${teamPath}projects/#list=geo" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="heart"></i>
+                                            <span>Location Insights</span>
+                                        </a>
+                                        </div>
+                                        <div style="display:none" class="geo">
+                                        <a href="${teamPath}projects/#list=film-scouting" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="film"></i>
+                                            <span>Film Scout Insights</span>
+                                        </a>
+                                        </div>
+                                        <div style="display:none" class="geo">
+                                        <a href="${rootPath}localsite/info/#state=GA" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="bar-chart-2"></i>
+                                            <span>Industry Comparisons</span>
+                                        </a>
+                                        </div>
+                                        <div style="display:none" class="earth">
+                                        <a href="${rootPath}localsite/info/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="bar-chart-2"></i>
+                                            <span>Industry Comparisons</span>
+                                        </a>
+                                        </div>
+                                        <div style="display:none" class="earth">
+                                        <a href="${rootPath}realitystream/models/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="trending-up"></i>
+                                            <span>Forecasting Models</span>
+                                        </a>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            
+                            <div class="nav-section">
+                                <div class="nav-item">
+                                    <button class="nav-link ${this.options.currentPage === 'admin' ? 'active' : ''}" data-section="admin" data-href="${teamPath}admin">
+                                        <i class="nav-icon" data-feather="tool"></i>
+                                        <span class="nav-text">Partner Tools</span>
+                                        <i class="nav-arrow" data-feather="chevron-right"></i>
+                                    </button>
+                                    <div class="subnav">
+                                        <div style="display:none" class="earth">
+                                        <a href="${teamPath}projects/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="users"></i>
+                                            <span>Meetup Integration</span>
+                                        </a>
+                                        </div>
+                                        <a href="${teamPath}admin/server/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="zap"></i>
+                                            <span>Configure Server</span>
+                                        </a>
+                                        <a href="${teamPath}admin/sql/panel/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="database"></i>
+                                            <span>Database Admin</span>
+                                        </a>
+                                        <a href="${teamPath}admin/import-data.html" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="upload"></i>
+                                            <span>Data Import</span>
+                                        </a>
+                                        <a href="${teamPath}admin/log-output/" class="subnav-link">
+                                            <i class="subnav-icon" data-feather="monitor"></i>
+                                            <span>Log Monitor</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="side-nav-footer">
+                            <button class="sidebar-toggle" id="sidebar-toggle">
+                                <i data-feather="chevrons-left"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="mobile-overlay" id="mobile-overlay"></div>
+        `;
+        
+        waitForElm('#main-container').then((elm) => {
+            $("body").addClass("sidebar-hidden");
+            $("#main-container").prepend(navHTML);
+        });
+
+        // Create app container if it doesn't exist
+        //let appContainer = document.querySelector('.app-container');
+
+        /* Might use this to move body in navigation.html
+
+        if (!appContainer) {
+            // Store existing content efficiently
+            const existingContent = [...document.body.children];
+            
+            // Create and setup app container
+            appContainer = document.createElement('div');
+            appContainer.className = 'app-container';
+            
+            // Clear body and add app container
+            document.body.innerHTML = '';
+            document.body.appendChild(appContainer);
+            
+            // Add navigation
+            appContainer.innerHTML = navHTML;
+            
+            // Create main content area
+            const mainContent = document.createElement('div');
+            mainContent.className = 'main-content';
+            appContainer.appendChild(mainContent);
+            
+            // Move existing content with bounds checking
+            existingContent.forEach(element => {
+                if (element && element.nodeType === Node.ELEMENT_NODE) {
+                    mainContent.appendChild(element);
+                }
+            });
+        }
+        */
+
+
+        /*
+        // Check for shownav parameter to hide navigation
+        const urlParams = new URLSearchParams(window.location.search);
+        const showNav = urlParams.get('shownav') !== 'false';
+        
+        if (showNav) {
+            // Use the exact same reliable pattern as #main-nav, but insert AFTER #main-nav is created
+            if (typeof waitForElm !== 'undefined') {
+                // Wait for #main-nav to be created first (this ensures all DOM restructuring is done)
+                waitForElm('#main-nav').then(() => {
+                    // Now safely insert the sidebar after all main DOM operations are complete
+                    const insertSideNav = () => {
+                        // Check if #side-nav already exists to prevent duplicates
+                        if (document.getElementById("side-nav") == null) {
+                            const rightSideTabs = document.getElementById('rightSideTabs');
+                            const mainNav = document.getElementById('main-nav');
+                            
+                            if (rightSideTabs && mainNav) {
+                                // Insert after #rightSideTabs (before #main-nav)
+                                rightSideTabs.insertAdjacentHTML('afterend', navHTML);
+                            } else if (rightSideTabs) {
+                                // Insert after #rightSideTabs if #main-nav doesn't exist
+                                rightSideTabs.insertAdjacentHTML('afterend', navHTML);
+                            } else if (mainNav) {
+                                // Insert before #main-nav if #rightSideTabs doesn't exist
+                                mainNav.insertAdjacentHTML('beforebegin', navHTML);
+                            } else {
+                                // Insert into #main-container like #main-nav does
+                                const mainContainer = document.getElementById('main-container');
+                                if (mainContainer) {
+                                    mainContainer.insertAdjacentHTML('afterbegin', navHTML);
+                                } else {
+                                    // Final fallback to body
+                                    document.body.insertAdjacentHTML('afterbegin', navHTML);
+                                }
+                            }
+                            
+                            console.log('✅ #side-nav inserted after #main-nav creation');
+                        } else {
+                            console.log('ℹ️ #side-nav already exists, skipping insertion');
+                        }
+                    };
+                    
+                    insertSideNav();
+                });
+            } else {
+                // Fallback if waitForElm not available - immediate insertion
+                const insertSideNav = () => {
+                    if (document.getElementById("side-nav") == null) {
+                        const rightSideTabs = document.getElementById('rightSideTabs');
+                        const mainNav = document.getElementById('main-nav');
+                        
+                        if (rightSideTabs && mainNav) {
+                            rightSideTabs.insertAdjacentHTML('afterend', navHTML);
+                        } else if (rightSideTabs) {
+                            rightSideTabs.insertAdjacentHTML('afterend', navHTML);
+                        } else if (mainNav) {
+                            mainNav.insertAdjacentHTML('beforebegin', navHTML);
+                        } else {
+                            const mainContainer = document.getElementById('main-container');
+                            if (mainContainer) {
+                                mainContainer.insertAdjacentHTML('afterbegin', navHTML);
+                            } else {
+                                document.body.insertAdjacentHTML('afterbegin', navHTML);
+                            }
+                        }
+                    }
+                };
+                
+            }
+            
+            // Handle hidden state after creation
+            if (this.isHidden) {
+                setTimeout(() => {
+                    const sidenav = document.getElementById('side-nav');
+                    if (sidenav) {
+                        sidenav.style.display = 'none';
+
+                        // TODO - Can we remove the use of .sidebar-hidden?
+                        //document.body.classList.add('sidebar-hidden');
+
+                        // Reopen button is now in template-main.html
+                    }
+                }, 10);
+            }
+        } else {
+            console.log('Navigation hidden due to shownav=false parameter');
+        }
+        */
+
+        // // TODO - Can we remove the use of .sidebar-hidden?
+        /*
+        // Set initial body class for headerbar positioning and sidenav expanded state
+        if (this.isHidden) {
+            console.log('INIT: Setting body to sidebar-hidden');
+            document.body.classList.add('sidebar-hidden');
+            document.body.classList.remove('sidenav-collapsed', 'sidenav-expanded');
+        } else if (this.isCollapsed || this.isMobile) {
+            console.log('INIT: Setting body to sidenav-collapsed');
+            //// document.body.classList.add('sidenav-collapsed');
+            //// document.body.classList.remove('sidenav-expanded');
+        } else {
+            console.log('INIT: Setting body to sidenav-expanded');
+            //// document.body.classList.add('sidenav-expanded');
+            //// document.body.classList.remove('sidenav-collapsed');
+            // Also add expanded class to sidenav when not collapsed
+            const sidenav = document.getElementById('side-nav');
+            if (sidenav) {
+                sidenav.classList.add('expanded');
+            }
+        }
+        */
+
+
+        // Check for custom favicon from environment/config
+        // Skip favicon update if common.js is handling it
+        /*
+        if (!window.updateFaviconPath) {
+            this.updateLogoFromConfig().catch(error => {
+                console.log('Failed to update logo/favicon from config:', error);
+            });
+        } else {
+            console.log('[FaviconManager] Skipping - common.js will handle favicon updates');
+        }
+        */
+    }
+    
+    // Update logo and favicon based on SITE_FAVICON environment variable or config
+    async updateLogoFromConfig() {
+        let siteFavicon = null;
+
+        // First, try to fetch current config from the server
+        try {
+            const apiUrl = 'http://localhost:8081/api/config/current';
+            const response = await fetch(apiUrl); // Since a connection error would be network-level, it cannot be surpressed by javascript
+            if (response.ok) {
+                const config = await response.json();
+                if (config.site_favicon) {
+                    siteFavicon = config.site_favicon;
+                    console.log('[FaviconManager] Found site_favicon:', siteFavicon);
+                }
+            }
+        } catch (error) {
+            console.log('Could not fetch server config, falling back to client-side detection:', error);
+        }
+        
+        // Fallback to client-side detection if server config not available
+        if (!siteFavicon) {
+            // Check if it's available as a global variable
+            if (typeof SITE_FAVICON !== 'undefined' && SITE_FAVICON) {
+                siteFavicon = SITE_FAVICON;
+            }
+            // Check if it's in a config object
+            else if (typeof window.config !== 'undefined' && window.config.SITE_FAVICON) {
+                siteFavicon = window.config.SITE_FAVICON;
+            }
+            // Check if it's in process.env (if available in browser context)
+            else if (typeof process !== 'undefined' && process.env && process.env.SITE_FAVICON) {
+                siteFavicon = process.env.SITE_FAVICON;
+            }
+        }
+        
+        // Update both sidebar logo and page favicon if a custom favicon is found
+        console.log('[FaviconManager] Final siteFavicon:', siteFavicon, 'currentFavicon:', this.currentFavicon);
+        if (siteFavicon && siteFavicon !== this.currentFavicon) {
+            console.log('[FaviconManager] Updating favicon from', this.currentFavicon, 'to', siteFavicon);
+            
+            // Update sidebar logo
+            const logoImg = document.getElementById('sidebar-logo');
+            if (logoImg) {
+                logoImg.src = siteFavicon;
+                console.log('[FaviconManager] Updated sidebar logo to:', siteFavicon);
+            } else {
+                console.log('[FaviconManager] No sidebar-logo element found');
+            }
+            
+            // Update page favicon
+            try {
+                await this.updatePageFavicon(siteFavicon);
+                this.currentFavicon = siteFavicon;
+                console.log('[FaviconManager] Successfully updated page favicon to:', siteFavicon);
+            } catch (error) {
+                console.warn('[FaviconManager] Failed to update page favicon:', error);
+            }
+        } else {
+            console.log('[FaviconManager] No favicon update needed - same as current or no favicon found');
+        }
+    }
+    
+    // Update the page favicon with validation
+    async updatePageFavicon(faviconUrl) {
+        return new Promise((resolve, reject) => {
+            // Validate the image URL before setting it
+            const testImg = new Image();
+            
+            testImg.onload = () => {
+                // Image is valid, proceed with setting favicon
+                this.applyPageFavicon(faviconUrl);
+                console.log('Updated page favicon to:', faviconUrl);
+                resolve();
+            };
+            
+            testImg.onerror = () => {
+                console.warn('Invalid favicon URL:', faviconUrl);
+                reject(new Error('Invalid favicon URL'));
+            };
+            
+            testImg.src = faviconUrl;
+        });
+    }
+    
+    // Apply the favicon to the page
+    applyPageFavicon(faviconUrl) {
+        // Remove existing favicon links
+        const existingFavicons = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+        existingFavicons.forEach(favicon => favicon.remove());
+
+        // Create new favicon link
+        const favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        favicon.type = 'image/png'; // Assume PNG, but browsers are flexible
+        favicon.href = faviconUrl;
+
+        // Add to document head
+        document.head.appendChild(favicon);
+
+        // For older browsers, also create a shortcut icon link
+        const shortcutFavicon = document.createElement('link');
+        shortcutFavicon.rel = 'shortcut icon';
+        shortcutFavicon.type = 'image/png';
+        shortcutFavicon.href = faviconUrl;
+        document.head.appendChild(shortcutFavicon);
+    }
+    
+    // Start periodic updates to check for favicon changes
+    startPeriodicFaviconUpdate() {
+        // Disabled periodic favicon updates to reduce unnecessary API calls
+        // The favicon will be set once on initialization
+        console.log('[FaviconManager] Periodic updates disabled');
+        /*
+        // Check for updates every 30 seconds
+        this.faviconUpdateInterval = setInterval(() => {
+            this.updateLogoFromConfig().catch(error => {
+                console.log('Periodic favicon update failed:', error);
+            });
+        }, 30000);
+        */
+    }
+    
+    // Manual refresh method for external use
+    async refreshFavicon() {
+        console.log('Manual favicon refresh requested');
+        try {
+            await this.updateLogoFromConfig();
+            return true;
+        } catch (error) {
+            console.warn('Manual favicon refresh failed:', error);
+            return false;
+        }
+    }
+    
+    setupEventListeners() {
+        // Sidebar toggle - use native event delegation for dynamic elements
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#sidebar-toggle')) {
+                this.toggleSidebar();
+            }
+        });
+        
+        // Close button handler - use native event delegation for dynamic elements
+        document.addEventListener('click', (e) => {
+            // Handle the specific close button in #side-nav-content
+            if (e.target.closest('#nav-close-btn')) {
+                //alert("hideSidebar() 3");
+                const sideNav = document.getElementById('side-nav');
+                sideNav.classList.remove('expanded');
+                sideNav.classList.add('collapsed');
+                this.hideSidebar();
+                return;
+            }
+            
+            // Handle main nav close button
+            const mainNavCloseBtn = e.target.closest('.main-nav-close-btn');
+            if (mainNavCloseBtn) {
+                console.log('Clicked .main-nav-close-btn in #main-nav');
+                // Just hide #main-nav, keep #side-nav-content open
+                document.getElementById('main-nav').style.display = 'none';
+                $("#side-nav").removeClass("main-nav").removeClass("main-nav-full");
+                
+                // Mobile behavior: if browser is 600px or less and #side-nav-content is visible, 
+                // replace collapsed class with expanded
+                if (window.innerWidth <= 600) {
+                    const sideNavContent = document.getElementById('side-nav-content');
+                    const sideNav = document.getElementById('side-nav');
+                    if (sideNavContent && sideNav && 
+                        window.getComputedStyle(sideNavContent).display !== 'none') {
+                        sideNav.classList.remove('collapsed');
+                        sideNav.classList.add('expanded');
+                    }
+                }
+            }
+        });
+
+        // Navigation click handling - use native event delegation for dynamic elements
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('.nav-link');
+            if (link) {
+                if (e.target.closest('.nav-arrow') || e.target.classList.contains('nav-arrow')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // For all nav arrows, toggle the subnav
+                    this.toggleSubnav(link);
+                } else {
+                    // Handle main button clicks - check if already on target page
+                    if (link.hasAttribute('data-href')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const href = link.getAttribute('data-href');
+                        const hashMatch = href.match(/#([^']+)/);
+                        
+                        if (hashMatch) {
+                            const targetHash = hashMatch[1];
+                            const currentHash = window.location.hash.substring(1);
+                            
+                            // Check if we're on the root index.html page AND the href is for hash navigation only (not a different page)
+                            const isRootPage = window.location.pathname === '/' || 
+                                             window.location.pathname.endsWith('/index.html') ||
+                                             window.location.pathname.endsWith('/team/') ||
+                                             window.location.pathname.endsWith('/team/index.html');
+                            
+                            // Check if href is for same page hash navigation (starts with # or has no path before #)
+                            const isSamePageHash = href.startsWith('#') || !href.includes('/');
+                            
+                            if (isRootPage && isSamePageHash) {
+                                // On root page with same-page hash, use hash navigation only
+                                window.location.hash = targetHash;
+                            } else {
+                                // Different page or not root page, use full href navigation
+                                window.location.href = href;
+                            }
+                        } else {
+                            // Direct navigation (like admin path)
+                            window.location.href = href;
+                        }
+                    }
+                }
+            }
+        });
+        
+
+        // Tooltip handlers for collapsed nav - use native event delegation
+        /*
+        document.addEventListener('mouseenter', (e) => {
+            //alert("mouseenter")
+            // Check if target has closest method (Element nodes only)
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            
+            const link = e.target.closest('.nav-link');
+            if (link && self.isCollapsed && self.isLocked) {
+                self.showTooltip(e, link);
+            }
+        }, true);
+        
+        document.addEventListener('mouseleave', (e) => {
+            // Check if target has closest method (Element nodes only)
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            
+            if (e.target.closest('.nav-link') && self.isCollapsed && self.isLocked) {
+                // Add a small delay to allow moving to the tooltip
+                setTimeout(() => {
+                    const tooltip = document.getElementById('nav-tooltip');
+                    if (tooltip && !tooltip.matches(':hover')) {
+                        self.hideTooltip();
+                    }
+                }, 100);
+            }
+        }, true);
+        */
+
+        // Global click handler for mobile menu
+        const globalClickHandler = (e) => {
+            if (this.isMobile && this.mobileOpen) {
+                const sidenav = document.getElementById('side-nav');
+                if (sidenav && !sidenav.contains(e.target)) {
+                    this.closeMobileMenu();
+                }
+            }
+        };
+        
+        document.addEventListener('click', globalClickHandler);
+        this.eventListeners.push({ element: document, event: 'click', handler: globalClickHandler });
+        
+        // Click handler for side-nav-content area to expand when collapsed or collapse when expanded
+        // Use native event delegation to handle dynamically inserted elements
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#side-nav-content')) {
+                // Check if click is not on interactive elements
+                const isInteractiveElement = e.target.closest('.nav-link, .subnav-link, button, a, input, select, textarea');
+                
+                if (!isInteractiveElement && !this.isMobile) {
+                    if (this.isCollapsed) {
+                        console.log('CONTENT CLICK: Expanding sidebar from content area click');
+                        this.toggleSidebar();
+                    } else {
+                        console.log('CONTENT CLICK: Collapsing sidebar from content area click');
+                        this.toggleSidebar();
+                    }
+                }
+            }
+        });
+        
+        // Tooltip link click handling - use native event delegation for dynamic tooltips
+        document.addEventListener('click', (e) => {
+            const tooltipLink = e.target.closest('.tooltip-link');
+            if (tooltipLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const href = tooltipLink.getAttribute('data-href');
+                if (href) {
+                    const hashMatch = href.match(/#([^']+)/);
+                    
+                    if (hashMatch) {
+                        const targetHash = hashMatch[1];
+                        const currentHash = window.location.hash.substring(1);
+                        
+                        // Check if we're on the root index.html page
+                        const isRootPage = window.location.pathname === '/' || 
+                                         window.location.pathname.endsWith('/index.html') ||
+                                         window.location.pathname.endsWith('/team/') ||
+                                         window.location.pathname.endsWith('/team/index.html');
+                        
+                        if (isRootPage) {
+                            // On root page, use hash navigation only
+                            window.location.hash = targetHash;
+                        } else {
+                            // On other pages, use full href navigation
+                            window.location.href = href;
+                        }
+                    } else {
+                        // Direct navigation (like admin path)
+                        window.location.href = href;
+                    }
+                }
+            }
+        });
+    }
+    
+    setupMobileHandlers() {
+        // Mobile menu toggle button - use native event delegation for dynamic elements
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#mobile-menu-toggle')) {
+                this.toggleMobileMenu();
+            }
+        });
+        
+        // Overlay click to close - use native event delegation for dynamic elements
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#mobile-overlay')) {
+                this.closeMobileMenu();
+            }
+        });
+    }
+    
+    toggleSidebar() {
+        
+        const sidenav = document.getElementById('side-nav');
+        if (sidenav) {
+            if (this.isCollapsed) {
+                // Expanding - add expanded class
+                this.isCollapsed = false;
+                this.isLocked = false;
+                sidenav.classList.remove('collapsed', 'locked', 'hovered');
+                sidenav.classList.add('expanded');
+                // Update body class for headerbar positioning
+                //// document.body.classList.remove('sidenav-collapsed');
+                //// document.body.classList.add('sidenav-expanded');
+            } else {
+                // Collapsing - remove expanded class and lock it collapsed
+                this.isCollapsed = true;
+                this.isLocked = true;
+                sidenav.classList.remove('expanded', 'hovered');
+                sidenav.classList.add('collapsed', 'locked');
+                // Update body class for headerbar positioning
+                //// document.body.classList.remove('sidenav-expanded');
+                //// document.body.classList.add('sidenav-collapsed');
+            }
+            
+            // Update toggle icon with debouncing
+            this.debouncedUpdateToggleIcon();
+            
+            
+            // Store state in localStorage
+            localStorage.setItem('standaloneNavCollapsed', this.isCollapsed);
+            localStorage.setItem('standaloneNavLocked', this.isLocked);
+        }
+    }
+    
+    unlockSidebar() {
+        const sidenav = document.getElementById('side-nav');
+        if (sidenav) {
+            this.isCollapsed = false;
+            this.isLocked = false;
+            sidenav.classList.remove('collapsed', 'locked', 'hovered');
+            sidenav.classList.add('expanded');
+            // Update body class for headerbar positioning
+            //// document.body.classList.remove('sidenav-collapsed');
+            //// document.body.classList.add('sidenav-expanded');
+            
+            // Update toggle icon with debouncing
+            this.debouncedUpdateToggleIcon();
+            
+            // Store state in localStorage
+            localStorage.setItem('standaloneNavCollapsed', this.isCollapsed);
+            localStorage.setItem('standaloneNavLocked', this.isLocked);
+        }
+    }
+    
+    // .sideBar contains both
+    hideSidebar(whichNav) {
+
+        console.log('hideSidebar called, isMobile:', this.isMobile, 'windowWidth:', window.innerWidth);
+        const sidenavcontent = document.getElementById('side-nav-content');
+        const mainNav = document.getElementById('main-nav');
+        const isNarrowScreen = window.innerWidth <= 600;
+        
+        if (sidenavcontent) {
+            console.log('Hiding sidebar...');
+            // Hide the sidenavcontent icon sidebar
+            sidenavcontent.style.display = 'none';
+            $("#side-nav").removeClass("main-nav-full");
+            
+            // Check if main-nav is visible and handle accordingly
+            const mainNavVisible = mainNav && $("#main-nav").is(":visible");
+            
+            if (mainNavVisible) {
+                // Keep #main-nav visible and #side-nav open
+                $("#side-nav").addClass("main-nav");
+                console.log('Keeping main-nav visible, only hiding side-nav-content');
+                
+                // On narrow screens (≤600px), when main-nav is visible, 
+                // do NOT add sidebar-hidden class - just hide side-nav-content
+                if (isNarrowScreen) {
+                    console.log('Narrow screen: main-nav visible, NOT adding sidebar-hidden class');
+                    return; // Don't set isHidden or add sidebar-hidden class
+                } else {
+                    // Wide screen: keep existing behavior
+                    return; // Don't set isHidden or add sidebar-hidden class
+                }
+            } else {
+                // No main-nav visible, close entire sidebar
+                console.log('No main-nav visible, closing entire sidebar');
+                document.body.classList.add('sidebar-hidden');
+                // Update internal state
+                this.isHidden = true;
+                
+                // Store hidden state (but don't persist mobile state to localStorage on narrow screens)
+                if (!isNarrowScreen) {
+                    localStorage.setItem('standaloneNavHidden', 'true');
+                }
+            }
+            
+            document.body.classList.remove('sidenav-collapsed', 'sidenav-expanded');
+            console.log('Body classes updated');
+            console.log('Sidebar hidden successfully');
+        } else {
+            console.log('Cannot hide sidebar - not found');
+        }
+    }
+    
+    showSidebar() {
+        const sidenav = document.getElementById('side-nav');
+        if (sidenav) {
+            // Explicitly remove any display:none and show the sidebar
+            sidenav.style.removeProperty('display');
+            sidenav.style.display = '';  // Clear any inline display first
+            sidenav.style.display = 'flex';  // Then set to flex
+            
+            // Remove hidden class and restore previous state
+            document.body.classList.remove('sidebar-hidden');
+            
+            // Check if sidebar has neither collapsed nor expanded class and add collapsed if needed
+            if (!sidenav.classList.contains('collapsed') && !sidenav.classList.contains('expanded')) {
+                sidenav.classList.add('collapsed');
+                this.isCollapsed = true;
+            }
+            
+            // Restore previous collapsed/expanded state
+            if (this.isCollapsed) {
+                //// document.body.classList.add('sidenav-collapsed');
+            } else {
+                //// document.body.classList.add('sidenav-expanded');
+            }
+            
+            // Clear hidden state
+            localStorage.removeItem('standaloneNavHidden');
+            this.isHidden = false;
+        }
+    }
+    
+    handleNavigationToggle() {
+        const sidenav = document.getElementById('side-nav');
+        const mainNav = document.getElementById('main-nav');
+        const body = document.body;
+        const isNarrowScreen = window.innerWidth <= 600;
+        const isCurrentlyHidden = body.classList.contains('sidebar-hidden');
+        
+        console.log('🔍 handleNavigationToggle:', {
+            windowWidth: window.innerWidth,
+            isNarrowScreen,
+            currentBodyClasses: body.className,
+            isExpanded: sidenav?.classList.contains('expanded'),
+            mainNavVisible: mainNav ? window.getComputedStyle(mainNav).display !== 'none' : false,
+            isCurrentlyHidden
+        });
+        
+        // FIRST: If sidebar is not hidden, always add .sidebar-hidden and return
+        if (!isCurrentlyHidden) {
+            console.log('🔍 DEBUG: Adding .sidebar-hidden to body - early return');
+            body.classList.add('sidebar-hidden');
+            // On mobile (600px and less), don't set display:none on #side-nav
+            if (sidenav && !isNarrowScreen) sidenav.style.display = 'none';
+            if (mainNav) mainNav.style.display = 'none';
+            this.isHidden = true;
+            
+            // Store hidden state (but don't persist mobile state to localStorage on narrow screens)
+            if (!isNarrowScreen) {
+                localStorage.setItem('standaloneNavHidden', 'true');
+            }
+            
+            console.log('🔍 DEBUG: Body classes after adding:', body.className);
+            return; // Exit early - no additional navigation changes
+        }
+        
+        // SECOND: Only proceed here if sidebar is currently hidden
+        console.log('🔍 DEBUG: Sidebar currently hidden - showing navigation');
+        
+        if (isNarrowScreen) {
+            // Narrow screen behavior - show both navigations
+            body.classList.remove('sidebar-hidden');
+            
+            // Show #side-nav-content with .collapsed
+            if (sidenav) {
+                sidenav.style.removeProperty('display');
+                sidenav.style.display = 'flex';
+                this.setSidebarState(sidenav, 'collapsed');
+                this.isCollapsed = true;
+                this.isLocked = true;
+            }
+            
+            // Show #main-nav
+            if (mainNav) {
+                mainNav.style.removeProperty('display');
+                mainNav.style.display = 'block';
+            }
+            
+            this.isHidden = false;
+        } else {
+            // Wide screen behavior - show sidebar in collapsed state
+            this.showSidebar();
+            // Set to collapsed state initially
+            if (sidenav) {
+                this.setSidebarState(sidenav, 'collapsed');
+                this.isCollapsed = true;
+                this.isLocked = true;
+            }
+        }
+    }
+    
+    
+    // Debounced icon update to prevent excessive DOM manipulation
+    debouncedUpdateToggleIcon() {
+        if (this.featherTimeout) {
+            clearTimeout(this.featherTimeout);
+        }
+        
+        this.featherTimeout = setTimeout(() => {
+            this.updateToggleIcon();
+        }, 50);
+    }
+    
+    updateToggleIcon() {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        if (!sidebarToggle) return;
+        
+        // Check actual sidenav state from DOM
+        const sidenav = document.getElementById('side-nav');
+        const actuallyCollapsed = sidenav?.classList.contains('collapsed') || false;
+        const mobileOpen = sidenav?.classList.contains('mobile-open') || false;
+        const actuallyExpanded = sidenav?.classList.contains('expanded') || false;
+        
+        // Sync the class property with actual DOM state
+        this.isCollapsed = actuallyCollapsed;
+        
+        // Target icon based on state - consider both collapsed state and mobile-open/expanded
+        let targetIcon;
+        if (this.isMobile) {
+            // On mobile: right arrow when collapsed, left arrow when mobile-open OR expanded
+            targetIcon = (mobileOpen || actuallyExpanded) ? 'chevrons-left' : 'chevrons-right';
+        } else {
+            // On desktop: right arrow when collapsed, left arrow when expanded
+            targetIcon = this.isCollapsed ? 'chevrons-right' : 'chevrons-left';
+        }
+        
+        console.log('UPDATE ICON: collapsed:', this.isCollapsed, 'mobileOpen:', mobileOpen, 'isMobile:', this.isMobile, 'targetIcon:', targetIcon);
+        
+        // Clear all existing icons (both <i> and <svg> elements)
+        sidebarToggle.innerHTML = '';
+        
+        // Create new icon element
+        const icon = document.createElement('i');
+        icon.setAttribute('data-feather', targetIcon);
+        sidebarToggle.appendChild(icon);
+        
+        // Debounced feather icon refresh
+        this.refreshFeatherIcons();
+    }
+    
+    toggleMobileMenu() {
+        const sidenav = document.getElementById('side-nav');
+        const overlay = document.getElementById('mobile-overlay');
+        
+        this.mobileOpen = !this.mobileOpen;
+        
+        console.log('TOGGLE MOBILE: mobileOpen:', this.mobileOpen);
+        
+        sidenav?.classList.toggle('mobile-open', this.mobileOpen);
+        overlay?.classList.toggle('active', this.mobileOpen);
+        
+        // Update toggle icon to reflect new state
+        this.debouncedUpdateToggleIcon();
+    }
+    
+    closeMobileMenu() {
+        const sidenav = document.getElementById('side-nav');
+        const overlay = document.getElementById('mobile-overlay');
+        
+        this.mobileOpen = false;
+        
+        sidenav?.classList.remove('mobile-open');
+        overlay?.classList.remove('active');
+    }
+    
+    toggleSubnav(navLink) {
+        const subnav = navLink.parentElement?.querySelector('.subnav');
+        const arrow = navLink.querySelector('.nav-arrow');
+        
+        if (subnav && arrow) {
+            const isExpanded = subnav.classList.contains('expanded');
+            
+            subnav.classList.toggle('expanded', !isExpanded);
+            arrow.classList.toggle('expanded', !isExpanded);
+        }
+    }
+    
+    navigateToRoot(hash = '') {
+        const basePath = this.options.basePath;
+        const rootPath = basePath ? `${basePath}/index.html` : './index.html';
+        window.location.href = rootPath + hash;
+    }
+    
+    navigateToAdmin() {
+        const basePath = this.options.basePath;
+        const adminPath = basePath ? `${basePath}/admin/` : './admin/';
+        window.location.href = adminPath;
+    }
+    
+    // Initialize feather icons with 22px size
+    initializeNavFeatherIcons() {
+        if (typeof feather !== 'undefined') {
+            feather.replace({
+                width: 22,
+                height: 22
+            });
+        }
+    }
+
+    // Load feather icons script if not already loaded
+    loadFeatherIcons() {
+        if (typeof feather !== 'undefined') {
+            // Already loaded
+            return;
+        }
+        
+        // Check if script is already in the DOM
+        const existingScript = document.querySelector('script[src*="feather-icons"]');
+        if (existingScript) {
+            return;
+        }
+        
+        // Load feather icons script
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/feather-icons';
+        script.onload = () => {
+            this.initializeNavFeatherIcons();
+        };
+        document.head.appendChild(script);
+    }
+
+    // Debounced feather icon refresh
+    refreshFeatherIcons() {
+        if (this.featherTimeout) {
+            clearTimeout(this.featherTimeout);
+        }
+        
+        this.featherTimeout = setTimeout(() => {
+            this.initializeNavFeatherIcons();
+        }, 100);
+    }
+    
+    // Public method to force immediate feather icon refresh
+    replaceFeatherIcons() {
+        this.initializeNavFeatherIcons();
+    }
+    
+    
+    // Update tooltip for the sidebar toggle button based on current state
+    updateExpanderTooltip() {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        if (!sidebarToggle) return;
+        
+        // Check actual sidenav state from DOM
+        const sidenav = document.getElementById('side-nav');
+        const actuallyCollapsed = sidenav?.classList.contains('collapsed') || false;
+        const mobileOpen = sidenav?.classList.contains('mobile-open') || false;
+        
+        // Set appropriate tooltip text based on current state
+        if (this.isMobile) {
+            // On mobile, the button opens/closes the mobile menu
+            const tooltipText = mobileOpen ? 'Close navigation' : 'Open navigation';
+            sidebarToggle.setAttribute('title', tooltipText);
+        } else {
+            // On desktop, the button expands/collapses the sidebar
+            const tooltipText = actuallyCollapsed ? 'Expand navigation' : 'Collapse navigation';
+            sidebarToggle.setAttribute('title', tooltipText);
+        }
+    }
+    
+    // Initialize state after DOM is ready (no longer changes state, just updates UI)
+    restoreState() {
+        // Update expander tooltip based on current state
+        this.updateExpanderTooltip();
+        
+        // Update icon to match current state
+        this.debouncedUpdateToggleIcon();
+    }
+    
+    // Invoked by .nav-link circle hover
+    // Allow .tooltip-link button to transend edge of absolute.
+
+    // Switching to rollover instead
+    showTooltip(event, navLink) {
+        //alert("showTooltip")
+        // Remove existing tooltip
+        this.hideTooltip();
+        
+        // Get the nav text content
+        const navText = navLink.querySelector('.nav-text');
+        if (!navText) return;
+        
+        const tooltipText = navText.textContent.trim();
+        if (!tooltipText) return;
+        
+        // Get the nav icon
+        const navIcon = navLink.querySelector('.nav-icon');
+        if (!navIcon) return;
+        
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'nav-tooltip show';
+        tooltip.id = 'nav-tooltip';
+        
+        // Create clickable link wrapper
+        const tooltipLink = document.createElement('button');
+        tooltipLink.className = 'tooltip-link';
+        
+        // Copy the navigation functionality from the main nav button
+        const href = navLink.getAttribute('data-href');
+        if (href) {
+            // Store href in data attribute for event delegation
+            tooltipLink.setAttribute('data-href', href);
+        }
+        
+        // Clone the icon and create tooltip content
+        const iconClone = navIcon.cloneNode(true);
+        
+        // Handle both <i> and <svg> elements properly
+        if (iconClone.tagName === 'svg') {
+            iconClone.classList.add('tooltip-icon');
+        } else {
+            iconClone.className = 'tooltip-icon';
+        }
+        
+        const textSpan = document.createElement('span');
+        textSpan.className = 'tooltip-text';
+        textSpan.textContent = tooltipText;
+        
+        // Add icon and text to tooltip link
+        tooltipLink.appendChild(iconClone);
+        tooltipLink.appendChild(textSpan);
+        
+        // Add link to tooltip
+        tooltip.appendChild(tooltipLink);
+        
+        // Add tooltip event handlers to keep it visible when hovering
+        const tooltipMouseEnterHandler = () => {
+            tooltip.classList.add('show');
+        };
+        
+        const tooltipMouseLeaveHandler = () => {
+            this.hideTooltip();
+        };
+        
+        tooltip.addEventListener('mouseenter', tooltipMouseEnterHandler);
+        tooltip.addEventListener('mouseleave', tooltipMouseLeaveHandler);
+        
+        // Store handlers for cleanup
+        tooltip._enterHandler = tooltipMouseEnterHandler;
+        tooltip._leaveHandler = tooltipMouseLeaveHandler;
+        
+        // Add to body
+        document.body.appendChild(tooltip);
+        
+        // Initialize feather icons for the cloned icon
+        this.initializeNavFeatherIcons();
+        
+        // Position tooltip
+        const rect = navLink.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Position tooltip so the icon aligns with the original nav circle
+        const left = rect.left;
+        const top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+    }
+    
+    hideTooltip() {
+        const existingTooltip = document.getElementById('nav-tooltip');
+        if (existingTooltip) {
+            // Clean up event listeners
+            if (existingTooltip._enterHandler) {
+                existingTooltip.removeEventListener('mouseenter', existingTooltip._enterHandler);
+            }
+            if (existingTooltip._leaveHandler) {
+                existingTooltip.removeEventListener('mouseleave', existingTooltip._leaveHandler);
+            }
+            existingTooltip.remove();
+        }
+    }
+    
+    // Clean up event listeners to prevent memory leaks
+    destroy() {
+        // Clear all timeouts and intervals
+        if (this.featherTimeout) {
+            clearTimeout(this.featherTimeout);
+        }
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+        }
+        if (this.faviconUpdateInterval) {
+            clearInterval(this.faviconUpdateInterval);
+        }
+        
+        // Remove any tooltips
+        this.hideTooltip();
+        
+        // Remove all event listeners
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        
+        this.eventListeners = [];
+        
+        // Clear singleton instance
+        //StandaloneNavigation.instance = null;
+    }
+}
+
+const navParam = getNavParam();
+//const testParam = getNavParam('https://example.com?features.path=dashboard&user.name=john#features.story=onboarding&user.age=25&features.path=old-dashboard');
+//console.log(JSON.stringify(testParam, null, 2));
+//alert(testParam.features.story);
+
+// Static property for singleton pattern
+StandaloneNavigation.instance = null;
+
+// Global instance
+let standaloneNav;
+
+// Initialize navigation function
+function initializeStandaloneNav() {
+    //alert("initializeStandaloneNav")
+    //let hash = getHash();
+    const defaultToGeo = (navParam.list == "geo" || window.location.hostname.includes('geo') || window.location.hostname.includes('location'));
+    if (defaultToGeo) {
+        //return; // Return for maps with Add City Visit
+    }
+    console.log('[StandaloneNav] initializeStandaloneNav called, existing instance:', !!StandaloneNavigation.instance);
+    
+    // Clean up existing instance if it exists
+    if (standaloneNav) {
+        console.log('[StandaloneNav] Destroying existing navigation instance');
+        standaloneNav.destroy();
+    }
+    
+    // Clear singleton instance to force recreation
+    StandaloneNavigation.instance = null;
+    
+    // Determine base path based on current location
+    const currentPath = window.location.pathname;
+    const pathSegments = currentPath.split('/').filter(segment => segment && !segment.endsWith('.html'));
+    let basePath = '';
+    let repoFolderName = null;
+    let isWebrootContainer = false;
+    let isExternalSite = false;
+    
+    // Auto-detect repository folder name by checking for known files
+    // Look for typical repo files to identify the repository folder
+    const knownRepoFiles = ['Cargo.toml', 'package.json', 'README.md', 'CLAUDE.md'];
+    let detectedRepoName = null;
+    
+    /*
+    // Try to detect repo folder from current path
+    for (const segment of pathSegments) {
+        // Skip common non-repo segments
+        if (!['admin', 'js', 'css', 'img', 'preferences'].includes(segment)) {
+            detectedRepoName = segment;
+            break;
+        }
+    }
+    
+    // Fallback detection logic
+    if (!detectedRepoName) {
+        // Check if we have any path segments that could be a repo
+        const possibleRepoSegment = pathSegments.find(segment => 
+            !['admin', 'js', 'css', 'img', 'preferences', 'src', 'target'].includes(segment)
+        );
+        if (possibleRepoSegment) {
+            detectedRepoName = possibleRepoSegment;
+        }
+    }
+    */
+    
+    // Check if we're being called from an external site or within a webroot container
+    if (detectedRepoName && pathSegments.includes(detectedRepoName)) {
+        // We're inside the repository folder
+        repoFolderName = detectedRepoName;
+        isWebrootContainer = true;
+        const repoIndex = pathSegments.indexOf(detectedRepoName);
+        const segmentsAfterRepo = pathSegments.slice(repoIndex + 1);
+        
+        if (segmentsAfterRepo.length > 0) {
+            basePath = '../'.repeat(segmentsAfterRepo.length);
+            basePath = basePath.replace(/\/$/, '');
+        }
+    } else if (pathSegments.length > 0 && detectedRepoName) {
+        // We're in a different site in the webroot, need to reference detected repo folder
+        isExternalSite = true;
+        repoFolderName = detectedRepoName;
+        basePath = `/${detectedRepoName}`;
+    } else if (pathSegments.length === 0) {
+        // We're at root level - check if it's actually direct repo serving
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // Local development - likely direct repo serving
+            isExternalSite = false;
+            basePath = './';
+        } else {
+            // External site at root - use fallback name
+            isExternalSite = true;
+            repoFolderName = 'explore'; // Default fallback
+            basePath = '/explore';
+        }
+    } else {
+        // Direct repo serving (legacy behavior)
+        if (pathSegments.length > 1) {
+            basePath = '../'.repeat(pathSegments.length - 1);
+            basePath = basePath.replace(/\/$/, '');
+        }
+    }
+    
+    // Determine current page
+    let currentPage = 'home';
+    if (currentPath.includes('/admin/')) {
+        currentPage = 'admin';
+    }
+    
+    // Initialize standalone navigation
+    standaloneNav = new StandaloneNavigation({
+        basePath: basePath,
+        currentPage: currentPage,
+        isWebrootContainer: isWebrootContainer,
+        repoFolderName: repoFolderName,
+        isExternalSite: isExternalSite
+    });
+    
+    // Make instance globally accessible
+    window.standaloneNav = standaloneNav;
+    
+    // Restore state after initialization
+    setTimeout(() => {
+        standaloneNav.restoreState();
+    }, 100);
+}
+
+
+function getNavParam(url = window.location.href) {
+  const urlObj = new URL(url);
+  const quickNavParam = {};
+  
+  // Helper function to set nested object properties using dot notation
+  function setNestedProperty(obj, path, value) {
+    const keys = path.split('.');
+    let current = obj;
+    
+    // Navigate to the parent object, creating nested objects as needed
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+    
+    // Set the final property
+    const finalKey = keys[keys.length - 1];
+    current[finalKey] = value;
+  }
+  
+  // Parse hash parameters first (lower priority)
+  const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+  for (const [key, value] of hashParams.entries()) {
+    setNestedProperty(quickNavParam, key, value);
+  }
+  
+  // Parse query parameters second (higher priority - will override hash params)
+  const queryParams = urlObj.searchParams;
+  for (const [key, value] of queryParams.entries()) {
+    setNestedProperty(quickNavParam, key, value);
+  }
+  
+  return quickNavParam;
+}
+
+initializeStandaloneNav();
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+    if (standaloneNav) {
+        standaloneNav.destroy();
+    }
+});
+
+// Global function for manual favicon refresh
+window.refreshFavicon = function() {
+    if (standaloneNav && standaloneNav.refreshFavicon) {
+        return standaloneNav.refreshFavicon();
+    } else {
+        console.warn('[FaviconManager] Navigation not initialized yet');
+        return Promise.resolve(false);
+    }
+};
+
+
+/// Navigation.js
+
 const stateFromCountryAndStateNumber = {
   "US01": "AL", "US02": "AK", "US04": "AZ", "US05": "AR", "US06": "CA",
   "US08": "CO", "US09": "CT", "US10": "DE", "US11": "DC", "US12": "FL",
@@ -892,17 +2707,27 @@ function getUniqueStateAbbreviations(geo) {
 }
 
 function hideSide(which) {
-    console.log("hideSide " + which);
+    console.log("hideSide");
     if (which == "list") {
+        $("#main-nav").hide();
+        $("#side-nav").removeClass("main-nav");
+        $("#side-nav").removeClass("main-nav-full");
+
         $("#listcolumn").hide();
         if ($("#listcolumnList").text().trim().length > 0) {
             $("#showListInBar").show();
         }
-        $("#showSideInBar").show();
+        $("#showSideFromBar").show();
+        if (!$("#side-nav-content").is(":visible")) {
+            $('body').addClass("sidebar-hidden");
+        }
     } else {
-        $("#navcolumn").hide();
+        $("#main-nav").hide();
+        $("#side-nav").hide();
+        $("#side-nav").removeClass("main-nav");
+        $("#side-nav").removeClass("main-nav-full");
         $('body').removeClass('bodyLeftMarginFull');
-        if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded
+        if ($("#main-content > .datascape").is(":visible")) { // When NOT embedded
             if ($("#listcolumn").is(':visible')) {
                 $('#listcolumn').addClass('listcolumnOnly');
                 console.log("addClass bodyLeftMarginList");
@@ -910,36 +2735,6 @@ function hideSide(which) {
             }
         }
     }
-    if (!$("#navcolumn").is(':visible') && !$("#listcolumn").is(':visible')) {
-        $("#showNavColumn").show();$("#showSideInBar").hide();
-        $("#sideIcons").show();
-    } else if (!$("#navcolumn").is(':visible') && $("#listcolumn").is(':visible')) {
-        $("#showSideInBar").show();
-    }
-    if (!$("#navcolumn").is(':visible')) {
-        $('body').removeClass('bodyLeftMargin');
-    }
-    if (!$("#listcolumn").is(':visible')) {
-        $('body').removeClass('bodyLeftMarginList');
-    }
-    if (!$("#navcolumn").is(':visible') || !$("#listcolumn").is(':visible')) {
-        $('body').removeClass('bodyLeftMarginFull');
-    }
-    if (!$('body').hasClass('bodyRightMargin')) {
-        $('body').removeClass('mobileView');
-    }
-    // Might not need this with mobile
-
-    // Stopped working after reconfuring to load map1 and map2 with same function.
-    /*
-    if (document.querySelector('#map1')._leaflet_map) {
-        document.querySelector('#map1')._leaflet_map.invalidateSize(); // Refresh map tiles.
-    }
-    if (document.querySelector('#map2')._leaflet_map) {
-        document.querySelector('#map2')._leaflet_map.invalidateSize(); // Refresh map tiles.
-    }
-    */
-    // Works instead
     if ($("#map1").text().trim().length > 1) {
         if (map1) {
             map1.invalidateSize(); // Refresh map tiles.
@@ -950,6 +2745,7 @@ function hideSide(which) {
             map2.invalidateSize(); // Refresh map tiles.
         }
     }
+
 }
 function popAdvanced() {
     waitForElm('#filterLocations').then((elm) => {        
@@ -962,11 +2758,11 @@ function popAdvanced() {
 }
 function showSideTabs() {
     consoleLog("showSideTabs() in navigation.js");
-    waitForElm('#sideTabs').then((elm) => {
+    waitForElm('#rightSideTabs').then((elm) => {
         let hash = getHash();
 
         if (hash.sidetab) {
-            $('body').addClass('bodyRightMargin'); // Creates margin on right for fixed sidetabs.
+            $('body').addClass('bodyRightMargin'); // Creates margin on right for fixed rightSideTabs.
             $('body').addClass('mobileView');
             $(".rightTopMenuInner div").removeClass("active");
             $(".menuExpanded").hide(); // Hide any open
@@ -992,15 +2788,16 @@ function showSideTabs() {
             } else if (hash.sidetab == "account") {
                 $(".showAccount").addClass("active");
                 $("#accountPanel").show();
+                $("#accountPanel .menuExpandedScroll").show();
             } else {
-                //$("#sideTabs").show();
+                //$("#rightSideTabs").show();
             }
-            $("#sideTabs").show();
+            $("#rightSideTabs").show();
         } else {
-            $('body').removeClass('bodyRightMargin'); // Creates margin on right for fixed sidetabs.
+            $('body').removeClass('bodyRightMargin'); // Creates margin on right for fixed rightSideTabs.
             $('body').removeClass('mobileView');
             //updateHash({"sidetab":""}); // Commented out since we're checking the hash above.
-            $("#sideTabs").hide();
+            $("#rightSideTabs").hide();
         }
     });
 }
@@ -1127,7 +2924,7 @@ catArray = [];
     $(document).on("click", "#headerLogoholder", function(event) {
         const headerbarWidth = $("#headerbar").width();
         if (headerbarWidth && headerbarWidth <= 600) {
-            if ($("#navcolumn").is(':hidden')) {
+            if ($("#main-nav").is(':hidden')) {
                 showNavColumn();
             } else {
                 hideNavColumn();
@@ -1221,7 +3018,7 @@ catArray = [];
         $(this).attr("text", $(this).text());
     });
     $(document).on("click", "#catSearch", function(event) {
-        alert("#catSearch click - #toppanel has been deactivated and moved to map/index-categories.html")
+        //alert("#catSearch click - #toppanel has been deactivated and moved to map/index-categories.html")
         if ($('#topPanel').css('display') === 'none') {
             
             $('#productSubcats').css("max-height","300px");
@@ -1354,19 +3151,23 @@ catArray = [];
         $('#topPanel').hide();
     });
     $(document).on("click", "body", function(event) {
-        if ($("#navcolumn").is(":visible") && window.innerWidth < 1200) { 
-            $("#navcolumn").hide();
-            $("#showNavColumn").show();$("#showSideInBar").hide();
+        // Might revise this to hide right
+
+        /*
+        if ($("#main-nav").is(":visible") && window.innerWidth < 1200) { 
+            $("#main-nav").hide();
+            $("#showNavColumn").show();$("#showSideFromBar").hide();
             $("#sideIcons").show();
-            $('body').removeClass('bodyLeftMargin');
-            $('body').removeClass('bodyLeftMarginList');
-            $('body').removeClass('bodyLeftMarginFull');
-            $('body').removeClass('bodyLeftMarginNone'); // For DS side over hero
+            //////$('body').removeClass('bodyLeftMargin');
+            //////$('body').removeClass('bodyLeftMarginList');
+            //////$('body').removeClass('bodyLeftMarginFull');
+            //////$('body').removeClass('bodyLeftMarginNone'); // For DS side over hero
             if (!$('body').hasClass('bodyRightMargin')) {
                 $('body').removeClass('mobileView');
             }
             $('#listcolumn').addClass('listcolumnOnly');
         }
+        */
     });
 
     function regionSelect(selectMenu) {
@@ -1674,7 +3475,8 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
   let stateAbbr = "";
   //alert("hash.state " + hash.state);
   if (hash.state) {
-      stateAbbr = hash.state.split(",")[0].toUpperCase();
+              hash.state = hash.state.split(",").filter(s => s.length === 2).join(","); // Remove if not 2-char, including state=all
+        stateAbbr = hash.state.split(",")[0].toUpperCase();
   }
   if (stateAbbr == "DC") {
     console.log("TOPOJSON IS NOT AVAILABLE FOR DC");
@@ -3708,7 +5510,7 @@ function populateCityList(callback) {
         return;
     }
     console.log("cityList");
-    var file = "https://map.georgia.org/explore/menu/data/cities.csv";
+    var file = "/team/projects/map/cities.csv";
     $.get(file, function(data) {
         var cityList;
         var lines = data.split('\n');
@@ -4328,20 +6130,32 @@ function closeExpandedMenus(menuClicked) {
 function showNavColumn() {
     console.log("showNavColumn");
     $("#sideIcons").hide();
-    $("#navcolumn").show(); $("#showSideInBar").hide();
-    if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded.
+    $("#side-nav-content").show();
+    $("#main-nav").show();
+    $("#side-nav").show();
+    $("#side-nav").addClass("main-nav-full");
+    $("body").removeClass("sidebar-hidden");
+    $("#showSideFromBar").hide();
+    
+    // Refresh feather icons when showing navigation
+    if (window.standaloneNav && window.standaloneNav.replaceFeatherIcons) {
+        window.standaloneNav.replaceFeatherIcons();
+    }
+
+    if ($("#main-content > .datascape").is(":visible")) { // When NOT embedded.
         if ($("#listcolumn").is(":visible")) {
-            $('body').addClass('bodyLeftMarginFull'); // Creates margin on left for both fixed side columns.
+            //////$('body').addClass('bodyLeftMarginFull'); // Creates margin on left for both fixed side columns.
             $('#listcolumn').removeClass('listcolumnOnly');
         }
     }
-    $("#showSideInBar").hide();
+
+    $("#showSideFromBar").hide();
     if(document.getElementById("containerLayout") != null) {
-        $('#navcolumn').addClass("navcolumnClear");
-        $('body').addClass('bodyLeftMarginNone');
+        $('#main-nav').addClass("navcolumnClear");
+        //////$('body').addClass('bodyLeftMarginNone');
     } else {
-        $("#fullcolumn #showNavColumn").hide();
-        $('body').addClass('bodyLeftMargin'); // Margin on left for fixed nav column.
+        //$("#main-content #showNavColumn").hide();
+        //////$('body').addClass('bodyLeftMargin'); // Margin on left for fixed nav column.
         if ($('body').hasClass('bodyRightMargin')) {
           $('body').addClass('mobileView');
         }
@@ -4357,11 +6171,16 @@ function showNavColumn() {
     }
 }
 function hideNavColumn() {
+    $('body').addClass('sidebar-hidden');
+    return;
+
     $("#sideIcons").show();
-    $("#navcolumn").hide();
-    $("#showNavColumn").show();$("#showSideInBar").hide();
-    $('body').removeClass('bodyLeftMargin');
-    $('body').removeClass('bodyLeftMarginFull');
+    $("#side-nav").removeClass("main-nav-full")
+    $("#main-nav").hide();
+    $("#showNavColumn").show();
+    $("#showSideFromBar").hide();
+    //////$('body').removeClass('bodyLeftMargin');
+    //////$('body').removeClass('bodyLeftMarginFull');
     if (!$('body').hasClass('bodyRightMargin')) {
         $('body').removeClass('mobileView');
     }
@@ -4424,6 +6243,7 @@ function iNav(set) {
         goHash({"set":set,"indicators":hash.indicators});
     }
 }
+let localsiteTitle = "";
 function applyNavigation() { // Waits for localsite.js 'localStart' variable so local_app path is available.
 
     // To do: fetch the existing background-image.
@@ -4576,6 +6396,9 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         param.titleArray = ["model","earth"];
         localsiteTitle = "Model Earth";
         param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/modelearth/model-earth.png' style='width:34px; margin-right:2px'>";
+        
+        // Works correctly for model.earth sitemodel, but not reached by geo.
+        //alert("changeFavicon")
         changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/modelearth/model-earth.png")
         showClassInline(".earth");
         console.log(".earth display");
@@ -4601,62 +6424,73 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
     }
     // Load when body div becomes available, faster than waiting for all DOM .js files to load.
     waitForElm('#bodyloaded').then((elm) => {
-        $("body").wrapInner( "<div id='fullcolumn'></div>"); // Creates space for navcolumn
+        $("body").wrapInner( "<div id='main-content'></div>"); // Innermost. Wraps existing. A column to the right of other children.
+        $("body").wrapInner( "<div id='main-container'></div>"); // Creates space for main-nav to the left of #main-content.
+        $("body").wrapInner("<main id='main-layout' class='flexmain'></main>"); // Outermost. So footer resides at bottom.
         
-        
-        $("body").addClass("flexbody"); // For footer to stick at bottom on short pages
-        $("body").wrapInner("<main class='flexmain' style='position:relative'></main>"); // To stick footer to bottom
+        //$("body").addClass("flexbody"); // For left - No longer adding left of header.
         // min-height allows header to serve as #filterbaroffset when header.html not loaded
         // pointer-events:none; // Avoid because sub-divs inherite and settings dropdowns are then not clickable.
         if(document.getElementById("datascape") == null) {
-            $("#fullcolumn").prepend("<div id='datascape' class='datascape'></div>\r");
+            $("#main-content").prepend("<div id='datascape' class='datascape'></div>\r");
         }
+        //// Move main-nav back to immediately in body
+        //const sideNav = document.getElementById("side-nav");
+        //if (sideNav) {
+        //    document.body.insertBefore(sideNav, document.body.firstChild);
+        //} else {
+        //    console.log("#side-nav not found");
+        //}
     });
     waitForElm('#datascape').then((elm) => {
-        let listColumnElement = "<div id='listcolumn' class='listcolumn pagecolumn sidelist pagecolumnLow pagecolumnLower' style='display:none'><div class='listHeader'><div class='hideSideList close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><h1 class='listTitle'></h1><div class='listSubtitle'></div><div class='sideListSpecs'></div></div><div id='listmain'><div id='listcolumnList'></div></div><div id='listInfo' class='listInfo content'></div></div>\r";
+        
+        /*
         if(document.getElementById("datascape") != null || document.getElementById("datascape1") != null) {
             $("#datascape").addClass("datascape");
             $("#datascape").addClass("datascapeEmbed");
-            $("#fullcolumn > #datascape").removeClass("datascapeEmbed");  // When #datascape is NOT embedded.
+            $("#main-content > #datascape").removeClass("datascapeEmbed");  // When #datascape is NOT embedded.
             if (!$("#datascape").hasClass("datascapeEmbed")) {
                 $("#datascape").addClass("datascapeTop");
             }
 
-            $('body').removeClass('bodyLeftMarginFull'); // Gets added back if navcolumn is displayed.
+            //////$('body').removeClass('bodyLeftMarginFull'); // Gets added back if main-nav is displayed.
             // Wait for template to be loaded so it doesn't overwrite listcolumn in #datascape.
             //waitForElm('#insertedText').then((elm) => {
-            waitForElm('#fullcolumn > .datascapeTop').then((elm) => { // When #datascape is NOT embedded.
+            waitForElm('#main-content > .datascapeTop').then((elm) => { // When #datascape is NOT embedded.
                 // Place list in left margin for whole page use.
                 //$("#datascape").prepend(listColumnElement);
                 $("body").prepend(listColumnElement);
                 listColumnElement = "";
-                //$('body').addClass('bodyLeftMarginFull'); // Avoid here. Places gap on /community
+                ////// //$('body').addClass('bodyLeftMarginFull'); // Avoid here. Places gap on /community
             });
             
         } else {
             console.log("#datascape not available");
         }
-        if(document.getElementById("navcolumn") == null) {
-            let prependTo = "#datascape";
-            // BUG #fullcolumn > .datascape does not seem to be loaded yet
-            if ($("#fullcolumn > .datascape").is(":visible")) { // When NOT embedded
-                console.log("Not embed");
-                //prependTo = "body"; // Might not have worked intermintantly for the following prepend here: http://localhost:8887/recycling/
-            }
-            // min-height added since ds.ai html cropping to short side
+        */
 
-            // REMOVED pagecolumnLower class from initial load
-            // TO DO: Remove pagecolumnLow when there is no top nav. It provides a minimum of 60px when taller header is hidden.
-            $(prependTo).prepend("<div id='navcolumn' class='navcolumn pagecolumn greyDiv noprint sidecolumnLeft pagecolumnLow liteDiv' style='display:none; min-height:300px'><div class='hideSide close-X-sm' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><div class='navcolumnBar'></div><div class='sidecolumnLeftScroll'><div id='navcolumnTitle' class='maincat' style='display:none'></div><div id='listLeft'></div><div id='cloneLeftTarget'></div></div></div>" + listColumnElement); //  listColumnElement will be blank if already applied above.
-        } else {
-            // TODO - change to fixed when side reaches top of page
-            console.log("navigation.js report: navcolumn already exists")
-            $("#navcolumn").addClass("navcolumn-inpage");
-        }
+        waitForElm('#side-nav-absolute').then((elm) => {
+            // For map list
+            let listColumnElement = "<div id='listcolumn' class='listcolumn pagecolumn sidelist pagecolumnLow pagecolumnLower' style='display:none'><div class='listHeader'><div class='hideSideList nav-x' style='position:absolute;right:0;top:0;z-index:1;margin-top:0px'>✕</div><h1 class='listTitle'></h1><div class='listSubtitle'></div><div class='sideListSpecs'></div></div><div id='listmain'><div id='listcolumnList'></div></div><div id='listInfo' class='listInfo content'></div></div>\r";
+        
+            if(document.getElementById("main-nav") == null) {
+                let prependTo = "#side-nav-absolute";
+                // Includes listColumnElement with #listcolumn
+                $(prependTo).append("<div id='main-nav' class='main-nav pagecolumn noprint sidecolumnLeft pagecolumnLow liteDiv' style='display:none; min-height:300px'><div class='hideSide main-nav-close-btn nav-x' style='position:absolute;right:8px;top:8px;z-index:1;margin-top:0px'>✕</div><div class='navcolumnBar'></div><div class='main-nav-scroll'><div id='navcolumnTitle' class='maincat' style='display:none'></div><div id='listLeft'></div><div id='cloneLeftTarget'></div></div></div>" + listColumnElement); //  listColumnElement will be blank if already applied above.
+                $("#mapFilters").prependTo($("#main-layout"));
+            } else {
+                // TODO - change to fixed when side reaches top of page
+                console.log("navigation.js report: main-nav already exists")
+                $("#main-nav").addClass("main-nav-inpage");
+            }
+        });
 
         $(document).on("click", ".showNavColumn", function(event) {
             console.log(".showNavColumn click");
-            if ($("#navcolumn").is(':hidden')) {
+
+            // Original showNavColumn behavior
+            if ($("body").hasClass("sidebar-hidden")) {
+                //alert("showNavColumn")
                 showNavColumn();
             } else {
                 hideNavColumn();
@@ -4670,18 +6504,18 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
             event.preventDefault();
         });
         $(document).on("click", ".hideSide", function(event) {
-            hideSide("");
-            $('body').removeClass('bodyLeftMarginNone'); // For DS side over hero
+            hideSide("list");
+            //////$('body').removeClass('bodyLeftMarginNone'); // For DS side over hero
             console.log(".hideSide click");
         });
 
-        $(document).on("click", ".showNavColumn, #navcolumn", function(event) {
+        $(document).on("click", ".showNavColumn, #main-nav", function(event) {
           event.stopPropagation();
         });
         $(document).on('click', function(event) {
-            if ($("#navcolumn").is(':visible')) {
-                if ($('#fullcolumn').width() <= 800) {
-                    hideSide();
+            if ($("#main-nav").is(':visible')) {
+                if ($('#main-container').width() <= 800) {
+                    //hideSide();
                 }
             }
         });
@@ -4742,9 +6576,9 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                     $("#local-header").load(headerFile, function( response, status, xhr ) {
                         waitForElm('#sidecolumnContent').then((elm) => { // Resides in header.html
                             //alert("got sidecolumnContent");
-                            console.log("Doc is ready, header file loaded, place #cloneLeft into #navcolumn")
+                            console.log("Doc is ready, header file loaded, place #cloneLeft into #main-nav")
 
-                            waitForElm('#navcolumn').then((elm) => { // #navcolumn is appended by this navigation.js script, so typically not needed.
+                            waitForElm('#main-nav').then((elm) => { // #main-nav is appended by this navigation.js script, so typically not needed.
                                 $("#showNavColumn").show();
                                 if(location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0) {
                                     $("#sidecolumnContent a").each(function() {
@@ -4961,10 +6795,10 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         */
 
         if(document.getElementById("footer") == null) {
-            $("body").append( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
+            $("#main-content").append( "<div id='main-footer' class='flexfooter noprint'></div>\r" );
         } else {
             //$("#footer").addClass("flexfooter");
-            $("#footer").prepend( "<div id='local-footer' class='flexfooter noprint'></div>\r" );
+            $("#footer").prepend( "<div id='main-footer' class='flexfooter noprint'></div>\r" );
         }
         if (location.host.indexOf('localhost') >= 0 && param.showfooter != false && !param.footer) {
             earthFooter = true; // Need to drive localhost by settings in a file ignored by .gitignore
@@ -4997,21 +6831,21 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
             } else {
                 footerClimbpath = climbpath;
             }
-            $("#local-footer").load(footerFile, function( response, status, xhr ) {
+            $("#main-footer").load(footerFile, function( response, status, xhr ) {
                 console.log("footerFile: " + footerFile);
                 let pageFolder = getPageFolder(footerFile);
                 // Append footerClimbpath to relative paths
-                makeLinksRelative("local-footer", footerClimbpath, pageFolder);
+                makeLinksRelative("main-footer", footerClimbpath, pageFolder);
             });
         }
 
         // SIDE NAV WITH HIGHLIGHT ON SCROLL
 
-        // Not currently using nav.html, will likely use later for overrides.  Primary side nav resides in header.
-        if (1==2 && param["navcolumn"]) {
+        // Not currently using nav.html. Might use later for overrides. Primary side nav resides in header.
+        if (1==2 && param["main-nav"]) {
             // Wait for header to load?
 
-            let targetColumn = "#navcolumn";
+            let targetColumn = "#main-nav";
             // Had ..
             $(targetColumn).load( modelpath + "/localsite/nav.html", function( response, status, xhr ) {
                 activateSideColumn();
@@ -5020,6 +6854,92 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         // END SIDE NAV WITH HIGHLIGHT ON SCROLL
     });
 } // end applyNavigation function
+
+
+// Load when body div becomes available, faster than waiting for all DOM .js files to load.
+waitForElm('#bodyloaded').then((elm) => {
+  consoleLog("#bodyloaded becomes available");
+  waitForElm('#datascape').then((elm) => { // Wait for navigation.js to set
+    let modelsite = Cookies.get('modelsite');
+    if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
+      var div = $("<div />", {
+          html: '<style>.local{display:inline-block !important}.local-block{display:block !important}.localonly{display:block !important}.hidelocal{display:none}</style>'
+        }).appendTo("body");
+    } else {
+      // Inject style rule
+        var div = $("<div />", {
+          html: '<style>.local{display:none}.localonly{display:none}</style>'
+        }).appendTo("body");
+    }
+
+    // LOAD HTML TEMPLATE - Holds search filters and maps
+    // View html source: https://model.earth/localsite/map
+    // Consider pulling in HTML before DOM is loaded, then send to page once #datascape is available.
+
+   if (param.insertafter && $("#" + param.insertafter).length) {
+      $("#" + param.insertafter).append("<div id='datascape'></div>");
+    } else if(document.getElementById("datascape") == null) {
+      $('body').prepend("<div id='datascape'></div>");
+    }
+
+    if (param.showLeftIcon != false) { // && param.showheader == "true"
+      // <div id='sideIcons' class='noprint bothSideIcons' style='displayX:none;z-index:3000'></div>
+      //$('body').prepend("<div id='showNavColumn' class='showNavColumn' style='margin-top:64px;'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border: 1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div>");
+    }
+    waitForElm('#pageControls').then((elm) => {
+      // Move to start of pageControls if exists
+      //$('#pageControls').prepend($('#sideIcons'));
+    });
+      
+
+    if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
+      //if (param.templatepage != "true") { // Prevents dup header on map/index.html - Correction, this is needed. param.templatepage can probably be removed.
+        //if (param.shownav != "true") { // Test for mentors page, will likely revise
+          loadLocalTemplate();
+        //}
+      //}
+    }
+    
+    // #infoFile - Holds input-output widgets
+    // View html source: https://model.earth/localsite/info/template-charts.html
+    waitForElm("#main-content").then((elm) => {
+      $("#main-content").append("<div id='infoFile'></div>");
+
+      // Move to bottom of main-content
+      const infoFile = document.getElementById("infoFile");
+      const mainContent = document.getElementById("main-content");
+      mainContent.appendChild(infoFile);
+
+      if (param.display == "everything") {
+          let infoFileTemplate = theroot + "info/template-charts.html #template-charts"; // Including #template-charts limits to div within page, prevents other includes in page from being loaded.
+          //alert("Before template Loaded infoFile: " + infoFile);
+          $("#infoFile").load(infoFileTemplate, function( response, status, xhr ) {
+
+            /*
+            waitForElm('#industryFilters').then((elm) => {
+              alert("Info Template Loaded: " + infoFile);
+              $("#industryFilters").appendTo("#append_industryFilters");
+            });
+            */
+          });
+      }
+    });
+
+    // Move main-footer to the end of main-layout
+    
+    let foundTemplate = false;
+    // When the template (map/index.html) becomes available
+    waitForElm('#templateLoaded').then((elm) => {
+      foundTemplate = true;
+      $("#main-footer").appendTo("#main-content");
+    });
+    if (foundTemplate == false) { // An initial move to the bottom - occurs when the template is not yet available.
+      // Might reactivate
+      //$("#main-footer").appendTo("#main-layout");
+    }
+    
+  });
+}); // End body ready
 
 $(document).ready(function () {
     $(document).on("click", ".hideMenu", function(event) {
@@ -5103,13 +7023,13 @@ function showTopics() {
     }
     $(".showTopics").addClass("active");
     $("#listingsPanel").show();
-    $("#sideTabs").show();
+    $("#rightSideTabs").show();
 }
 function showLocale() {
     $("#filterClickLocation").removeClass("filterClickActive");
     loadScript(theroot + 'js/navigation.js', function(results) { // Since pages like embeds don't pre-load nav
         openMapLocationFilter();
-        $("#sideTabs").show();
+        $("#rightSideTabs").show();
         $("#filterLocations").appendTo($("#localeDiv"));
         $("#geomap").appendTo($("#rightTopMenu"));
         $("#locationFilterHolder").hide(); // Checked when opening with tab.
@@ -5194,6 +7114,7 @@ $(document).on("change", ".sitebasemap", function(event) {
 
 waitForElm('#mainHero').then((elm) => {
     waitForElm('#mapFilters').then((elm) => {
+        $("#showSideFromHeader").hide();
         $("#datascape").prependTo($("#mainHero"));
         $("#filterFieldsHolder").show();
         $("#filterFieldsHolder").addClass("dark");
@@ -5258,6 +7179,21 @@ $(document).on("click", ".showTheMenu", function(event) { // Seasons
 });
 
 $(document).on("click", ".showSideTabs", function(event) {
+    // Prevent any left navigation mobile menu from interfering
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    
+    // Close any open left mobile navigation on mobile devices
+    if (window.innerWidth <= 600) {
+        const sidenav = document.getElementById('side-nav');
+        const overlay = document.getElementById('mobile-overlay');
+        if (sidenav?.classList.contains('mobile-open')) {
+            sidenav.classList.remove('mobile-open');
+            overlay?.classList.remove('active');
+        }
+    }
+    
     let hash = getHash();
     let modelsite = Cookies.get('modelsite');
     if (hash.sidetab) {
@@ -5270,7 +7206,6 @@ $(document).on("click", ".showSideTabs", function(event) {
             goHash({'sidetab':'sections'});
         }
     }
-    event.stopPropagation();
 });
 
 $(document).on('click', '.closeParent', function () {
@@ -5282,9 +7217,27 @@ $(document).on("click", ".closeSideTabs", function(event) {
     //closeSideTabs();
     event.stopPropagation();
 });
+// Function to auto-close right navigation on narrow screens
+function autoCloseRightNavOnNarrow() {
+    if (window.innerWidth <= 1000) {
+        goHash({'sidetab':''});
+    }
+}
+
 $(document).on("click", ".showEarth", function(event) {
     showEarth("show");
+    autoCloseRightNavOnNarrow();
     event.stopPropagation();
+});
+
+// Auto-close right navigation when dropdowns change in settings panel on narrow screens
+$(document).on("change", ".settingsPanel select", function(event) {
+    autoCloseRightNavOnNarrow();
+});
+
+// Auto-close right navigation when any input changes in settings panel on narrow screens  
+$(document).on("change", ".settingsPanel input", function(event) {
+    autoCloseRightNavOnNarrow();
 });
 function showEarth(show) {
     if ($("#nullschoolHeader").is(':visible') && show != "show") {
@@ -5386,7 +7339,6 @@ function loadLocalObjectLayers(layerName, callback) { // layerName is not curren
             //displayHexagonMenu("", layerObject);
             
             if (!hash.show && !param.show) { // INITial load
-                // alert($("#fullcolumn").width()) = null
                 if ($("body").width() >= 800) {
 
                     //showThumbMenu(hash.show, "#bigThumbMenu");
@@ -5474,7 +7426,8 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
                 stateAbbr = param.state.split(",")[0].toUpperCase();
             }
             if (hash.state) {
-                stateAbbr = hash.state.split(",")[0].toUpperCase();
+                        hash.state = hash.state.split(",").filter(s => s.length === 2).join(","); // Remove if not 2-char, including state=all
+        stateAbbr = hash.state.split(",")[0].toUpperCase();
             }
             if (stateAbbr && stateAbbr.length > 2) {
                 stateAbbr = stateAbbr.substring(0,2);
@@ -5702,14 +7655,14 @@ function hideAdvanced() {
 }
 function activateSideColumn() {
     // Make paths relative to current page
-        $("#navcolumn a[href]").each(function() {
+        $("#main-nav a[href]").each(function() {
             if($(this).attr("href").toLowerCase().indexOf("http") < 0) {
                 if($(this).attr("href").indexOf("/") != 0) { // Don't append if starts with /
                     $(this).attr("href", climbpath + $(this).attr('href'));
             }
         }
     })
-        $("#navcolumn img[src]").each(function() {
+        $("#main-nav img[src]").each(function() {
             if($(this).attr("src").indexOf("/") != 0) { // Don't append if starts with /
             $(this).attr("src", climbpath + $(this).attr('src'));
         }
@@ -6177,7 +8130,7 @@ function openMapLocationFilter() {
         */
     }
     ///$("#geoPicker").show();
-    $("#geomap").appendTo($("#geomapHolder")); // Move back from sidetabs
+    $("#geomap").appendTo($("#geomapHolder")); // Move back from rightSideTabs
 
 
     $(".locationTabText").text("Locations");
@@ -6215,7 +8168,7 @@ function openMapLocationFilter() {
     }
 
     waitForElm('#filterLocations').then((elm) => {
-        $("#filterLocations").prependTo($("#locationFilterHolder")); // Move back from sidetabs
+        $("#filterLocations").prependTo($("#locationFilterHolder")); // Move back from rightSideTabs
         // Here we show the interior, but not #locationFilterHolder.
         // Jul2 $("#filterLocations").show();$("#imagineBar").show();
         //if ($("#filterLocations").length) {
@@ -6494,50 +8447,21 @@ function hideScopeOptions(hideScopes) {
     });
 }
 
-function formatCell(input, format) {
-    // If format is none or blank, return input as it is.
-    if (format === 'none' || format === '' || input === '') {
-        return ''
-    }
-    input = parseFloat(input); // Convert input to a number
-    // Format as scientific notation
-    if (format === 'scientific') {
-        return input.toExponential(1);
-    }
-
-    // Format as easy
-    if (input >= 1e12) {
-        // Round to billions
-        return (input / 1e12).toFixed(3) + ' Trillion';
-    } else if (input >= 1e9) {
-        // Round to billions
-        return (input / 1e9).toFixed(1) + ' Billion';
-    } else if (input >= 1e6) {
-        // Round to millions
-        return (input / 1e6).toFixed(1) + ' Million';
-    } else if (input >= 1000) {
-        // Round to thousands
-        return (input / 1000).toFixed(1) + ' K';
-    } else if (input >= 0) {
-        // Round to one decimal. Remove .0
-        //console.log("input:" + input + "-")
-        return input.toFixed(1).replace(/\.0$/, '');
-    } else if (input >= 0.0001) {
-        // Round to one decimal
-        return input.toFixed(4);
-    } else if (input >= -1000) {
-        return (input / 1e3).toFixed(1) + ' K';
-    } else if (input >= -1e9) {
-        // Round to -millions
-        return (input / 1e6).toFixed(1).replace(/\.0$/, '') + ' Million';
-    } else if (input >= -1e12) {
-        // Round to -billions
-        return (input / 1e9).toFixed(1).replace(/\.0$/, '') + ' Billion';
-    } else {
-        // Format with scientific notation with one digit after decimal
-        return input.toExponential(1);
-    }
-}
 if (!onlineApp) {
     console.log("You are currently in offline mode.")
+}
+
+// Navigation toggle handler for both openNav and showSideFromHeader
+function handleNavigationToggle() {
+    console.log('🔍 DEBUG: Global handleNavigationToggle called');
+    // Get the navigation instance if it exists
+    if (typeof window.standaloneNav !== 'undefined' && window.standaloneNav) {
+        console.log('🔍 DEBUG: Using window.standaloneNav');
+        window.standaloneNav.handleNavigationToggle();
+    } else if (typeof StandaloneNavigation !== 'undefined' && StandaloneNavigation.instance) {
+        console.log('🔍 DEBUG: Using StandaloneNavigation.instance');
+        StandaloneNavigation.instance.handleNavigationToggle();
+    } else {
+        console.log('🔍 DEBUG: Navigation instance not found');
+    }
 }

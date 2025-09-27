@@ -117,7 +117,7 @@ var local_app = local_app || (function(module) {
             
             // Currently assuming all other ports don't have localsite folder.
             if ((location.host.indexOf('localhost') >= 0 && location.port == "8887") || location.host.indexOf('127.0.0.1') >= 0) {
-              theroot = "";
+              theroot = location.protocol + '//' + location.host;
             }
             return (theroot);
         },
@@ -477,7 +477,6 @@ var triggerHashChangeEvent = function () {
 function loadScript(url, callback)
 {
   //let urlID = url.replace(/^.*\/\/[^\/]+/, ''); // Allows id's to always omit the domain.
-
   let urlID = getUrlID3(url);
   var loadFile = true;
 
@@ -488,7 +487,7 @@ function loadScript(url, callback)
      loadFile = false;
   }
 
-  //alert(urlID)
+  // Nested calls are described here: https://books.google.com/books?id=ZOtVCgAAQBAJ&pg=PA6&lpg=PA6
   if (loadFile && !document.getElementById(urlID)) { // Prevents multiple loads.
       consoleLog("loadScript seeking " + url + " via urlID: " + urlID);
       var script = document.createElement('script');
@@ -496,41 +495,17 @@ function loadScript(url, callback)
       script.src = url;
       script.id = urlID; // Prevents multiple loads.
 
-      //$(document).ready(function () { // Only needed if appending to body
-       var head = document.getElementsByTagName('head')[0];
-       head.appendChild(script);
-      //});
+      var head = document.getElementsByTagName('head')[0];
+      head.appendChild(script);
 
-      // NOT NEEDED, this did not yet resolve function not being found in navigation.js
-      /*
-      let cleanUrlID = urlID.replace(/^\/+|\/+$/g, '').replace(/\//g, '-').replace(/\./g, '-'); // Remove / and . and beginning and ending slashes;
-      var script2 = document.createElement('script');
-      script2.type = 'text/javascript';
-      script2.src = ""; // Later we might try changing the id of existing scripts instead (to remove slashes).
-      script2.id = cleanUrlID + "-inserted";
-      head.appendChild(script2);
-      */
-
-      // Bind the event to the callback function. Two events for cross browser compatibility.
-      ////script.onreadystatechange = callback; // This apparently is never called by Brave, but needed for some of the other browsers.
-      //script.onreadystatechange = function() { // Cound eliminate these 3 lines and switch back to the line above.
-      //  consoleLog("loadScript ready: " + url); // This apparently is never called by Brave.
-      //  callback();
-      //}
-      //script.onload = callback;
       script.onload = function() {
-        //waitForElm(cleanUrlID).then((elm) => { // Since script.onload does not validate script is actually active in the DOM.
-          consoleLog("loadScript loaded: " + url); // Once the entire file is processed.
-          callback();
-        //});
+        consoleLog("loadScript loaded: " + url); // Once the entire file is processed.
+        callback();
       }
-
-        
   } else {
     consoleLog("loadScript script already available: " + url + " via ID: " + urlID);
     if(callback) callback();
   }
-  // Nested calls are described here: https://books.google.com/books?id=ZOtVCgAAQBAJ&pg=PA6&lpg=PA6
 }
 
 var localsite_repo3; // TEMP HERE
@@ -699,7 +674,7 @@ function consoleLog(text,value) {
   // Instead, hold in consoleLogHolder until #logText is available.
 
   let dsconsole = document.getElementById("logText");
-  if (dsconsole) { // Once in DOM
+  if (1==2 && dsconsole) { // Once in DOM
     //dsconsole.style.display = 'none'; // hidden
     if (consoleLogHolder.length > 0) { // Called only once to display pre-DOM values
       //dsconsole.innerHTML = consoleLogHolder;
@@ -770,16 +745,22 @@ function loadLocalTemplate() {
         if (param.showstates != "false") {
             $("#filterClickLocation").show();
         }
-        $("#mapFilters").prependTo("#fullcolumn");
+        $("#mapFilters").prependTo("#main-content");
         // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
-        $("#local-header").prependTo("#fullcolumn");
-        $("#headerbar").prependTo("#fullcolumn");
+        $("#main-header").insertBefore("#main-container");
+        //$("#headerbaroffset").prependTo("#main-container");
+        //$("#headerbar").prependTo("#main-container");
       });
       
-      waitForElm('#fullcolumn').then((elm) => {
-        $("#headerbar").prependTo("#fullcolumn"); // Move back up to top.
-        //$("#bodyMainHolder").prependTo("#fullcolumn"); // Move back up to top.
-        $("#sideTabs").prependTo("#fullcolumn"); // Move back up to top.
+      waitForElm('#main-container').then((elm) => {
+        $("#main-header").insertBefore("#main-container");
+
+        //$("#headerbaroffset").prependTo("#main-container");
+        //$("#headerbar").prependTo("#main-container"); // Move back up to top.
+
+
+        //$("#bodyMainHolder").prependTo("#main-container"); // Move back up to top.
+        $("#rightSideTabs").prependTo("#main-container"); // Move back up to top.
 
         // Replace paths in div
 
@@ -824,8 +805,8 @@ function showHeaderBar() {
     $('#headerbar').removeClass("headerbarhide");
     $('.bothSideIcons').addClass('sideIconsLower');
     $(".pagecolumn").addClass("pagecolumnLower"); // Didn't seem to be working
-    waitForElm('#navcolumn').then((elm) => {
-      $("#navcolumn").addClass("pagecolumnLower");
+    waitForElm('#main-nav').then((elm) => {
+      $("#main-nav").addClass("pagecolumnLower");
     });
     if (param.shortheader != "true") {
       $('#local-header').show();
@@ -856,10 +837,10 @@ function loadLeafletAndMapFilters() {
       // But navigation.js won't be in the DOM if we don't waitForElm('#bodyloaded'). Used $(document).ready above instead.
       waitForElm('#bodyloaded').then((elm) => {
         console.log("body is now available"); // If missing header persists, remove waitForElm('#bodyloaded') here (line above annd closure)
-        // Puts space above flexmain for navcolumn to be visible after header
+        // Puts space above flexmain for main-nav to be visible after header
         $("body").prepend("<div id='local-header' class='flexheader noprint' style='display:none'></div>\r");
         waitForElm('#local-header').then((elm) => {
-          $("#local-header").prependTo("#fullcolumn"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
+          $("#local-header").prependTo("#main-container"); // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
           if (param.shortheader != "true") {
             // Inital page load
             $('#local-header').show();
@@ -883,7 +864,9 @@ function loadLeafletAndMapFilters() {
     });
   }
 }
-
+if (typeof Cookies != 'undefined') {
+  alert(Cookies.get('sitelook'));
+};
 // WAIT FOR JQuery
 loadScript(theroot + 'js/jquery.min.js', function(results) {
   var waitForJQuery = setInterval(function () { // Waits for $ within jquery.min.js file to become available.
@@ -963,24 +946,69 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
           $(document).on('keypress', function(e) {
             if (e.which === 13 && $('#input123').is(':focus')) { // Return is key code 13.
-                //alert("return")
-                handleEmail(e);
+                const email = $('#input123').val().trim();
+                if (email.length == 0) {
+                  // TODO Clear email here
+                  delete localStorage.email;
+                  $(".uOut").hide();
+                } else { 
+                  handleEmail(e);
+                }
                 //console.log("Return key pressed in #input123");
             }
           });
 
+          // Handle gravatar checkbox and email field changes
+          $(document).on('change', '#getGravatar', function() {
+            updateGravatarDisplay();
+          });
+
+          $(document).on('input', '#input123', function() {
+            updateGravatarDisplay();
+          });
+
+          function updateGravatarDisplay() {
+            const email = $('#input123').val().trim();
+            const gravatarChecked = $("#getGravatar").is(":checked");
+            const gravatarLine = $("#getGravatar").parent();
+            $("#gravatarLine").show();
+            // Hide gravatar line when email is blank
+            if (!email) {
+              gravatarLine.hide();
+              $("#gravatarImg").empty();
+              delete localStorage.email;
+              $(".uOut").hide();
+              return;
+            } else {
+              gravatarLine.show();
+            }
+            
+            // Show/hide gravatar image based on checkbox and valid email
+            if (gravatarChecked && isValidEmail(email)) {
+              loadScript('http://pajhome.org.uk/crypt/md5/md5.js', function(results) {
+                let userImg = $.gravatar(email);
+                if (userImg) {
+                  localStorage.userImg = userImg;
+                  $("#gravatarImg").html("<img src='" + localStorage.userImg + "' style='width:100%;max-width:220px;border-radius:30px;'><br><br>");
+                }
+              });
+            } else {
+              $("#gravatarImg").empty();
+            }
+          }
+
+          // Save clicked
           function handleEmail(e) {
               // For both keypress and click events
               let email = $('#input123').val();
               if (isValidEmail(email)) {
                 localStorage.email = email;
-
+                $(".uIn").hide();
                 if (isValid(email)) {
                   Cookies.set('golog', window.location.href);
+                  alert("valid email")
                   window.location = "/explore/menu/login/azure/";
                   return;
-                } else {
-                  //window.location = "/";
                 }
 
                 if ($("#getGravatar").is(":checked")) {
@@ -994,12 +1022,27 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
                     }
                   });
                 }
-
               } else {
                 alert("email required"); // TO DO: Display in browser
                 $("#input123").focus();
               }
           }
+
+          // Initialize gravatar display when DOM is ready
+          $(document).ready(function() {
+            if (typeof waitForElm === 'function') {
+              waitForElm('#input123').then(() => {
+                updateGravatarDisplay();
+              });
+            } else {
+              // Fallback if waitForElm is not available
+              setTimeout(() => {
+                if ($("#input123").length) {
+                  updateGravatarDisplay();
+                }
+              }, 100);
+            }
+          });
       })();
 
       $.gravatar = function(emailAddress, overrides)
@@ -1049,76 +1092,6 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
     }
 })();
 
-      // Load when body div becomes available, faster than waiting for all DOM .js files to load.
-      waitForElm('#bodyloaded').then((elm) => {
-      consoleLog("#bodyloaded becomes available");
-      waitForElm('#datascape').then((elm) => { // Wait for navigation.js to set
-        let modelsite = Cookies.get('modelsite');
-        if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
-          var div = $("<div />", {
-              html: '<style>.local{display:inline-block !important}.local-block{display:block !important}.localonly{display:block !important}.hidelocal{display:none}</style>'
-            }).appendTo("body");
-        } else {
-          // Inject style rule
-            var div = $("<div />", {
-              html: '<style>.local{display:none}.localonly{display:none}</style>'
-            }).appendTo("body");
-        }
-
-        // LOAD HTML TEMPLATE - Holds search filters and maps
-        // View html source: https://model.earth/localsite/map
-        // Consider pulling in HTML before DOM is loaded, then send to page once #datascape is available.
-
-       if (param.insertafter && $("#" + param.insertafter).length) {
-          $("#" + param.insertafter).append("<div id='datascape'></div>");
-        } else if(document.getElementById("datascape") == null) {
-          $('body').prepend("<div id='datascape'></div>");
-        }
-
-        if (param.showLeftIcon != false) { // && param.showheader == "true"
-          $('body').prepend("<div id='sideIcons' class='noprint bothSideIcons' style='position:fixed;left:0;width:32px'><div id='showNavColumn' class='showNavColumn' style='left:-28px;display:none'><i class='material-icons show-on-load' style='font-size:35px; opacity:1; background:#fcfcfc; color:#333; padding-left:2px; padding-right:2px; border: 1px solid #555; border-radius:8px; min-width: 38px;'>&#xE5D2;</i></div></div>");
-        }
-
-        if (param.showheader == "true" || param.showsearch == "true" || param.display == "everything" || param.display == "locfilters" || param.display == "map") {
-          //if (param.templatepage != "true") { // Prevents dup header on map/index.html - Correction, this is needed. param.templatepage can probably be removed.
-            //if (param.shownav != "true") { // Test for mentors page, will likely revise
-              loadLocalTemplate();
-            //}
-          //}
-        }
-      
-
-        // LOAD INFO TEMPLATE - Holds input-output widgets
-        // View html source: https://model.earth/localsite/info/template-charts.html
-        if (!$("#infoFile").length) {
-          $('body').append("<div id='infoFile'></div>");
-        }
-        if (param.display == "everything") {
-          let infoFile = theroot + "info/template-charts.html #template-charts"; // Including #template-charts limits to div within page, prevents other includes in page from being loaded.
-          //alert("Before template Loaded infoFile: " + infoFile);
-          $("#infoFile").load(infoFile, function( response, status, xhr ) {
-
-            /*
-            waitForElm('#industryFilters').then((elm) => {
-              alert("Info Template Loaded: " + infoFile);
-              $("#industryFilters").appendTo("#append_industryFilters");
-            });
-            */
-          });
-        }
-
-        // Move local-footer to the end of body
-        let foundTemplate = false;
-        // When the template (map/index.html) becomes available
-        waitForElm('#templateLoaded').then((elm) => {
-          foundTemplate = true;
-          $("#local-footer").appendTo("body");
-        });
-        if (foundTemplate == false) { // An initial move to the bottom - occurs when the template is not yet available.
-          $("#local-footer").appendTo("body");
-        }
-      });
-      }); // End body ready
 
       $(document).ready(function () {
         /*! jQuery & Zepto Lazy v1.7.10 - http://jquery.eisbehr.de/lazy - MIT&GPL-2.0 license - Copyright 2012-2018 Daniel 'Eisbehr' Kern */
@@ -1169,6 +1142,14 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       });
       $(document).on("click", ".showSearch", function(event) {
         showSearchFilter();
+        // Auto-close right navigation on narrow screens
+        if (window.innerWidth <= 1000) {
+            if (typeof goHash === 'function') {
+                goHash({'sidetab':''});
+            } else {
+                updateHash({"sidetab":""});
+            }
+        }
       });
       
       clearInterval(waitForJQuery); // Escape the loop
@@ -1997,6 +1978,7 @@ function getState(stateCode) {
 function showSearchFilter() {
   if ($("#filterFieldsHolder").is(':visible') ) {
     $("#filterFieldsHolder").hide();
+    $("#showSideFromHeader").show();
     return;
   }
   let loadFilters = false;
@@ -2022,8 +2004,6 @@ function showSearchFilter() {
       consoleLog("Hide #filterFieldsHolder");
       $("#filterFieldsHolder").hide();
       $("#filterFieldsHolder").addClass("filterFieldsHidden");
-      //$("#filterbaroffset").hide();
-      ////$("#pageLinksHolder").hide();
     } else {
       // #datascape is needed for map/index.html to apply $("#filterFieldsHolder").show()
       // Also prevents search filter from flashing briefly in map/index.html before moving into #datascape
@@ -2050,24 +2030,15 @@ function showSearchFilter() {
     if (loadFilters) {
       waitForElm('#datascape #filterFieldContent').then((elm) => {
         revealFilters();
-        /*
-        console.log("show #filterFieldsHolder");
-        $("#filterFieldsHolder").show();
-        $("#filterFieldsHolder").removeClass("filterFieldsHidden");
-        //$("#filterbaroffset").show();
-        $(".hideWhenPop").show();
-        $('html,body').scrollTop(0);
-        */
       });
     }
-    //goHash({"sidetab":""}); // Hide sidetab when showSearchFilter
   }
 
 }
 function closeSideTabs() {
   console.log("closeSideTabs()");
   updateHash({"sidetab":""});
-  $("#sideTabs").hide();
+  $("#rightSideTabs").hide();
   $("body").removeClass("bodyRightMargin");
   if (!$('body').hasClass('bodyLeftMargin')) {
     $('body').removeClass('mobileView');
@@ -2077,6 +2048,7 @@ function closeSideTabs() {
 }
 function revealFilters() {
   //console.log("show #filterFieldsHolder");
+  $("#showSideFromHeader").hide();
   $("#filterFieldsHolder").show();
   $("#filterFieldsHolder").removeClass("filterFieldsHidden");
   //$("#filterbaroffset").show();
@@ -2534,9 +2506,9 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
       }
 
       // Apply formatBuckets when on localhost
-      if (location.host.indexOf('localhost') >= 0) {
+      //if (location.host.indexOf('localhost') >= 0) { // Might limit to specific pages instead
         html = formatBuckets(html);
-      }
+      //}
 
       // Appends rather than overwrites
       loadIntoDiv(pageFolder,divID,html, function() {
@@ -2913,6 +2885,27 @@ function initSitelook() {
     }
 }
 
+// Update automatically whenever mode change occurs on user computer
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyColorSchemeClass);
+function applyColorSchemeClass() {
+    let siteLook = Cookies.get('sitelook');
+    if (!siteLook) {
+        siteLook = "default";
+    }
+    setSitelook(siteLook);
+}
+
+// Run when body tag is available, but don't wait for entire DOM
+function waitForBody(callback) {
+    if (document.body) {
+        callback();
+    } else {
+        setTimeout(() => waitForBody(callback), 10);
+    }
+}
+waitForBody(applyColorSchemeClass);
+
+
 function setSitemode(sitemode) {
   // Not copied over from settings.js
 }
@@ -2922,58 +2915,55 @@ function setSitelook(siteLook) {
     if (!siteLook) {
       siteLook = "default"
     }
-    if (siteLook == "default" && (Cookies.get('modelsite') == "dreamstudio" || location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0)) {
-      siteLook = "dark"
-    }
     consoleLog("setSiteLook: " + siteLook);
-    $("#sitelook").val(siteLook);
+    
+    // Set sitelook select value
+    const sitelookElement = document.getElementById("sitelook");
+    if (sitelookElement) {
+        sitelookElement.value = siteLook;
+    }
 
     // Force the brower to reload by changing version number. Avoid on localhost for in-browser editing. If else.
-    var forceReload = (location.host.indexOf('localhost') >= 0 ? "" : "?v=3");
-    $("body").removeClass("dark");
+    //var forceReload = (location.host.indexOf('localhost') >= 0 ? "" : "?v=3");
+    
+    if (siteLook == "computer") {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        siteLook = "dark"
+      }
+    } else if (siteLook == "default" && (Cookies.get('modelsite') == "dreamstudio" || location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0)) {
+      siteLook = "dark"
+    }
     if (siteLook == "dark") {
-        $('.sitebasemap').val("dark").change();
+        // Set sitebasemap value and trigger change event
+        const sitebasemapElements = document.querySelectorAll('.sitebasemap');
+        sitebasemapElements.forEach(element => {
+            element.value = "dark";
+            element.dispatchEvent(new Event('change'));
+        });
+        
         //toggleVideo("show","nochange");
-        $("body").addClass("dark");
+        document.body.classList.add("dark");
         //removeElement('/localsite/css/light.css');
         includeCSS3('/localsite/css/bootstrap.darkly.min.css');
-        $("#css-site-dark-css").removeAttr('disabled');
-        $("#css-site-green-css").attr("disabled", "disabled");
-        $("#css-site-plain-css").attr("disabled", "disabled");
-        $('.searchTextHolder').append($('.searchTextMove'));
-    } else if (siteLook == "gc") {
-        $('.sitebasemap').val("osm").change();
-        //toggleVideo("hide","pauseVideo");
-        //includeCSS3(root + 'css/site-green.css' + forceReload);
-        $("#css-site-green-css").removeAttr('disabled');
-        $("#css-site-dark-css").attr("disabled", "disabled");
-        $("#css-site-plain-css").attr("disabled", "disabled");
-        $('.searchTextHolder').append($('.searchTextMove'));
+  
+        // Move search text elements
+        const searchTextHolder = document.querySelector('.searchTextHolder');
+        const searchTextMove = document.querySelector('.searchTextMove');
+        if (searchTextHolder && searchTextMove) {
+            searchTextHolder.appendChild(searchTextMove);
+        }
     } else if (siteLook == "default") {
-        //removeElement('/localsite/css/light.css');
+        document.body.classList.remove("dark");
         removeElement('/localsite/css/bootstrap.darkly.min.css');
-        $("#css-site-green-css").removeAttr('disabled');
-        $("#css-site-dark-css").attr("disabled", "disabled");
-        $("#css-site-plain-css").attr("disabled", "disabled");
-        //$('.searchTextHolder').append($('.searchTextMove'));
     } else { // Light
-        //includeCSS3(root + 'css/light.css'); // + forceReload
+        document.body.classList.remove("dark");
         removeElement('/localsite/css/bootstrap.darkly.min.css');
-        //removeElement(root + 'css/site-dark.css');
-
-        $('.sitebasemap').val("positron_light_nolabels").change();
-        //includeCSS3(root + 'css/site-plain.css' + forceReload);
-
-        /*
-        $("#css-site-plain-css").removeAttr('disabled');
-        $("#css-site-dark-css").attr("disabled", "disabled");
-        $("#css-site-green-css").attr("disabled", "disabled");
-        */
-
-        //$(".layoutTabHolder").show();
+        //const sitebasemapElements = document.querySelectorAll('.sitebasemap');
+        //sitebasemapElements.forEach(element => {
+        //    element.value = "positron_light_nolabels";
+        //    element.dispatchEvent(new Event('change'));
+        //});
     }
-    //setTimeout(function(){ updateOffsets(); }, 200); // Allows time for css file to load.
-    //setTimeout(function(){ updateOffsets(); }, 4000);
 }
 function setDevmode(devmode) {
   if (devmode == "dev") {
@@ -3365,6 +3355,232 @@ function isValidJSON(str) {
 }
 
 
+function formatCell(input, format) {
+    //alert("format: " + format)
+    // Debug: log the input value
+    if (Math.abs(input) < 1e-10 && input !== 0) {
+        console.log('formatCell received very small value:', input, 'type:', typeof input);
+    }
+    
+    // If format is none or blank, return input as it is.
+    if (format === 'none' || format === '') {
+        return input;
+    }
+
+    // Format as scientific notation
+    if (format === 'scientific') {
+        return input.toExponential(1);
+    }
+
+    // Format as full number with all decimal places
+    if (format === 'full') {
+        if (Math.abs(input) < 1e-6) {
+            return input.toFixed(20).replace(/0+$/, '').replace(/\.$/, '');
+        } else {
+            return input.toString();
+        }
+    }
+
+    // Format as easy - explicit check to ensure this path is taken
+    if (format === 'easy') {
+        // Use the same logic as the default format but ensure it's explicitly called
+        // (This will fall through to the default format logic below)
+    }
+
+    // Handle positive values
+    if (input >= 1e12) {
+        return (input / 1e12).toFixed(3) + ' Trillion';
+    } else if (input >= 1e9) {
+        return (input / 1e9).toFixed(1) + ' Billion';
+    } else if (input >= 1e6) {
+        return (input / 1e6).toFixed(1) + ' Million';
+    } else if (input >= 1000) {
+        return (input / 1000).toFixed(1) + ' K';
+    } else if (input >= 1) {
+        // Round to one decimal. Remove .0
+        return input.toFixed(1).replace(/\.0$/, '');
+    } else if (input > 0) {
+        // Small positive values - for very small numbers, use named suffixes
+        if (input <= 1e-33) { // decillionth or less
+            return (input / 1e-33).toFixed(3) + ' Decillionth';
+        } else if (input <= 1e-30) { // nonillionth or less
+            return (input / 1e-30).toFixed(3) + ' Nonillionth';
+        } else if (input <= 1e-27) { // octillionth or less
+            return (input / 1e-27).toFixed(3) + ' Octillionth';
+        } else if (input <= 1e-24) { // septillionth or less
+            return (input / 1e-24).toFixed(3) + ' Septillionth';
+        } else if (input <= 1e-21) { // sextillionth or less
+            return (input / 1e-21).toFixed(3) + ' Sextillionth';
+        } else if (input <= 1e-18) { // quintillionth or less
+            return (input / 1e-18).toFixed(3) + ' Quintillionth';
+        } else if (input <= 1e-15) { // quadrillionth or less
+            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
+        } else if (input <= 1e-12) { // trillionth or less
+            return (input / 1e-12).toFixed(3) + ' Trillionth';
+        } else if (input <= 1e-9) { // billionth or less
+            return (input / 1e-9).toFixed(3) + ' Billionth';
+        } else if (input <= 1e-6) { // millionth or less
+            return (input / 1e-6).toFixed(3) + ' Millionth';
+        }
+        // Show up to 15 decimal places, removing trailing zeros
+        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
+        console.log('Small positive formatting:', input, '->', formatted);
+        return formatted === '' ? '0' : formatted;
+    } else if (input === 0) {
+        return '0';
+    }
+    // Handle negative values
+    else if (input <= -1e12) {
+        return (input / 1e12).toFixed(3) + ' Trillion';
+    } else if (input <= -1e9) {
+        return (input / 1e9).toFixed(1) + ' Billion';
+    } else if (input <= -1e6) {
+        return (input / 1e6).toFixed(1) + ' Million';
+    } else if (input <= -1000) {
+        return (input / 1e3).toFixed(1) + ' K';
+    } else if (input <= -1) {
+        // Round to one decimal. Remove .0
+        return input.toFixed(1).replace(/\.0$/, '');
+    } else if (input < 0) {
+        // Small negative values - for very small numbers, use named suffixes
+        if (input <= -1e-33) { // decillionth or less
+            return (input / 1e-33).toFixed(3) + ' Decillionth';
+        } else if (input <= -1e-30) { // nonillionth or less
+            return (input / 1e-30).toFixed(3) + ' Nonillionth';
+        } else if (input <= -1e-27) { // octillionth or less
+            return (input / 1e-27).toFixed(3) + ' Octillionth';
+        } else if (input <= -1e-24) { // septillionth or less
+            return (input / 1e-24).toFixed(3) + ' Septillionth';
+        } else if (input <= -1e-21) { // sextillionth or less
+            return (input / 1e-21).toFixed(3) + ' Sextillionth';
+        } else if (input <= -1e-18) { // quintillionth or less
+            return (input / 1e-18).toFixed(3) + ' Quintillionth';
+        } else if (input <= -1e-15) { // quadrillionth or less
+            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
+        } else if (input <= -1e-12) { // trillionth or less
+            return (input / 1e-12).toFixed(3) + ' Trillionth';
+        } else if (input <= -1e-9) { // billionth or less
+            return (input / 1e-9).toFixed(3) + ' Billionth';
+        } else if (input <= -1e-6) { // millionth or less
+            return (input / 1e-6).toFixed(3) + ' Millionth';
+        }
+        // Show up to 15 decimal places, removing trailing zeros
+        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
+        console.log('Small negative formatting:', input, '->', formatted);
+        return formatted === '' || formatted === '-' ? '0' : formatted;
+    } else {
+        // Fallback for any edge cases
+        return input.toExponential(1);
+    }
+}
+
+// Test cases
+//console.log(formatCell(42262000000, 'easy')); // Output: "42.3 Billion"
+//console.log(formatCell(9500000, 'easy'));     // Output: "9.5 Million"
+//console.log(formatCell(50000, 'easy'));       // Output: "50.0 K"
+//console.log(formatCell(99.99, 'easy') + " - BUG, let's avoid adding .0 when rounding");        // Output: "100.0" - 
+//console.log(formatCell(0.0005, 'easy'));      // Output: "5.0e-4"
+// console.log(formatCell(45000000, 'scientific')); // Output: "4.5e+7"
+
+function formatCellX(input, format) {
+    // If format is none or blank, return input as it is.
+    if (format === 'none' || format === '' || input === '') {
+        return ''
+    }
+    input = parseFloat(input); // Convert input to a number
+    // Format as scientific notation
+    if (format === 'scientific') {
+        return input.toExponential(1);
+    }
+
+    // Format as easy
+    if (input >= 1e12) {
+        // Round to billions
+        return (input / 1e12).toFixed(3) + ' Trillion';
+    } else if (input >= 1e9) {
+        // Round to billions
+        return (input / 1e9).toFixed(1) + ' Billion';
+    } else if (input >= 1e6) {
+        // Round to millions
+        return (input / 1e6).toFixed(1) + ' Million';
+    } else if (input >= 1000) {
+        // Round to thousands
+        return (input / 1000).toFixed(1) + ' K';
+    } else if (input >= 1) {
+        // Round to one decimal. Remove .0
+        //console.log("input:" + input + "-")
+        return input.toFixed(1).replace(/\.0$/, '');
+    } else if (input > 0) {
+        // Small positive values - for very small numbers, use named suffixes
+        if (input <= 1e-33) { // decillionth or less
+            return (input / 1e-33).toFixed(3) + ' Decillionth';
+        } else if (input <= 1e-30) { // nonillionth or less
+            return (input / 1e-30).toFixed(3) + ' Nonillionth';
+        } else if (input <= 1e-27) { // octillionth or less
+            return (input / 1e-27).toFixed(3) + ' Octillionth';
+        } else if (input <= 1e-24) { // septillionth or less
+            return (input / 1e-24).toFixed(3) + ' Septillionth';
+        } else if (input <= 1e-21) { // sextillionth or less
+            return (input / 1e-21).toFixed(3) + ' Sextillionth';
+        } else if (input <= 1e-18) { // quintillionth or less
+            return (input / 1e-18).toFixed(3) + ' Quintillionth';
+        } else if (input <= 1e-15) { // quadrillionth or less
+            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
+        } else if (input <= 1e-12) { // trillionth or less
+            return (input / 1e-12).toFixed(3) + ' Trillionth';
+        } else if (input <= 1e-9) { // billionth or less
+            return (input / 1e-9).toFixed(3) + ' Billionth';
+        } else if (input <= 1e-6) { // millionth or less
+            return (input / 1e-6).toFixed(3) + ' Millionth';
+        }
+        // Show up to 15 decimal places, removing trailing zeros
+        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
+        return formatted === '' ? '0' : formatted;
+    } else if (input === 0) {
+        return '0';
+    } else if (input <= -1e12) {
+        return (input / 1e12).toFixed(3) + ' Trillion';
+    } else if (input <= -1e9) {
+        return (input / 1e9).toFixed(1) + ' Billion';
+    } else if (input <= -1e6) {
+        return (input / 1e6).toFixed(1) + ' Million';
+    } else if (input <= -1000) {
+        return (input / 1e3).toFixed(1) + ' K';
+    } else if (input <= -1) {
+        // Round to one decimal. Remove .0
+        return input.toFixed(1).replace(/\.0$/, '');
+    } else if (input < 0) {
+        // Small negative values - for very small numbers, use named suffixes
+        if (input <= -1e-33) { // decillionth or less
+            return (input / 1e-33).toFixed(3) + ' Decillionth';
+        } else if (input <= -1e-30) { // nonillionth or less
+            return (input / 1e-30).toFixed(3) + ' Nonillionth';
+        } else if (input <= -1e-27) { // octillionth or less
+            return (input / 1e-27).toFixed(3) + ' Octillionth';
+        } else if (input <= -1e-24) { // septillionth or less
+            return (input / 1e-24).toFixed(3) + ' Septillionth';
+        } else if (input <= -1e-21) { // sextillionth or less
+            return (input / 1e-21).toFixed(3) + ' Sextillionth';
+        } else if (input <= -1e-18) { // quintillionth or less
+            return (input / 1e-18).toFixed(3) + ' Quintillionth';
+        } else if (input <= -1e-15) { // quadrillionth or less
+            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
+        } else if (input <= -1e-12) { // trillionth or less
+            return (input / 1e-12).toFixed(3) + ' Trillionth';
+        } else if (input <= -1e-9) { // billionth or less
+            return (input / 1e-9).toFixed(3) + ' Billionth';
+        } else if (input <= -1e-6) { // millionth or less
+            return (input / 1e-6).toFixed(3) + ' Millionth';
+        }
+        // Show up to 15 decimal places, removing trailing zeros
+        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
+        return formatted === '' || formatted === '-' ? '0' : formatted;
+    } else {
+        // Fallback for any edge cases
+        return input.toExponential(1);
+    }
+}
+
 // AnythingLLM left side navigation header adjustment
 // Monitors header visibility and adjusts top positioning while keeping content within flexMain
 function adjustAnythingLLMNavigation() {
@@ -3433,5 +3649,21 @@ function adjustAnythingLLMNavigation() {
 
 // Initialize AnythingLLM navigation adjustments when DOM is ready
 document.addEventListener('DOMContentLoaded', adjustAnythingLLMNavigation);
+
+// Auth Modal Integration - lazy load and show modal
+function showAuthModal() {
+  if (typeof window.authModal !== 'undefined' && window.authModal) {
+    window.authModal.show();
+  } else {
+    // Lazy load the auth modal script
+    const authModalPath = local_app.localsite_root() + '../team/js/auth-modal.js';
+    loadScript(authModalPath, function() {
+      // Modal initializes immediately when script loads, so show it
+      if (window.authModal) {
+        window.authModal.show();
+      }
+    });
+  }
+}
 
 consoleLog("end localsite");
