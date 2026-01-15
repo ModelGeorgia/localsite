@@ -8,6 +8,12 @@
 // showTabulatorList() renders country and state lists
 // updateMapColors() uses values in sorted column to place color scale on map shapes
 
+// Map click → goHash() → hash change → updateSelectedTableRows() → geotable.selectRow() → rowSelected event WITHOUT goHash() again.
+
+// We disable the rowSelected event handler during the updateSelectedTableRows function so it doesn't re-fire the goHash().
+
+
+
 // TO DO: Unselecting county on map is not unchecking tabulator checkbox
 
 if(typeof local_app == 'undefined') { var local_app = {}; console.log("BUG: Move navigation.js after localsite.js"); } // In case navigation.js included before localsite.js
@@ -19,6 +25,14 @@ if(typeof localObject.geo == 'undefined') { localObject.geo = []; } // Holds cou
 localObject.us_stateIDs = {AL:1,AK:2,AZ:4,AR:5,CA:6,CO:8,CT:9,DE:10,FL:12,GA:13,HI:15,ID:16,IL:17,IN:18,IA:19,KS:20,KY:21,LA:22,ME:23,MD:24,MA:25,MI:26,MN:27,MS:28,MO:29,MT:30,NE:31,NV:32,NH:33,NJ:34,NM:35,NY:36,NC:37,ND:38,OH:39,OK:40,OR:41,PA:42,RI:44,SC:45,SD:46,TN:47,TX:48,UT:49,VT:50,VA:51,WA:53,WV:54,WI:55,WY:56,AS:60,GU:66,MP:69,PR:72,VI:78};
 // Later: localObject.stateZipsLoaded
 
+/* Allows map to remove selected shapes when backing up. */
+document.addEventListener('hashChangeEvent', function (elem) {
+    console.log("navigation.js detects URL hashChangeEvent");
+    hashChanged();
+}, false);
+if(typeof hiddenhash == 'undefined') {
+    var hiddenhash = {};
+}
 function hashChanged() {
 
     let loadGeomap = false;
@@ -67,7 +81,7 @@ function hashChanged() {
             //$("#hitRefreshNote").show();
         }
     } else {
-        //$(".locationTabText").text("United States");
+        $(".locationTabText").text("United States");
     }
     if (hash.state != priorHash.state) {
         waitForElm('#state_select').then((elm) => {
@@ -266,13 +280,15 @@ function hashChanged() {
             $(".regionFilter").show();
             $(".geo-US13").show();
         }
-        if (hash.state && hash.state.length == 2 && !($("#filterLocations").is(':visible'))) {
-            $(".locationTabText").text($("#state_select").find(":selected").text());
-        } else {
-            $(".locationTabText").text("Locations");
-            //$("#filterLocations").hide();
-            //$("#industryListHolder").hide(); // Remove once national naics are loaded.
-        }
+        //waitForElm('#filterClickState').then((elm) => {
+            //alert("#filterClickState available");
+            if (hash.state && hash.state.length == 2 && !($("#filterLocations").is(':visible'))) {
+                $(".locationTabText").text($("#state_select").find(":selected").text());
+            } else if (!hash.state) {
+               // $(".locationTabText").text("United States");
+            }
+        //});
+        // Note: We no longer revert to "Locations" - keep the state name
 
         //&& hash.geoview == "state"
         if (hash.geoview && hash.geoview == priorHash.geoview) { // Prevents dup loading when hash.geoview != priorHash.geoview below.
@@ -308,10 +324,10 @@ function hashChanged() {
             element.scope = "country-us"
 
             //element.key = "State";
-            //element.datasource = local_app.modelearth_root() + "/localsite/info/data/map-filters/us-states.json";
-            //element.datasource = local_app.modelearth_root() + "/localsite/info/data/map-filters/us-states-edited.csv";
+            //element.datasource = local_app.web_root() + "/localsite/info/data/map-filters/us-states.json";
+            //element.datasource = local_app.web_root() + "/localsite/info/data/map-filters/us-states-edited.csv";
             // https://github.com/ModelEarth/localsite/blob/main/info/data/map-filters/us-states.csv
-            element.datasource = local_app.modelearth_root() + "/localsite/info/data/map-filters/us-states-full.csv";
+            element.datasource = local_app.web_root() + "/localsite/info/data/map-filters/us-states-full.csv";
             let formatType = "simple";
 
             
@@ -375,7 +391,7 @@ function hashChanged() {
         } else if (hash.geoview == "countries") {
             // COUNTRIES
             // TO DO: Remove countries.csv and other non-full.csv files from python file generation.
-            const csvFilePath = local_app.modelearth_root() + "/localsite/info/data/map-filters/countries-full.csv"; // Or use the full version
+            const csvFilePath = local_app.web_root() + "/localsite/info/data/map-filters/countries-full.csv"; // Or use the full version
             
             const element = {};
             element.scope = "countries";
@@ -439,13 +455,18 @@ function hashChanged() {
 
                     showTabulatorList(element, 0);
                 });
+            } else {
+                // Data already exists, but still need to show the tabulator on reload
+                console.log("localObject[element.scope] already exists, showing tabulator with existing data");
+                showTabulatorList(element, 0);
             }
         } else { // For backing up within apps
         
             // Since geoview "earth" does uses an iFrame instead of the geomap display.
             if (typeof relocatedStateMenu != "undefined") {
                 waitForElm('#state_select').then((elm) => {
-                    relocatedStateMenu.appendChild(state_select); // For apps hero
+                    // DEACTIVATED, OCCURRED ON LOAD OF /localsite/info/
+                    //relocatedStateMenu.appendChild(state_select); // For apps hero
                 });
             }
             if (typeof relocatedScopeMenu != "undefined") {
@@ -482,24 +503,27 @@ function hashChanged() {
         if ($("#state_select").find(":selected").value) {
             theStateName = $("#state_select").find(":selected").text();
         }
-        if (theStateName != "") {
-            $(".statetitle").text(theStateName);
-            $(".regiontitle").text(theStateName);
-            $(".locationTabText").text(theStateName);
-            local_app.loctitle = theStateName;
-        } else if (hash.state) {
-            //let multiStateString = hash.state.replace(",",", ") + " - USA";
-            let multiStateString = hash.state + " USA";
-            $(".statetitle").text(multiStateString);
-            $(".regiontitle").text(multiStateString);
-            $(".locationTabText").text(multiStateString);
-            local_app.loctitle = multiStateString;
-        } else {
-            local_app.loctitle = "USA";
-            $(".statetitle").text("US");
-            $(".regiontitle").text("United States");
-            $(".locationTabText").text("United States");
-        }
+        //waitForElm('#filterClickState').then((elm) => {
+            //alert("#filterClickState available");
+            if (theStateName != "") {
+                $(".statetitle").text(theStateName);
+                $(".regiontitle").text(theStateName);
+                $(".locationTabText").text(theStateName);
+                local_app.loctitle = theStateName;
+            } else if (hash.state) {
+                //let multiStateString = hash.state.replace(",",", ") + " - USA";
+                let multiStateString = hash.state + " USA";
+                $(".statetitle").text(multiStateString);
+                $(".regiontitle").text(multiStateString);
+                $(".locationTabText").text(multiStateString);
+                local_app.loctitle = multiStateString;
+            } else {
+                local_app.loctitle = "USA";
+                $(".statetitle").text("US");
+                $(".regiontitle").text("United States");
+                $(".locationTabText").text("United States");
+            }
+        //});
 
         if(!hash.regiontitle) {
             //alert("OKAY hash.geo before: " + hash.geo);
@@ -526,11 +550,15 @@ function hashChanged() {
             }
 
             if (hash.show && local_app.loctitle) {
-                $(".region_service").text(local_app.loctitle + " - " + hash.show.toTitleCaseFormat());
-                
+                waitForElm('.region_service').then((elm) => {
+                    $(".region_service").text(local_app.loctitle + " - " + hash.show.toTitleCaseFormat());
+                });
+
             } else if (hash.state) {
 
-                $(".region_service").text(hash.state); // While waiting for full state name
+                waitForElm('.region_service').then((elm) => {
+                    $(".region_service").text(hash.state); // While waiting for full state name
+                });
                 waitForElm('#state_select').then((elm) => {
                     //$("#state_select").val(stateAbbrev);
                     console.log("fetch theStateName from #state_select");
@@ -539,18 +567,20 @@ function hashChanged() {
                     if ($("#state_select").find(":selected").val()) { // Omits top which has no text
                         theStateName = $("#state_select").find(":selected").text();
                         console.log("fetched " + theStateName);
-                        $(".region_service").text(theStateName + " Industries");
-                        if (showTitle) {
-                            $(".region_service").text(theStateName + " - " + hash.show.toTitleCaseFormat());
-                        }
+                        waitForElm('.region_service').then((elm) => {
+                            $(".region_service").text(theStateName + " Industries");
+                            if (showTitle) {
+                                $(".region_service").text(theStateName + " - " + hash.show.toTitleCaseFormat());
+                            }
+                        });
                     }
 
                     if (hash.show && param.display == "everything") { // Limitig to everything since /map page does not load layers, or need longer title.
                         let layer = hash.show;
 
                         /* Bug waitForSubObject is not finding localObject layers
-                        waitForSubObject('localObject','layers', function() { 
-                        //waitForObjectProperty('localObject','layers', function() { 
+                        waitForSubObject('localObject','layers', function() {
+                        //waitForObjectProperty('localObject','layers', function() {
                             if (localObject.layers[layer] && localObject.layers[layer].section) {
                                 let section = localObject.layers[layer].section;
                                 updateRegionService(section);
@@ -572,8 +602,10 @@ function hashChanged() {
                 */
             } else {
                 ////$(".region_service").text("Top " + $(".locationTabText").text() + " Industries");
-                $(".region_service").text(""); // Clear prior state
-                consoleLog("Clear prior state")
+                waitForElm('.region_service').then((elm) => {
+                    $(".region_service").text(""); // Clear prior state
+                    consoleLog("Clear prior state")
+                });
             }
             if (appTitle) {
 
@@ -591,12 +623,17 @@ function hashChanged() {
             //alert("hash.regiontitle1 " + hash.regiontitle);
             hiddenhash.loctitle = hash.regiontitle.replace(/\+/g," ");
             $(".regiontitle").text(hash.regiontitle.replace(/\+/g," "));
-            if (hash.show) {
-                $(".region_service").text(hash.regiontitle.replace(/\+/g," ") + " - " + hash.show.toTitleCaseFormat());
-            } else {
-                $(".region_service").text(hash.regiontitle.replace(/\+/g," "));
-            }
-            $(".locationTabText").text(hash.regiontitle.replace(/\+/g," "));
+            waitForElm('.region_service').then((elm) => {
+                if (hash.show) {
+                    $(".region_service").text(hash.regiontitle.replace(/\+/g," ") + " - " + hash.show.toTitleCaseFormat());
+                } else {
+                    $(".region_service").text(hash.regiontitle.replace(/\+/g," "));
+                }
+            });
+            //waitForElm('#filterClickState').then((elm) => {
+                //alert("#filterClickState available");
+                $(".locationTabText").text(hash.regiontitle.replace(/\+/g," "));
+            //});
             local_app.loctitle = hash.regiontitle.replace(/\+/g," ");
             
             $(".regiontitle").val(hash.regiontitle.replace(/\+/g," "));
@@ -683,7 +720,10 @@ function hashChanged() {
         //loadGeomap = true; // No longer showing map when just geo.
     }
 
-    $(".locationTabText").attr("title",$(".locationTabText").text());
+    //waitForElm('#filterClickState').then((elm) => {
+        //alert("#filterClickState available");
+        $(".locationTabText").attr("title",$(".locationTabText").text());
+    //});
     if (hash.cat != priorHash.cat) {
         changeCat(hash.cat)
     }
@@ -810,7 +850,9 @@ function hashChanged() {
             $("#nullschoolHeader").hide();
         }
         if (!hash.geoview && priorHash.geoview) {
-            $("#nullschoolHeader").show();
+            if ($('#globalMapHolder #mainframe').attr('src')) { // Checking so we don't show a close-X when there is no content in the iframe.
+                $("#nullschoolHeader").show();
+            }
         }
         waitForElm('#state_select').then((elm) => {
             if (!hash.geoview || hash.geoview == "none") {
@@ -858,7 +900,7 @@ function hashChanged() {
         //if($("#geomap").is(':visible')){
         waitForElm('#geomap').then((elm) => {
             console.log("call renderGeomapShapes from navigation.js hashChanged()");
-            renderGeomapShapes("geomap", hash, "county", 1); // County select map
+            renderGeomapShapes("geomap", hash, hash.geoview || "county", 1); // Use the actual geoview from hash
         });
         //}
     }
@@ -988,6 +1030,8 @@ class StandaloneNavigation {
         this.startPeriodicFaviconUpdate();
     }
     
+    // TO DO - Try using variable set in localsite.js instead 
+
     // Auto-detect webroot container from script path
     detectWebrootFromScriptPath() {
         // Get the current script path
@@ -1387,16 +1431,20 @@ class StandaloneNavigation {
                                             <span>Location Visits Map</span>
                                         </a>
                                         </div>
+
+                                        <!-- Not all have images
                                         <div style="display:none" class="geo">
-                                        <a href="${teamPath}projects/#list=geo" class="subnav-link">
+                                        <a href="${teamPath}projects/#list=cameraready" class="subnav-link">
                                             <i class="subnav-icon" data-feather="heart"></i>
-                                            <span>Location Insights</span>
+                                            <span>Film Location Insights</span>
                                         </a>
                                         </div>
+                                        -->
+
                                         <div style="display:none" class="geo">
-                                        <a href="${teamPath}projects/#list=film-scouting" class="subnav-link">
+                                        <a href="${teamPath}projects/#list=film-liaisons" class="subnav-link">
                                             <i class="subnav-icon" data-feather="film"></i>
-                                            <span>Film Scout Insights</span>
+                                            <span>Film Community Insights</span>
                                         </a>
                                         </div>
                                         <div style="display:none" class="geo">
@@ -1472,168 +1520,34 @@ class StandaloneNavigation {
         waitForElm('#main-container').then((elm) => {
             $("body").addClass("sidebar-hidden");
             $("#main-container").prepend(navHTML);
+            waitForElm('#legend-content').then((elm) => { // On timeline page
+                 setTimeout(() => { // Temp until Leaflet load timing is resolved.
+                    toggleShowNavColumn();
+                    // First add header with toggle, then legend content after it
+                    if (!$('#locations-header').length) {
+                        $('#listLeft').prepend(`
+                            <div id="locations-header">
+                                <b><a href="#" onclick="toggleDiv('#locations-content');return false;">LOCATIONS</a></b>
+                                <div id="locations-content">
+                                    <div id="sidebar-view-toggle" class="legend-view-toggle">
+                                        <button id="sidebar-locations-btn" class="view-toggle-btn active" title="Show flat list of locations">Locations</button>
+                                        <button id="sidebar-continents-btn" class="view-toggle-btn" title="Group by continent">Continents</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                        // Setup toggle event handlers for sidebar
+                        setupSidebarViewToggle();
+                    }
+                    // Insert legend content inside locations-content, after the toggle
+                    $('#locations-content').append($('#legend-content'));
+                    $('#legend-content').css('font-size', '12px');
+                    $('#legend-content').css('line-height', '1em');
+                    $('#floating-legend').hide(); // No effect since display: is on #floating-legend
+                    $('#floating-legend').css('opacity', '0'); // Works, but might block clicks
+                }, 1000);
+            });
         });
-
-        // Create app container if it doesn't exist
-        //let appContainer = document.querySelector('.app-container');
-
-        /* Might use this to move body in navigation.html
-
-        if (!appContainer) {
-            // Store existing content efficiently
-            const existingContent = [...document.body.children];
-            
-            // Create and setup app container
-            appContainer = document.createElement('div');
-            appContainer.className = 'app-container';
-            
-            // Clear body and add app container
-            document.body.innerHTML = '';
-            document.body.appendChild(appContainer);
-            
-            // Add navigation
-            appContainer.innerHTML = navHTML;
-            
-            // Create main content area
-            const mainContent = document.createElement('div');
-            mainContent.className = 'main-content';
-            appContainer.appendChild(mainContent);
-            
-            // Move existing content with bounds checking
-            existingContent.forEach(element => {
-                if (element && element.nodeType === Node.ELEMENT_NODE) {
-                    mainContent.appendChild(element);
-                }
-            });
-        }
-        */
-
-
-        /*
-        // Check for shownav parameter to hide navigation
-        const urlParams = new URLSearchParams(window.location.search);
-        const showNav = urlParams.get('shownav') !== 'false';
-        
-        if (showNav) {
-            // Use the exact same reliable pattern as #main-nav, but insert AFTER #main-nav is created
-            if (typeof waitForElm !== 'undefined') {
-                // Wait for #main-nav to be created first (this ensures all DOM restructuring is done)
-                waitForElm('#main-nav').then(() => {
-                    // Now safely insert the sidebar after all main DOM operations are complete
-                    const insertSideNav = () => {
-                        // Check if #side-nav already exists to prevent duplicates
-                        if (document.getElementById("side-nav") == null) {
-                            const rightSideTabs = document.getElementById('rightSideTabs');
-                            const mainNav = document.getElementById('main-nav');
-                            
-                            if (rightSideTabs && mainNav) {
-                                // Insert after #rightSideTabs (before #main-nav)
-                                rightSideTabs.insertAdjacentHTML('afterend', navHTML);
-                            } else if (rightSideTabs) {
-                                // Insert after #rightSideTabs if #main-nav doesn't exist
-                                rightSideTabs.insertAdjacentHTML('afterend', navHTML);
-                            } else if (mainNav) {
-                                // Insert before #main-nav if #rightSideTabs doesn't exist
-                                mainNav.insertAdjacentHTML('beforebegin', navHTML);
-                            } else {
-                                // Insert into #main-container like #main-nav does
-                                const mainContainer = document.getElementById('main-container');
-                                if (mainContainer) {
-                                    mainContainer.insertAdjacentHTML('afterbegin', navHTML);
-                                } else {
-                                    // Final fallback to body
-                                    document.body.insertAdjacentHTML('afterbegin', navHTML);
-                                }
-                            }
-                            
-                            console.log('✅ #side-nav inserted after #main-nav creation');
-                        } else {
-                            console.log('ℹ️ #side-nav already exists, skipping insertion');
-                        }
-                    };
-                    
-                    insertSideNav();
-                });
-            } else {
-                // Fallback if waitForElm not available - immediate insertion
-                const insertSideNav = () => {
-                    if (document.getElementById("side-nav") == null) {
-                        const rightSideTabs = document.getElementById('rightSideTabs');
-                        const mainNav = document.getElementById('main-nav');
-                        
-                        if (rightSideTabs && mainNav) {
-                            rightSideTabs.insertAdjacentHTML('afterend', navHTML);
-                        } else if (rightSideTabs) {
-                            rightSideTabs.insertAdjacentHTML('afterend', navHTML);
-                        } else if (mainNav) {
-                            mainNav.insertAdjacentHTML('beforebegin', navHTML);
-                        } else {
-                            const mainContainer = document.getElementById('main-container');
-                            if (mainContainer) {
-                                mainContainer.insertAdjacentHTML('afterbegin', navHTML);
-                            } else {
-                                document.body.insertAdjacentHTML('afterbegin', navHTML);
-                            }
-                        }
-                    }
-                };
-                
-            }
-            
-            // Handle hidden state after creation
-            if (this.isHidden) {
-                setTimeout(() => {
-                    const sidenav = document.getElementById('side-nav');
-                    if (sidenav) {
-                        sidenav.style.display = 'none';
-
-                        // TODO - Can we remove the use of .sidebar-hidden?
-                        //document.body.classList.add('sidebar-hidden');
-
-                        // Reopen button is now in template-main.html
-                    }
-                }, 10);
-            }
-        } else {
-            console.log('Navigation hidden due to shownav=false parameter');
-        }
-        */
-
-        // // TODO - Can we remove the use of .sidebar-hidden?
-        /*
-        // Set initial body class for headerbar positioning and sidenav expanded state
-        if (this.isHidden) {
-            console.log('INIT: Setting body to sidebar-hidden');
-            document.body.classList.add('sidebar-hidden');
-            document.body.classList.remove('sidenav-collapsed', 'sidenav-expanded');
-        } else if (this.isCollapsed || this.isMobile) {
-            console.log('INIT: Setting body to sidenav-collapsed');
-            //// document.body.classList.add('sidenav-collapsed');
-            //// document.body.classList.remove('sidenav-expanded');
-        } else {
-            console.log('INIT: Setting body to sidenav-expanded');
-            //// document.body.classList.add('sidenav-expanded');
-            //// document.body.classList.remove('sidenav-collapsed');
-            // Also add expanded class to sidenav when not collapsed
-            const sidenav = document.getElementById('side-nav');
-            if (sidenav) {
-                sidenav.classList.add('expanded');
-            }
-        }
-        */
-
-
-        // Check for custom favicon from environment/config
-        // Skip favicon update if common.js is handling it
-        /*
-        if (!window.updateFaviconPath) {
-            this.updateLogoFromConfig().catch(error => {
-                console.log('Failed to update logo/favicon from config:', error);
-            });
-        } else {
-            console.log('[FaviconManager] Skipping - common.js will handle favicon updates');
-        }
-        */
     }
     
     // Update logo and favicon based on SITE_FAVICON environment variable or config
@@ -1787,6 +1701,7 @@ class StandaloneNavigation {
                 sideNav.classList.remove('expanded');
                 sideNav.classList.add('collapsed');
                 this.hideSidebar();
+                if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility();
                 return;
             }
             
@@ -1796,7 +1711,23 @@ class StandaloneNavigation {
                 console.log('Clicked .main-nav-close-btn in #main-nav');
                 // Just hide #main-nav, keep #side-nav-content open
                 document.getElementById('main-nav').style.display = 'none';
+                document.body.classList.add('main-nav-hidden');
                 $("#side-nav").removeClass("main-nav").removeClass("main-nav-full");
+                
+                // Show floating legend when main-nav is closed
+                $('#floating-legend').show();
+                $('#floating-legend').css('opacity', '1');
+                $('#floating-legend').css('display', 'block');
+                // Move legend content back to floating legend if needed
+                if ($('#legend-content').length && $('#floating-legend').length) {
+                    if ($('#legend-content').parent().attr('id') !== 'floating-legend') {
+                        $('#floating-legend').append($('#legend-content'));
+                    }
+                }
+                // Rebuild legend if needed
+                if (typeof window.buildFloatingLegendFromChart === 'function') {
+                    setTimeout(() => { try { window.buildFloatingLegendFromChart(); } catch(e) {} }, 100);
+                }
                 
                 // Mobile behavior: if browser is 600px or less and #side-nav-content is visible, 
                 // replace collapsed class with expanded
@@ -1808,6 +1739,14 @@ class StandaloneNavigation {
                         sideNav.classList.remove('collapsed');
                         sideNav.classList.add('expanded');
                     }
+                }
+                // Ensure overlay legends refresh visibility now that main-nav is closed.
+                // Run immediately and once after a short delay to handle any DOM transitions.
+                if (window.updateOverlayLegendVisibility) {
+                    try { window.updateOverlayLegendVisibility(); } catch (err) { console.warn('updateOverlayLegendVisibility error', err); }
+                    setTimeout(() => {
+                        try { if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility(); } catch (e) { /* ignore */ }
+                    }, 60);
                 }
             }
         });
@@ -2006,6 +1945,8 @@ class StandaloneNavigation {
             // Store state in localStorage
             localStorage.setItem('standaloneNavCollapsed', this.isCollapsed);
             localStorage.setItem('standaloneNavLocked', this.isLocked);
+            // Update overlay legend visibility (timeline listens for this function)
+            if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility();
         }
     }
     
@@ -2108,6 +2049,8 @@ class StandaloneNavigation {
             // Clear hidden state
             localStorage.removeItem('standaloneNavHidden');
             this.isHidden = false;
+            // Update overlay legend visibility after showing the sidebar
+            if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility();
         }
     }
     
@@ -2142,6 +2085,8 @@ class StandaloneNavigation {
             }
             
             console.log('🔍 DEBUG: Body classes after adding:', body.className);
+            // Recompute overlay visibility after hiding
+            if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility();
             return; // Exit early - no additional navigation changes
         }
         
@@ -2168,6 +2113,8 @@ class StandaloneNavigation {
             }
             
             this.isHidden = false;
+            // update overlay visibility after showing
+            if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility();
         } else {
             // Wide screen behavior - show sidebar in collapsed state
             this.showSidebar();
@@ -2177,6 +2124,8 @@ class StandaloneNavigation {
                 this.isCollapsed = true;
                 this.isLocked = true;
             }
+            // update overlay visibility after showing
+            if (window.updateOverlayLegendVisibility) window.updateOverlayLegendVisibility();
         }
     }
     
@@ -2504,6 +2453,7 @@ let standaloneNav;
 
 // Initialize navigation function
 function initializeStandaloneNav() {
+
     //alert("initializeStandaloneNav")
     //let hash = getHash();
     const defaultToGeo = (navParam.list == "geo" || window.location.hostname.includes('geo') || window.location.hostname.includes('location'));
@@ -2533,28 +2483,6 @@ function initializeStandaloneNav() {
     // Look for typical repo files to identify the repository folder
     const knownRepoFiles = ['Cargo.toml', 'package.json', 'README.md', 'CLAUDE.md'];
     let detectedRepoName = null;
-    
-    /*
-    // Try to detect repo folder from current path
-    for (const segment of pathSegments) {
-        // Skip common non-repo segments
-        if (!['admin', 'js', 'css', 'img', 'preferences'].includes(segment)) {
-            detectedRepoName = segment;
-            break;
-        }
-    }
-    
-    // Fallback detection logic
-    if (!detectedRepoName) {
-        // Check if we have any path segments that could be a repo
-        const possibleRepoSegment = pathSegments.find(segment => 
-            !['admin', 'js', 'css', 'img', 'preferences', 'src', 'target'].includes(segment)
-        );
-        if (possibleRepoSegment) {
-            detectedRepoName = possibleRepoSegment;
-        }
-    }
-    */
     
     // Check if we're being called from an external site or within a webroot container
     if (detectedRepoName && pathSegments.includes(detectedRepoName)) {
@@ -2613,7 +2541,7 @@ function initializeStandaloneNav() {
     
     // Restore state after initialization
     setTimeout(() => {
-        standaloneNav.restoreState();
+        //standaloneNav.restoreState();
     }, 100);
 }
 
@@ -2860,8 +2788,8 @@ catArray = [];
     
     // This can be reactivated for international harmonized system.
     /*
-    alert(local_app.modelearth_root() + '/localsite/js/d3.v5.min.js'); // Is model.earth used to avoid CORS error? Better to avoid and move harmonized-system.txt in localsite repo.
-    loadScript(local_app.modelearth_root() + '/localsite/js/d3.v5.min.js', function(results) {
+    alert(local_app.localsite_root() + 'js/d3.v5.min.js'); // Using localsite_root() for proper path resolution
+    loadScript(local_app.localsite_root() + 'js/d3.v5.min.js', function(results) {
 
         // This avoids cross domain CORS error      
         
@@ -3453,7 +3381,7 @@ function productList(startRange, endRange, text) {
 function renderGeomapShapes(whichmap, hash, geoview, attempts) {
   console.log("renderGeomapShapes() state: " + hash.state + " attempts: " + attempts);
   // local_app.topojson_root() + 
-  loadScript('/localsite/js/topojson-client.min.js', function(results) {
+  loadScript(local_app.localsite_root() + 'js/topojson-client.min.js', function(results) {
     renderMapShapeAfterPromise(whichmap, hash, attempts);
   });
 }
@@ -3485,10 +3413,17 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
 
  includeCSS3(theroot + 'css/leaflet.css',theroot);
   loadScript(theroot + 'js/leaflet.js', function(results) {
+
     waitForVariable('L', function() { // Wait for Leaflet
 
     // Occurs twice in page
     let modelsite = Cookies.get('modelsite');
+
+    // Allow URL parameter to override cookie for testing
+    if (hash.site) {
+        modelsite = hash.site;
+    }
+
     if (!stateAbbr && modelsite) {
         if (modelsite == "model.georgia" || location.host.indexOf("georgia") >= 0 || location.host.indexOf("locations.pages.dev") >= 0) { // Add loop if other states added to settings.
             stateAbbr = "GA";
@@ -3518,7 +3453,7 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
     $("#state_select").val(stateAbbr); // Used for lat lon fetch
 
     // local_app.topojson_root() + 
-    loadScript('/localsite/js/topojson-client.min.js', function(results) {
+    loadScript(local_app.localsite_root() + 'js/topojson-client.min.js', function(results) {
     console.log("topoJsonReady loaded from " + local_app.topojson_root());
     //waitForVariable('topoJsonReady', function () {
     //console.log("topoJsonReady " + topoJsonReady);
@@ -3579,14 +3514,14 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
         if (hash.geoview == "zip") {
           layerName = "Zipcodes";
           if (stateAbbr) {
-            url = local_app.modelearth_root() + "/community-forecasting/map/zcta/states/" + getState(stateAbbr) + ".topo.json";
+            url = local_app.web_root() + "/community-forecasting/map/zcta/states/" + getState(stateAbbr) + ".topo.json";
           } else {
-            url = local_app.modelearth_root() + "/community-forecasting/map/zip/topo/zips_us_topo.json";
+            url = local_app.web_root() + "/community-forecasting/map/zip/topo/zips_us_topo.json";
           }
           topoObjName = "topoob.objects.data";
         }  else if (hash.geoview == "country") { // USA  && stateAbbr.length != 2
           layerName = "States";
-          url = local_app.modelearth_root() + "/localsite/map/topo/states-10m.json"; // name parameter is full state name
+          url = local_app.web_root() + "/localsite/map/topo/states-10m.json"; // name parameter is full state name
           topoObjName = "topoob.objects.states";
         } else if (stateAbbr && stateAbbr.length <= 2) { // COUNTIES
           layerName = stateAbbr + " Counties";
@@ -3616,7 +3551,9 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
           url = local_app.topojson_root() + "/topojson/world-countries-sans-antarctica.json";
           topoObjName = "topoob.objects.countries1";
         }
-        //console.log("topojson url " + url); // TEMP
+        console.log("Loading topojson url: " + url);
+        console.log("State parameter: " + (hash.state || 'undefined'));
+        console.log("geoview parameter: " + (hash.geoview || 'undefined'));
 
         req.open('GET', url, true);
         req.onreadystatechange = handler;
@@ -3630,8 +3567,105 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
         if(req.readyState === XMLHttpRequest.DONE) {
 
             topoob = JSON.parse(req.responseText)
+            
+            // Check if topojson library is loaded
+            if (typeof topojson === 'undefined') {
+                console.log('topojson library not loaded. Loading it now...');
+                
+                // Check if we're already in the process of loading topojson
+                if (window.topojsonLoading) {
+                    console.log('topojson already loading, waiting...');
+                    setTimeout(function() {
+                        handler(); // Retry the entire handler
+                    }, 200);
+                    return;
+                }
+                
+                window.topojsonLoading = true;
+                
+                // Instead of fighting the existing script loading system, 
+                // work with it by forcing a reload of the global object
+                console.log('Forcing topojson global creation...');
+                
+                // Check if the script content is already loaded but global not created
+                const existingScript = document.querySelector('script[src*="topojson"]');
+                if (existingScript) {
+                    
+                    // Try to manually execute the UMD pattern
+                    try {
+                        // Create a new script element that forces global execution
+                        const forceScript = document.createElement('script');
+                        forceScript.textContent = `
+                            // Force topojson global creation
+                            if (typeof window.topojson === 'undefined') {
+                                // Load and execute the topojson script content directly
+                                var script = document.createElement('script');
+                                script.src = local_app.localsite_root() + 'js/topojson-client310.min.js';
+                                script.onload = function() {
+                                    setTimeout(function() {
+                                        if (typeof topojson !== 'undefined' && topojson.feature) {
+                                            console.log('topojson global successfully created');
+                                            window.topojsonLoading = false;
+                                            // Trigger the continuation
+                                            window.dispatchEvent(new CustomEvent('topojsonReady'));
+                                        }
+                                    }, 50);
+                                };
+                                document.head.appendChild(script);
+                            }
+                        `;
+                        document.head.appendChild(forceScript);
+                        
+                        // Listen for the ready event
+                        window.addEventListener('topojsonReady', function() {
+                            if (typeof topojson !== 'undefined' && topojson.feature) {
+                                topodata = topojson.feature(topoob, eval(topoObjName));
+                                continueHandler();
+                            }
+                        }, { once: true });
+                        
+                        // Also set a timeout fallback
+                        setTimeout(function() {
+                            if (typeof topojson !== 'undefined' && topojson.feature) {
+                                console.log('topojson available via timeout fallback');
+                                window.topojsonLoading = false;
+                                topodata = topojson.feature(topoob, eval(topoObjName));
+                                continueHandler();
+                            } else {
+                                console.error('topojson still not available after force loading');
+                                window.topojsonLoading = false;
+                            }
+                        }, 300);
+                        
+                    } catch (e) {
+                        console.error('Failed to force topojson loading:', e);
+                        window.topojsonLoading = false;
+                    }
+                } else {
+                    // No existing script, load it fresh
+                    const script = document.createElement('script');
+                    script.src = local_app.localsite_root() + 'js/topojson-client310.min.js';
+                    script.onload = function() {
+                        setTimeout(function() {
+                            if (typeof topojson !== 'undefined' && topojson.feature) {
+                                console.log('topojson library loaded successfully');
+                                window.topojsonLoading = false;
+                                topodata = topojson.feature(topoob, eval(topoObjName));
+                                continueHandler();
+                            }
+                        }, 100);
+                    };
+                    document.head.appendChild(script);
+                }
+                return;
+            }
+            
             topodata = topojson.feature(topoob, eval(topoObjName));
-
+            continueHandler();
+        }
+        }
+        
+        function continueHandler() {
             //console.log("topodata")
             //console.log(topodata)
               
@@ -4182,13 +4216,12 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
               info.addTo(map);
             }
           }
-        }
-  }); // waitforElm # whichmap
-  //}); // waitforVar
+        }); // end continueHandler
+    }); // waitforElm # whichmap
+    //}); // waitforVar
+    });
   });
-  });
-  });
-}
+} 
 
 function getValueByIdAndColumn(array, idColumn, id, column) {
     const row = array.find(obj => obj[idColumn] === id);
@@ -4703,10 +4736,12 @@ function loadObjectData(element, attempts) {
 
 var statetable = {};
 var geotable = {};
+var currentRowIDs = [];
+var currentCountryIDs = [];
+var programmaticSelection = false; // Flag to prevent goHash() during programmatic selections
 
 function showTabulatorList(element, attempts) {
-    let currentRowIDs = [];
-    let currentCountryIDs = [];
+    // currentRowIDs and currentCountryIDs are now global variables
     console.log("showTabulatorList scope: " + element.scope + ". Length: " + Object.keys(element).length + ". Attempt: " + attempts);
     let hash = getHash();
     let theState = "";
@@ -4801,6 +4836,12 @@ function showTabulatorList(element, attempts) {
                         paginationSize:10000,
                         columns:element.columns,
                         selectable:true,
+                        autoResize:false,         //disable auto resize to prevent infinite loop
+                    });
+
+                    // Manually redraw statetable after build since autoResize is disabled
+                    statetable.on("tableBuilt", function() {
+                        statetable.redraw(true); // Force full redraw
                     });
 
                     // TO DO: 2-char state needs to be added
@@ -4812,34 +4853,36 @@ function showTabulatorList(element, attempts) {
 
                         statetable.on("tableBuilt", function() {
                             //alert("currentStateIDs " + currentStateIDs)
+                            programmaticSelection = true;
                             statetable.selectRow(currentStateIDs);
+                            programmaticSelection = false;
                             statetable.on("rowSelected", function(row) {
                                 // Handle row selection here
                             });
                         });
                     }
 
-                    let rowSelectedTime = 0;
-                    const selectionDelay = 500;  // Wait so rowSelected is only invoked once.
-
                     // Called for every box check when loading tabulator.
                     statetable.on("rowSelected", function(row) {
-                        let now = Date.now();
-                        if (now - rowSelectedTime > selectionDelay) {
+                        console.log("statetable rowSelected " + row._row.data.id + " (programmatic: " + programmaticSelection + ")");
 
-                            //alert("statetable rowSelected " + row._row.data.id);
-                            // Important: The incoming 2-char state is a column called "id"
-                            if (!currentRowIDs.includes(row._row.data.id)) {
-                                currentRowIDs.push(row._row.data.id);
-                            }
-                            //if(hash.geo) {
-                                //hash.geo = hash.geo + "," + currentRowIDs.toString();
-                            //  hash.geo = hash.geo + "," + row._row.data.id;
-                            //} else {
+                        //alert("statetable rowSelected " + row._row.data.id);
+                        // Important: The incoming 2-char state is a column called "id"
+                        if (!currentRowIDs.includes(row._row.data.id)) {
+                            currentRowIDs.push(row._row.data.id);
+                        }
+                        //if(hash.geo) {
+                            //hash.geo = hash.geo + "," + currentRowIDs.toString();
+                        //  hash.geo = hash.geo + "," + row._row.data.id;
+                        //} else {
+                        
+                        // Only trigger goHash if this is a user-initiated selection, not programmatic
+                        if (!programmaticSelection) {
                             if (!hash.geoview || hash.geoview == "state") { // Clicking on counties for a state
                                 if (hash.geo != currentRowIDs.toString()) {
                                     hash.geo = currentRowIDs.toString();
                                     console.log("Got hash.geo " + hash.geo);
+                                    goHash({'geo':hash.geo}); // Update URL hash with selected counties
                                 }
                             } else if (hash.geoview == "countries") {
                                 //alert("row._row.data.id " + row._row.data["Country Code"])
@@ -4851,6 +4894,10 @@ function showTabulatorList(element, attempts) {
                                 }
                                 goHash({'country':currentCountryIDs.toString()});
                             }
+                        }
+                        
+                        // Only trigger these goHash calls if user-initiated
+                        if (!programmaticSelection) {
                             if (row._row.data["CountryName"] == "United States") {
                                 goHash({'geoview':'country'});
                             } else if(row._row.data.id) {
@@ -4870,8 +4917,9 @@ function showTabulatorList(element, attempts) {
                                 //goHash({'state':hash.state});
 
                                 consoleLog("ALERT state checked - called for everybox checked")
-                                delete hiddenhash.naics;
-                                goHash({'state':hash.state, 'naics':''}); // Clears hiddenhash
+                                // Don't clear naics parameter - preserve it for industry detail pages
+                                //delete hiddenhash.naics;
+                                goHash({'state':hash.state}); // Preserve other hash parameters like naics
 
                             } else if(!hash.geo && row._row.data.StateName) { // Or StateName?
                                 if(row._row.data.statename == "Georgia") { // From state checkboxes
@@ -4895,22 +4943,26 @@ function showTabulatorList(element, attempts) {
                                 goHash({'state':filteredArray.toString()});
                                 return;
                             }
-                            rowSelectedTime = now;  // Update the timestamp after processing
                         }
                     })
                     statetable.on("rowDeselected", function(row) {
-                        let countryCode = row._row.data["Country"];
-                        let filteredCountryArray = currentCountryIDs.filter(item => item !== countryCode);
-                        if (hash.geoview == "countries") {
-                            goHash({'country':filteredCountryArray.toString()});
-                            return;
-                        }
+                        console.log("statetable rowDeselected " + row._row.data.id + " (programmatic: " + programmaticSelection + ")");
+                        
+                        // Only trigger goHash if this is a user-initiated deselection, not programmatic
+                        if (!programmaticSelection) {
+                            let countryCode = row._row.data["Country"];
+                            let filteredCountryArray = currentCountryIDs.filter(item => item !== countryCode);
+                            if (hash.geoview == "countries") {
+                                goHash({'country':filteredCountryArray.toString()});
+                                return;
+                            }
 
-                        let filteredArray = currentRowIDs.filter(item => item !== row._row.data.id);
-                        if (hash.state != filteredArray.toString()) {
-                            //hash.geo = filteredArray.toString();
-                            goHash({'state':filteredArray.toString()});
-                            return;
+                            let filteredArray = currentRowIDs.filter(item => item !== row._row.data.id);
+                            if (hash.state != filteredArray.toString()) {
+                                //hash.geo = filteredArray.toString();
+                                goHash({'state':filteredArray.toString()});
+                                return;
+                            }
                         }
                     })
                     statetable.on("dataSorted", function(sorters, rows){
@@ -4924,7 +4976,9 @@ function showTabulatorList(element, attempts) {
                             let currentStates = hash.state.split(',');
                             statetable.on("tableBuilt", function() {
                                 //alert("try it")
+                                programmaticSelection = true;
                                 statetable.selectRow(currentStates); // Uses "id" incoming rowData
+                                programmaticSelection = false;
                             });
                         }
                     }
@@ -5019,7 +5073,7 @@ function showTabulatorList(element, attempts) {
 
                 geotable = new Tabulator("#tabulator-geotable", {
                     data:rowData,
-                    layout:"fitColumns",      //fit columns to width of table 
+                    layout:"fitColumns",      //fit columns to width of table
                     responsiveLayout:"hide",  //hide columns that dont fit on the table
                     //tooltips:true,          //show tool tips on cells
                     addRowPos:"top",          //when adding a new row, add it to the top of the table
@@ -5034,6 +5088,7 @@ function showTabulatorList(element, attempts) {
                     columns:columnArray,
                     selectable:true,
                     movableRows:true,
+                    autoResize:false,         //disable auto resize to prevent infinite loop
                 });
 
                 geotable.on("dataSorted", function(sorters, rows){
@@ -5131,14 +5186,15 @@ function showTabulatorList(element, attempts) {
 
                 // Row selection handler
                 geotable.on("rowSelected", function(row){
-                    console.log("geotable rowSelected " + row._row.data.id);
+                    console.log("geotable rowSelected " + row._row.data.id + " (programmatic: " + programmaticSelection + ")");
                     if (!currentRowIDs.includes(row._row.data.id)) {
                         //alert("Add to geo in url hash: " + row._row.data.id)
                         // Updates geo in url hash
                         currentRowIDs.push(row._row.data.id);
                     }
                     
-                    if (hash.geo != currentRowIDs.toString()) {
+                    // Only trigger goHash if this is a user-initiated selection, not programmatic
+                    if (!programmaticSelection && hash.geo != currentRowIDs.toString()) {
                         hash.geo = currentRowIDs.toString();
                         //alert("goHash rowSelected " + hash.geo);
                         //alert("rowSelected currentRowIDs call goHash " + currentRowIDs.toString());
@@ -5149,8 +5205,10 @@ function showTabulatorList(element, attempts) {
                 // Row deselection handler
                 geotable.on("rowDeselected", function(row){
                     currentRowIDs = currentRowIDs.filter(item => item !== row._row.data.id);
-                    console.log("rowDeselected. Remaining currentRowIDs: " + currentRowIDs.toString());
-                    if (hash.geo != currentRowIDs.toString()) {
+                    console.log("rowDeselected. Remaining currentRowIDs: " + currentRowIDs.toString() + " (programmatic: " + programmaticSelection + ")");
+                    
+                    // Only trigger goHash if this is a user-initiated deselection, not programmatic
+                    if (!programmaticSelection && hash.geo != currentRowIDs.toString()) {
                         // Why is currentRowIDs incorrect? (blank)
                         hash.geo = currentRowIDs.toString();
                         goHash({'geo':hash.geo}); // Reapplies selections to map (otherwise map reverts to chlorpleth)
@@ -5159,6 +5217,11 @@ function showTabulatorList(element, attempts) {
 
 
                 consoleLog("Before Update Map Colors Tabulator list displayed. State: " + theState);
+
+                // Manually redraw geotable after build since autoResize is disabled
+                geotable.on("tableBuilt", function() {
+                    geotable.redraw(true); // Force full redraw
+                });
 
                 if(hash.geo) {
                     let currentGeoIDs = hash.geo.split(',');
@@ -5181,13 +5244,14 @@ function showTabulatorList(element, attempts) {
     } else {
       attempts = attempts + 1;
       loadTabulator();
-      if (attempts < 4000) {
-        // To do: Add a loading image after a coouple seconds. 2000 waits about 300 seconds.
+      if (attempts < 25) {
+        // To do: Add a loading image after a couple seconds. 5 attempts waits about 2 seconds.
         setTimeout( function() {
           showTabulatorList(element, attempts);
-        }, 100 );
+        }, 10 );
       } else {
-        alert("Tabulator JS not available for displaying " + element.scope + ". (4000 attempts by navigation.js)")
+        console.log("INFINITE LOOP PREVENTION: Exiting showTabulatorList after " + attempts + " attempts (limit: 25)");
+        // alert("Tabulator JS not available for displaying " + element.scope + ". (25 attempts by navigation.js)")
       }
     }
 }
@@ -5207,6 +5271,10 @@ function updateSelectedTableRows(geo, geoDeselect, attempts) {
             //alert("geotable.getRows === function")
             // #tabulator-geotable
             //geotable.selectRow(geotable.getRows().filter(row => row.getData().name.includes('Ba')));
+            
+            // Set flag to indicate programmatic selection (don't trigger goHash)
+            programmaticSelection = true;
+            
             if (geo) {
                 $.each(geo.split(','), function(index, value) {
                     console.log("geo value: " + value);
@@ -5223,6 +5291,9 @@ function updateSelectedTableRows(geo, geoDeselect, attempts) {
                     geotable.deselectRow(value); // Pass the row ID directly
                 });
             }
+            
+            // Reset flag after programmatic selections are complete
+            programmaticSelection = false;
             // Row Display Test - scroll down to see which rows were not initially in DOM.
             //$('.tabulator-row input:checkbox').css('display', 'none');
 
@@ -5329,7 +5400,10 @@ function updateMapColors(whichmap) {
 
         // BUGBUG - When state included with geoview=country
         // http://localhost:8887/community/start/maps/#geoview=country&state=GA
-        geoOverlays[layerName].eachLayer(function (layer) {
+        
+        // Check if geoOverlays[layerName] exists before calling eachLayer
+        if (geoOverlays[layerName]) {
+            geoOverlays[layerName].eachLayer(function (layer) {
             const location = layer.feature.properties.COUNTYFP; // Match GeoJSON property
             const stateFP = layer.feature.properties.STATEFP;
             //alert("locationA: " + location)
@@ -5372,6 +5446,9 @@ function updateMapColors(whichmap) {
                 });
             }
         });
+        } else {
+            console.log("WARN: geoOverlays[" + layerName + "] is undefined, skipping eachLayer processing");
+        }
 
         // Add a legend
         addLegendToMap(minCO2, maxCO2, whichmap, legendTitle);
@@ -5820,7 +5897,7 @@ function localJsonpCallback(json) {
   } else {
     //$('#loading').hide();
     //$('#userForm').show();
-    alert(json.Message);
+    //alert("json.Message " + json.Message);
   }
 }
 
@@ -5835,15 +5912,6 @@ if(!param.show) {
 }
 */
 
-/* Allows map to remove selected shapes when backing up. */
-document.addEventListener('hashChangeEvent', function (elem) {
-    console.log("navigation.js detects URL hashChangeEvent");
-    hashChanged();
-}, false);
-
-if(typeof hiddenhash == 'undefined') {
-    var hiddenhash = {};
-}
 function updateRegionService(section) {
 
     //alert("updateRegionService");
@@ -5978,7 +6046,7 @@ let showLeftIcon = false;
 if(typeof param=='undefined'){ var param={}; }
 
 if (window.location.protocol != 'https:' && location.host.indexOf('localhost') < 0) {
-    location.href = location.href.replace("http://", "https://");
+    location.href = location.href.replace("http://", "https://"); // Leave http
 }
 // Get the levels below root
 var foldercount = (location.pathname.split('/').length - 1); // - (location.pathname[location.pathname.length - 1] == '/' ? 1 : 0) // Removed because ending with slash or filename does not effect levels. Increased -1 to -2.
@@ -6003,16 +6071,18 @@ if (modelpath == "./") {
 
 // 2024 June - Override everything above to allow for other localsite ports not having local files.
 // If navigation.js is loaded first, this will be...
-if (typeof local_app.modelearth_root === 'function') {
-    modelpath = local_app.modelearth_root();
+if (typeof local_app.web_root === 'function') {
+    modelpath = local_app.web_root();
 }
 //alert("modelpath " + modelpath)
 
 if(location.host.indexOf('localhost') < 0 && location.host.indexOf('model.') < 0 && location.host.indexOf('neighborhood.org') < 0) { // When not localhost or other site that has a fork of io and community.
     // To do: allow "Input-Output Map" link in footer to remain relative.
-    //modelpath = "https://model.earth/" + modelpath; // Avoid - use local_app.modelearth_root() instead - Check if/why used for #headerSiteTitle and hamburger menu
+    //modelpath = "https://model.earth/" + modelpath; // Avoid - use local_app.web_root() instead - Check if/why used for #headerSiteTitle and hamburger menu
     ////modelroot = "https://model.earth"; // For embeds
 }
+consoleLog("theroot NOT APPENDED: " + theroot + modelpath); // Not correct since modelpath starts with https://locasite etc
+//modelpath = theroot + modelpath;
 consoleLog("modelpath " + modelpath);
 
 
@@ -6135,7 +6205,36 @@ function showNavColumn() {
     $("#side-nav").show();
     $("#side-nav").addClass("main-nav-full");
     $("body").removeClass("sidebar-hidden");
+    $("body").removeClass("main-nav-hidden");
     $("#showSideFromBar").hide();
+    // Move legend content to sidebar and hide floating legend
+    if ($('#legend-content').length && $('#listLeft').length) {
+        // Ensure header with toggle exists at top of listLeft
+        if (!$('#locations-header').length) {
+            $('#listLeft').prepend(`
+                <div id="locations-header">
+                    <b><a href="#" onclick="toggleDiv('#locations-content');return false;">LOCATIONS</a></b>
+                    <div id="locations-content">
+                        <div id="sidebar-view-toggle" class="legend-view-toggle">
+                            <button id="sidebar-locations-btn" class="view-toggle-btn active" title="Show flat list of locations">Locations</button>
+                            <button id="sidebar-continents-btn" class="view-toggle-btn" title="Group by continent">Continents</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+            // Setup toggle event handlers for sidebar
+            setupSidebarViewToggle();
+        } else {
+            // Move header to top if it exists elsewhere
+            $('#listLeft').prepend($('#locations-header'));
+        }
+        // Insert legend content inside locations-content, after the toggle
+        $('#locations-content').append($('#legend-content'));
+        $('#legend-content').css('font-size', '12px');
+        $('#legend-content').css('line-height', '1em');
+    }
+    $('#floating-legend').hide();
+    $('#floating-legend').css('opacity', '0');
     
     // Refresh feather icons when showing navigation
     if (window.standaloneNav && window.standaloneNav.replaceFeatherIcons) {
@@ -6172,6 +6271,23 @@ function showNavColumn() {
 }
 function hideNavColumn() {
     $('body').addClass('sidebar-hidden');
+    // Move legend content back to floating legend and show it when nav is closed
+    if ($('#legend-content').length && $('#floating-legend').length) {
+        $('#floating-legend').append($('#legend-content'));
+    }
+    $('#floating-legend').show();
+    $('#floating-legend').css('opacity', '1');
+    $('#floating-legend').css('display', 'block');
+    // Rebuild legend content if empty
+    if (typeof window.buildFloatingLegendFromChart === 'function') {
+        setTimeout(() => {
+            try { window.buildFloatingLegendFromChart(); } catch(e) {}
+        }, 100);
+    }
+    // Trigger overlay legend visibility update for timeline page
+    if (typeof window.updateOverlayLegendVisibility === 'function') {
+        setTimeout(() => window.updateOverlayLegendVisibility(), 150);
+    }
     return;
 
     $("#sideIcons").show();
@@ -6238,18 +6354,95 @@ function iNav(set) {
     let hashString = decodeURIComponent($.param(hash)); // decode to display commas in URL
     if (location.href.indexOf('/info') == -1) {
         //updateHash({"geoview":""}); // Close location filter before redirect.
-        location.href = local_app.modelearth_root() + "/localsite/info/#" + hashString;
+        location.href = local_app.web_root() + "/localsite/info/#" + hashString;
     } else {
         goHash({"set":set,"indicators":hash.indicators});
     }
+}
+
+// Setup toggle buttons for Locations/Continents view in sidebar
+function setupSidebarViewToggle() {
+    const locationsBtn = document.getElementById('sidebar-locations-btn');
+    const continentsBtn = document.getElementById('sidebar-continents-btn');
+
+    if (!locationsBtn || !continentsBtn) return;
+
+    const updateToggleState = () => {
+        const mode = window._legendViewMode || 'locations';
+        if (mode === 'continents') {
+            locationsBtn.classList.remove('active');
+            continentsBtn.classList.add('active');
+        } else {
+            locationsBtn.classList.add('active');
+            continentsBtn.classList.remove('active');
+        }
+        // Also sync floating legend toggle if it exists
+        const floatingLocBtn = document.getElementById('view-locations-btn');
+        const floatingContBtn = document.getElementById('view-continents-btn');
+        if (floatingLocBtn && floatingContBtn) {
+            if (mode === 'continents') {
+                floatingLocBtn.classList.remove('active');
+                floatingContBtn.classList.add('active');
+            } else {
+                floatingLocBtn.classList.add('active');
+                floatingContBtn.classList.remove('active');
+            }
+        }
+    };
+
+    locationsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window._legendViewMode !== 'locations') {
+            window._legendViewMode = 'locations';
+            updateToggleState();
+            if (typeof buildFloatingLegendFromChart === 'function') {
+                buildFloatingLegendFromChart();
+            }
+        }
+    });
+
+    continentsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window._legendViewMode !== 'continents') {
+            window._legendViewMode = 'continents';
+            updateToggleState();
+            if (typeof buildFloatingLegendFromChart === 'function') {
+                buildFloatingLegendFromChart();
+            }
+        }
+    });
+
+    // Initialize toggle state
+    updateToggleState();
+}
+
+function toggleShowNavColumn() {
+    // Original showNavColumn behavior
+    if ($("body").hasClass("sidebar-hidden")) {
+        //alert("showNavColumn")
+        showNavColumn();
+    } else {
+        hideNavColumn();
+    }
+    let headerFixedHeight = $("#headerLarge").height();
+    $('#cloneLeft').css("top",headerFixedHeight + "px");
 }
 let localsiteTitle = "";
 function applyNavigation() { // Waits for localsite.js 'localStart' variable so local_app path is available.
 
     // To do: fetch the existing background-image.
-    
-    let modelsite = Cookies.get('modelsite');
+
     let hash = getHash();
+    let modelsite = Cookies.get('modelsite');
+
+    // Allow URL parameter to override cookie for testing
+    if (hash.site) {
+        modelsite = hash.site;
+        // Optionally set cookie for persistence across page loads
+        if (typeof Cookies != 'undefined') {
+            Cookies.set('modelsite', hash.site);
+        }
+    }
     const changeFavicon = link => { // var for Safari
       let $favicon = document.querySelector('link[rel="icon"]')
       // If a <link rel="icon"> element already exists,
@@ -6310,10 +6503,10 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         showLeftIcon = true;
         $(".siteTitleShort").text("Civic Tech Atlanta");
         param.titleArray = ["civic tech","atlanta"]
-        param.headerLogo = "<a href='https://codeforatlanta.org'><img src='" + local_app.modelearth_root() + "/community/img/logo/orgs/civic-tech-atlanta-text.png' style='width:186px;padding-top:8px'></a>";
+        param.headerLogo = "<a href='https://codeforatlanta.org'><img src='" + local_app.web_root() + "/community/img/logo/orgs/civic-tech-atlanta-text.png' style='width:186px;padding-top:8px'></a>";
         
         localsiteTitle = "Civic Tech Atlanta";
-        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png")
+        changeFavicon(local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png")
         showClassInline(".neighborhood");
         earthFooter = true;
         showClassInline(".georgia"); // Temp side nav
@@ -6335,16 +6528,22 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         $(".siteTitleShort").text("Model Georgia");
         param.titleArray = [];
         console.log("local_app.localsite_root() " + local_app.localsite_root()); // https://model.earth was in here: https://map.georgia.org/localsite/map/#show=recyclers
-        param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.modelearth_root() + "/localsite/img/logo/states/GA.png' style='width:160px;margin-top:0px'></a>";
-        param.headerLogoNoText = "<a href='https://georgia.org' style='margin-top:-1px'><img src='" + local_app.modelearth_root() + "/localsite/img/logo/states/GA-icon.png' style='width:52px;padding:0px;margin:0px'></a>";
+        param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.web_root() + "/localsite/img/logo/states/GA.png' style='width:160px;margin-top:0px'></a>";
+        param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + local_app.web_root() + "/localsite/img/logo/states/GA-icon.png' style='width:52px;padding:0px;margin-top:-2px'></a>";
         localsiteTitle = "Georgia.org";
-        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/states/GA-favicon.png");
-        if (location.host.indexOf('localhost') >= 0 || location.host.indexOf("locations.pages.dev") >= 0 || location.host.indexOf("locations.georgia.org") >= 0) {
+        changeFavicon(local_app.web_root() + "/localsite/img/logo/states/GA-favicon.png");
+        if (location.host.indexOf('localhost') >= 0) {
             showClassInline(".acct");
             showClassInline(".garesource");
+            showClassInline(".georgia");
+        } else if (location.host.indexOf("locations.pages.dev") >= 0 || location.host.indexOf("locations.georgia.org") >= 0) {
+            showClassInline(".acct");
+            showClassInline(".garesource");
+        } else {
+            showClassInline(".georgia");
         }
         showClassInline(".geo");
-        showClassInline(".georgia");
+        
         if (location.host.indexOf("locations.pages.dev") >= 0 || location.host.indexOf("locations.georgia.org") >= 0) {
             // To activate when filter are ready
             //showClassInline(".earth");
@@ -6357,9 +6556,9 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
     } else if ((modelsite=="neighborhood.org" || param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
         showLeftIcon = true;
         param.titleArray = ["neighbor","hood"]
-        param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
+        param.headerLogoSmall = "<img src='" + local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
         localsiteTitle = "Neighborhood.org";
-        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png")
+        changeFavicon(local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png")
         showClassInline(".neighborhood");
         showClassInline(".earth");
         earthFooter = true;
@@ -6372,13 +6571,13 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         }
         param.showLeftIcon = false;
         localsiteTitle = "DemocracyLab 2.0";
-        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/democracylab/favicon.png")
+        changeFavicon(local_app.web_root() + "/localsite/img/logo/democracylab/favicon.png")
         $(".siteTitleShort").text("Democracy Lab");
         param.titleArray = ["democracy","lab"]
-        //param.headerLogo = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/partners/democracylab/democracy-lab-2.png' style='width:190px;margin-top:15px'>";
+        //param.headerLogo = "<img src='" + local_app.web_root() + "/localsite/img/logo/partners/democracylab/democracy-lab-2.png' style='width:190px;margin-top:15px'>";
         param.headerLogo = "<a href='/'><img src='https://neighborhood.org/community/img/logo/orgs/democracy-lab-2.png' style='width:170px;margin-top:10px'></a>";
         
-        //param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/partners/democracylab/democracy-lab-icon.jpg' style='width:32px;margin:4px 8px 0 0'>";
+        //param.headerLogoSmall = "<img src='" + local_app.web_root() + "/localsite/img/logo/partners/democracylab/democracy-lab-icon.jpg' style='width:32px;margin:4px 8px 0 0'>";
         param.headerLogoSmall = "<img src='https://neighborhood.org/community/img/logo/orgs/democracy-lab-2.png' style='width:120px;margin:4px 8px 0 0'>";
         //param.headerLogoNoText = "<a href='https://democracylab2.org'><img src='https://neighborhood.org/community/img/logo/orgs/democracy-lab-2.png' style='width:50px;padding-top:0px;margin-top:-1px'></a>";
         showClassInline(".dlab");
@@ -6386,8 +6585,8 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         localsiteTitle = "MemberCommons";
         $(".siteTitleShort").text("MemberCommons");
         param.titleArray = ["Member","Commons"];
-        param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
-        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/neighborhood/favicon.png")
+        param.headerLogoSmall = "<img src='" + local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
+        changeFavicon(local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png")
         showClassInline(".membercommons");
     } else if (!Array.isArray(param.titleArray) && !param.headerLogo) {
     //} else if (location.host.indexOf('model.earth') >= 0) {
@@ -6395,11 +6594,11 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         $(".siteTitleShort").text("Model Earth");
         param.titleArray = ["model","earth"];
         localsiteTitle = "Model Earth";
-        param.headerLogoSmall = "<img src='" + local_app.modelearth_root() + "/localsite/img/logo/modelearth/model-earth.png' style='width:34px; margin-right:2px'>";
+        param.headerLogoSmall = "<img src='" + local_app.web_root() + "/localsite/img/logo/modelearth/model-earth.png' style='width:34px; margin-right:2px' class='logoTopPadding'>";
         
         // Works correctly for model.earth sitemodel, but not reached by geo.
         //alert("changeFavicon")
-        changeFavicon(local_app.modelearth_root() + "/localsite/img/logo/modelearth/model-earth.png")
+        changeFavicon(local_app.web_root() + "/localsite/img/logo/modelearth/model-earth.png")
         showClassInline(".earth");
         console.log(".earth display");
         earthFooter = true;
@@ -6487,16 +6686,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
 
         $(document).on("click", ".showNavColumn", function(event) {
             console.log(".showNavColumn click");
-
-            // Original showNavColumn behavior
-            if ($("body").hasClass("sidebar-hidden")) {
-                //alert("showNavColumn")
-                showNavColumn();
-            } else {
-                hideNavColumn();
-            }
-            let headerFixedHeight = $("#headerLarge").height();
-            $('#cloneLeft').css("top",headerFixedHeight + "px");
+            toggleShowNavColumn();
         });
         $(document).on("click", ".hideSideList", function(event) {
             hideSide("list");
@@ -6558,12 +6748,12 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                 */
 
                 if (param.header) {
-                    headerFile = local_app.modelearth_root() + param.header;
+                    headerFile = local_app.web_root() + param.header;
                 } else if (param.headerFile) {
                     modelpath = ""; // Use the current repo when custom headerFile provided. Allows for site to reside within repo.
                     headerFile = param.headerFile;
                 } else {
-                    headerFile = local_app.modelearth_root() + "/localsite/header.html";
+                    headerFile = local_app.web_root() + "/localsite/header.html";
                 }
 
                 //if (earthFooter && param.showSideTabs != "false") { // Sites including modelearth and neighborhood
@@ -6650,7 +6840,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                             $("#local-header img[src]").each(function() {
                                 if($(this).attr("src").toLowerCase().indexOf("http") < 0) {
                                     if($(this).attr("src").indexOf("/") == 0) { // Starts with slash
-                                        $(this).attr("src", local_app.modelearth_root() + $(this).attr('src'));
+                                        $(this).attr("src", local_app.web_root() + $(this).attr('src'));
                                     } else {
                                     $(this).attr("src", modelpath + $(this).attr('src'));
                                 }
@@ -6827,7 +7017,6 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                 }       
                 footerClimbpath = climbLevels; // Example: ../
                 console.log("footerClimbpath (Levels up to current page): " + footerClimbpath);
-                //alert(footerClimbpath)
             } else {
                 footerClimbpath = climbpath;
             }
@@ -7118,7 +7307,6 @@ waitForElm('#mainHero').then((elm) => {
         $("#datascape").prependTo($("#mainHero"));
         $("#filterFieldsHolder").show();
         $("#filterFieldsHolder").addClass("dark");
-        //alert("mainhero")
     });
 });
 $(document).on("change", "#mainhero", function(event) { // Public or Dev
@@ -7163,8 +7351,6 @@ function setSitesource(sitesource) {
 }
 
 $(document).on("click", ".showPrintOptions, .print_button", function(event) {
-//$('.showPrintOptions, .print_button').click(function(event) {
-    //alert("show print2")
     $('.menuExpanded').hide();
     $('.printOptionsText').show();
     $('.printOptionsHolderWide').show();
@@ -7291,16 +7477,12 @@ function loadLocalObjectLayers(layerName, callback) { // layerName is not curren
         layerJson = "https://model.earth/localsite/info/data/ga-layers-array.json";
         console.log("Set layerJson: " + layerJson);
     }
-    //alert(layerJson)
-    //console.log(layerJson);
-
     if (localObject.layers.length >= 0) {
         callback();
         return;
     }
     let layerObject = (function() {
         //alert("loadLocalObjectLayers layerObject " + layerName);
-
         if(!localObject.layers) {
             console.log("Error: no localObject.layers");
         }
@@ -7329,10 +7511,6 @@ function loadLocalObjectLayers(layerName, callback) { // layerName is not curren
             let layer = hash.show;
             //alert(hash.show)
             //alert(localObject.layers[layer].state)
-            
-
-
-
 
             // These should be lazy loaded when clicking menu
             //displayBigThumbnails(0, hash.show, "main");
@@ -7340,7 +7518,6 @@ function loadLocalObjectLayers(layerName, callback) { // layerName is not curren
             
             if (!hash.show && !param.show) { // INITial load
                 if ($("body").width() >= 800) {
-
                     //showThumbMenu(hash.show, "#bigThumbMenu");
                 }
             }
@@ -7382,7 +7559,6 @@ function getDirectLink(livedomain,directlink,rootfolder,hashStr) {
             //rootfolder = "/explore/" + rootfolder;
         }
         directlink = removeFrontFolder(rootfolder + "#" + hashStr);
-        //alert(directlink)
     } else {
         //directlink = removeFrontFolder("/explore/#" + hashStr);
     }
@@ -7464,11 +7640,8 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
                     } catch(e) {
                         consoleLog("displayLayerCheckboxes: no menuaccess");
                     }
-                    
                     var linkJavascript = "";
-                    //alert(layer) // Returns a nummber: 1,2,3 etc
                     var directlink = getDirectLink(thelayers[layer].livedomain, thelayers[layer].directlink, thelayers[layer].rootfolder, thelayers[layer].item);
-                    //alert("directlink " + directlink);
                     if (bigThumbSection == "main") {
                         if (thelayers[layer].menulevel == "1") {
                             if (access(currentAccess,menuaccess)) {
@@ -7596,43 +7769,18 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
 }
 
 function showClassInline(theclass) {
-
-    
-
     // Load when body head becomes available, faster than waiting for all DOM .js files to load.
     // Append -hide to hide a div for a site.
-    waitForElm('head').then((elm) => {
-        //alert("showClassInline " + theclass)
-        //$(theclass).css('display', 'inline');
-        //$(".dlab").css('display', 'inline');
-
+    waitForElm('head').then((elm) => { // -omit
         var div = $("<style />", {
             html: theclass + ' {display: inline !important} ' + theclass + '-hide {display:none}'
         }).appendTo("head");
     });
-
-    /*
-    setTimeout( function() {
-        $(theclass).css('display', 'inline');
-    }, 1000);
-    setTimeout( function() {
-        $(theclass).css('display', 'inline');
-    }, 2000);
-    setTimeout( function() {
-        $(theclass).css('display', 'inline');
-    }, 5000);
-    setTimeout( function() {
-        $(theclass).css('display', 'inline');
-    }, 10000);
-    setTimeout( function() {
-        $(theclass).css('display', 'inline');
-    }, 30000);
-    */
 }
 function imagineLocation() {
     if (location.href.indexOf('/info') == -1) {
         updateHash({"geoview":""}); // Prevents location filter from remaining open after redirect.
-        location.href = local_app.modelearth_root() + "/localsite/info/" + location.hash;
+        location.href = local_app.web_root() + "/localsite/info/" + location.hash;
         return;
     }
     updateHash({"imgview":"state","geoview":"","appview":""}); // Should this reside in hideAdvanced()?
@@ -7646,9 +7794,10 @@ function hideAdvanced() {
     $("#imagineBar").hide();
     $("#filterClickLocation").removeClass("filterClickActive");
     $("#draggableSearch").hide();
-    
+
     if (typeof relocatedStateMenu != "undefined") {
-        relocatedStateMenu.appendChild(state_select); // For apps hero
+        // DEACTIVATED, OCCURRED ON LOAD OF /localsite/info/
+        //relocatedStateMenu.appendChild(state_select); // For apps hero
     }
     $("#hero_holder").show();
     $(".locationTabText").text($(".locationTabText").attr("title"));
@@ -7715,22 +7864,6 @@ function activateSideColumn() {
       }
     });
 
-    /*
-    // Alternative to flaky $(this).scrollTop()+topMenuHeight; // this is the window
-    function getScrollTop(){
-        if(typeof pageYOffset != 'undefined'){
-            //most browsers except IE before #9
-            return pageYOffset;
-        }
-        else{
-            var B= document.body; //IE 'quirks'
-            var D= document.documentElement; //IE with doctype
-            D= (D.clientHeight)? D: B;
-            return D.scrollTop;
-        }
-    }
-    */
-
     // HIGHLIGHT SIDE NAVIGATION ON SCROLL
     function currentSideID() {
         var scrollTop = window.pageYOffset || (document.documentElement.clientHeight ? document.documentElement.scrollTop : document.body.scrollTop) || 0;
@@ -7756,13 +7889,17 @@ function activateSideColumn() {
         // Get the id of the last item fetched from scrollItems
         cur = cur[cur.length-1];
         var id = cur && cur.length ? cur[0].id : "";
-        //console.log('currentSideID id: ' + id);
+        console.log('STILL IN USE? currentSideID id: ' + id);
         return id;
     }
     var lastID;
     
+    /*
     $(window).scroll(function() {
         var id = currentSideID();
+        if (location.host.indexOf('localhost') >= 0) {
+            console.log("DO WE STILL USE? (window).scroll navigation.js")
+        }
         //console.log("id: " + id + " lastID: " + lastID);
        if($('#' + bottomSection).length > 0 && $(window).scrollTop() + $(window).height() == $(document).height()) { // If bottomSection exists and at bottom
           //console.log('at bottom');
@@ -7780,20 +7917,13 @@ function activateSideColumn() {
                 // To do: Change to highlight the uppermost section.
                 menuItems.filter("[href='..\/tools\/#']").addClass("active");
             } else {
-                //alert("id " + id)
                 menuItems.filter("[href*='#"+id+"']").addClass("active"); // *= means contains
                 menuItems.filter("[hashid='" + id + "']").addClass("active");
             }
           }
-          /*
-          menuItems
-             .parent().removeClass("active")
-             .end().filter("[href*='#"+id+"']").parent().addClass("active");
-           */
-       } else {
-            //console.log("Scrolling, no action");
        }
-       
+    
+
       if (id == "intro") {
         console.log("headerbar show");
         $('.headerbar').show();
@@ -7803,10 +7933,10 @@ function activateSideColumn() {
         //$('html,body').scrollTop(0); 
       }
     });
+    */
 
     // Initial page load
     var currentSection = currentSideID();
-    //alert("currentSection " + currentSection)
     if (currentSection && currentSection.length) {
         if (currentSection == "intro") {
             // To do: Change to highlight the uppermost section.
@@ -7884,27 +8014,51 @@ $(document).on("change", "#state_select", function(event) {
 $(document).on("change", "#selectScope", function(event) {
     goHash({'scope':this.value});
 });
-$(document).on("click", "#filterClickLocation", function(event) {
+// Click handler for State Name Tab - Shows inline dropdown
+// $(document).on("click", "#filterClickState", function(event) {
+//     // Toggle inline state dropdown
+//     const inlineDropdown = $("#inlineStateDropdown");
+    
+//     if (inlineDropdown.is(':visible')) {
+//         inlineDropdown.hide();
+//     } else {
+//         // Move state_select to inline dropdown
+//         if (typeof state_select != "undefined") {
+//             inlineDropdown.empty();
+//             const stateSelectClone = $(state_select).clone();
+//             stateSelectClone.attr('id', 'state_select_inline').show();
+//             stateSelectClone.val($("#state_select").val());
+//             stateSelectClone.on('change', function() {
+//                 $("#state_select").val($(this).val()).trigger('change');
+//                 inlineDropdown.hide();
+//             });
+//             inlineDropdown.append(stateSelectClone);
+//             inlineDropdown.show();
+//         }
+//     }
+//     event.stopPropagation();
+// });
+
+// Close inline dropdown when clicking elsewhere
+$(document).on("click", function(event) {
+    // Only close if click is outside dropdown and trigger button
+    if (!$(event.target).closest('#inlineStateDropdown, #filterClickState').length) {
+        $("#inlineStateDropdown").hide();
+    }
+});
+// Click handler for Counties Tab - Opens location filter panel
+$(document).on("click", "#filterClickLocation, #filterClickState", function(event) {
 
     if ($("#draggableSearch").is(':visible')) {
         $("#draggableSearch").hide();
-        //alert("append")
-        //$("#filterLocations").prependTo($("#locationFilterHolder"));
         $("#filterLocations").hide();
     }
-    /*
-    if ($("#localePanel").is(':visible')) {
-        closeSideTabs();
-        $("#topicsPanel").show(); // So return to apps menu shows something
-        $(".rightTopMenuInner div").removeClass("active"); // So not displayed when returning
-    }
-    */
-
     filterClickLocation();
     event.stopPropagation();
     return;
 
 
+    /// NOT USED
 
     //delete(hiddenhash.geoview); // Not sure where this gets set.
     if ($("#geoPicker").is(':visible')) {
@@ -8076,23 +8230,17 @@ function filterClickLocation(loadGeoTable) {
     return;
 }
 function filterLocationChange() {
-    //alert("filterLocationChange")
     $("#bigThumbPanelHolder").hide();
     $('.showApps').removeClass("filterClickActive"); ////updateHash({'appview':''});
     let distanceFilterFromTop = 120;
     if ($("#locationFilterHolder #filterLocations").length) {
         distanceFilterFromTop = $("#filterLocations").offset().top - $(document).scrollTop();
     }
-    //alert("distanceFilterFromTop  " + distanceFilterFromTop);
-    //$('.hideMetaMenuClick').trigger("click"); // Otherwise covers location popup. Problem: hides hideLayers/hideLocationsMenu.
-    
-
     if ($("#filterLocations").is(':visible')) { // && (distanceFilterFromTop < 300 || distanceFilterFromTop > 300)
-        //alert("closeLocationFilter()");
         closeLocationFilter();
         console.log("closeLocationFilter");
     } else { // OPEN MAP FILTER
-        //alert("openLocationFilter() 1");
+
         $("#filterLocations").prependTo($("#locationFilterHolder"));
         openMapLocationFilter();
 
@@ -8109,7 +8257,6 @@ function filterLocationChange() {
     $("#keywordFields").hide();
 }
 function openMapLocationFilter() {
-    //alert("openMapLocationFilter");
     let hash = getHash();
 
     if (!hash.geoview) { // && hash.sidetab != "locale"
@@ -8120,41 +8267,34 @@ function openMapLocationFilter() {
                 currentStates.push(getKeyByValue(localObject.us_stateIDs, Number(geos[i].replace("US","").substring(0,2))));
             }
         }
-
-        /*
-        if (currentStates.length > 0) { // Multiple states, use first one.
-            goHash({"geoview":"state","state":currentStates[0]});
-        } else {
-            goHash({"geoview":"state"});
-        }
-        */
     }
-    ///$("#geoPicker").show();
     $("#geomap").appendTo($("#geomapHolder")); // Move back from rightSideTabs
 
-
-    $(".locationTabText").text("Locations");
+    // Keep state name, don't revert to "Locations"
+    // $(".locationTabText").text("Locations"); // REMOVED - keep state name
+    
+    // Change filterClickLocation text to "States" when panel is open
+    $(".countiesTabText").text("States");
+    
     $("#topPanel").hide();
     $("#showLocations").show();
     $("#hideLocations").hide();
 
-    // Not sure why, but show() is not revealing again when Locations tab closed.
-    //$("#hero_holder").hide();
+    // Move state_select to location filter holder when Counties panel opens
+    waitForElm('#locationFilterHolder').then((elm) => {
+        if (typeof state_select != "undefined") {
+            // Move state dropdown to top of location filter panel
+            // If this is reactivated, move it somewhere else.
+            //$("#locationFilterHolder").prepend(state_select);
+        }
+    });
 
-    if (typeof state_select_holder != "undefined") {
-        state_select_holder.appendChild(state_select); // For apps hero
-    }
     if (typeof select_scope_holder != "undefined") {
         select_scope_holder.appendChild(selectScope); // For apps hero
     }
 
     if (hash.geo) {
         let geoDeselect = "";
-        if (hash.regiontitle != priorHash.regiontitle || hash.state != priorHash.state) {
-            //geoDeselect = hash.geo
-            //delete hash.geo;
-            //alert("geoDeselect BUG? " + geoDeselect)
-        }
         if (hash.geoview != "country") {
             updateSelectedTableRows(hash.geo, geoDeselect, 0);
         }
@@ -8169,35 +8309,38 @@ function openMapLocationFilter() {
 
     waitForElm('#filterLocations').then((elm) => {
         $("#filterLocations").prependTo($("#locationFilterHolder")); // Move back from rightSideTabs
-        // Here we show the interior, but not #locationFilterHolder.
-        // Jul2 $("#filterLocations").show();$("#imagineBar").show();
-        //if ($("#filterLocations").length) {
-            $('html,body').animate({
-                scrollTop: $("#filterLocations").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
-            });
-        //} else {
-        //    console.log("ALERT #filterLocations not available yet.")
-        //}
+        $('html,body').animate({
+            scrollTop: $("#filterLocations").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
+        });
     });
     if (location.host == 'georgia.org' || location.host == 'www.georgia.org') { 
         $("#header.nav-up").show();
     }
 }
 function closeLocationFilter() {
-    $(".locationTabText").text($(".locationTabText").attr("title"));
+    // Keep state name in locationTabText (don't revert)
+    // $(".locationTabText").text($(".locationTabText").attr("title")); // REMOVED
+    
+    // Change countiesTabText back to "Counties"
+    $(".countiesTabText").text("Counties");
+    
     $("#showLocations").hide();
     $("#hideLocations").show();
-    //$(".locationTabText").text("Entire State");
     $("#locationFilterHolder").hide();
     $("#filterLocations").hide(); // Not sure why this was still needed.
     $("#imagineBar").hide();
     $("#filterClickLocation").removeClass("filterClickActive");
-    if (location.host == 'georgia.org' || location.host == 'www.georgia.org') { 
+    
+    // Close inline state dropdown if open
+    $("#inlineStateDropdown").hide();
+    
+    if (location.host == 'georgia.org' || location.host == 'www.georgia.org') {
         $("#header.nav-up").hide();
     }
 
     if (typeof relocatedStateMenu != "undefined") {
-        relocatedStateMenu.appendChild(state_select); // For apps hero
+        // DEACTIVATED, OCCURRED ON LOAD OF /localsite/info/
+        //relocatedStateMenu.appendChild(state_select); // For apps hero
     }
     if (typeof relocatedScopeMenu != "undefined") {
         relocatedScopeMenu.appendChild(selectScope); // For apps hero
@@ -8255,7 +8398,6 @@ $(window).scroll(function() {
 
         $("#headerLarge").addClass("headerLargeHide");
         $('.bothSideIcons').removeClass('sideIconsLower');$(".pagecolumn").removeClass("pagecolumnLower");
-        //alert("headerbar hide");
         if (!$("#filterFieldsHolder").is(':visible')) { // Move to top if no small top bar
           $(".pagecolumn").addClass("pagecolumnToTop");
         }
@@ -8264,14 +8406,9 @@ $(window).scroll(function() {
         $('.headerOffset').hide();
         $('#logoholderbar').show();
 
-        // BUGBUG - occuring on initial reload when page is a little from top.
-        //$('#logoholderside').show();
-
         if (!$("#filterFieldsHolder").hasClass("filterFieldsHidden")) {
           $("#filterFieldsHolder").addClass("filterFieldsHolderFixed");
           $("body").addClass("filterFieldsBodyTop");
-
-          //if (param.showheader != "false") {
           if (param.showfilters == "true") {
             $('.showMenuSmNav').show(); 
           }
@@ -8280,11 +8417,6 @@ $(window).scroll(function() {
           $('#headerbar').hide(); // Not working
           $('#headerbar').addClass("headerbarhide");
         }
-        if (sideTopOffsetEnabled) {
-          //$('.sidecolumnLeft').css("top","54px");
-        }
-        //alert("#headerbar hide")
-        //$('#showNavColumn').css("top","7px");
         if (!$("#filterFieldsHolder").is(':visible')) { // Retain search filters space at top, unless they are already hidden
           $('#headerLarge').hide();
         }
@@ -8366,12 +8498,10 @@ function lockSidemap() {
   } else if (topReached('#hublist')) {
     if (mapFixed==false) {
       let mapHolderInner = $('#mapHolderInner').width();
-      //alert(mapHolderInner)
       console.log('topReached - fixed side map position');
       $('#mapHolderInner').addClass('mapHolderFixed');
       $("#mapHolderInner").css("max-width",mapHolderInner);
       $('#mapHolderInner').removeClass('mapHolderBottom');
-      //alert("fixed position")
       mapFixed = true;
     }
   } else if(!topReached('#hublist') && mapFixed == true) { // Not top reached (scrolling down)
@@ -8421,8 +8551,6 @@ function topReached(elem) { // top scrolled out view
 function hideScopeOptions(hideScopes) {
     // Avoids revealing if option is already hidden
     waitForElm('#selectScope').then((elm) => {
-        //alert("hideScopeOptions")
-
         let select = $("#selectScope");
         let selectedOption = select.find(":selected");
         let isSelectedHidden = hideScopes.includes(selectedOption.val());
@@ -8433,13 +8561,11 @@ function hideScopeOptions(hideScopes) {
                 $option.prop("hidden", true);
             }
         });
-
         // If the selected option was hidden, force-select the first visible one
         if (isSelectedHidden || !select.find(":selected").length) {
             let firstVisibleOption = select.find("option:not([hidden])").first();
             if (firstVisibleOption.length) {
                 select.val(firstVisibleOption.val()); // Properly select without showing a hidden option
-                //alert("New selection: " + firstVisibleOption.val());
                 updateHash({'scope':firstVisibleOption.val()});
             }
         }

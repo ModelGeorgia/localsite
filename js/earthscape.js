@@ -4,6 +4,7 @@
 // Declare global chart variables so they can be accessed in resize handler
 let timelineChart;
 let lineAreaChart;
+let manualSizingActive = false; // Flag to track if manual sizing is being used
 
 function loadEarthScape(my) {
     loadScript(theroot + 'js/d3.v5.min.js', function (results) {
@@ -176,7 +177,10 @@ const countryCodeMap = {
   };
   const defaultCountries = ['IN', 'CN', 'US', 'GB', 'DE', 'JP', 'BR', 'RU', 'ZA', 'SA', 'AE'];
 
-//Timelinechart for scopes country, state, and county 
+// Cache for all countries data to avoid re-fetching
+let allCountriesCache = null;
+
+//Timelinechart for scopes country, state, and county
 let geoValues = {};
 const MIN_YEAR = 1960; // Minimum year to filter data
 async function getTimelineChart(scope, chartVariable, entityId, showAll, chartText) {
@@ -274,23 +278,35 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             };
         });
 
-    }/* else if (scope === "country") {// Fetch country ISO codes first
-        const restResponse = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name"); // cca3 is also available
-    } */else if (scope === "country")
-        
-        {
-        // Fetch country ISO codes first
-        //const restResponse = await fetch("https://restcountries.com/v3.1/all");
-        const restResponse = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name"); // cca3 is also available
-        const countriesData = await restResponse.json();
-    
-        // Get all ISO Alpha-2 codes
-        const selectedCountries = countriesData.map(country => country.cca2).filter(Boolean); // filter out undefined/null
-    
-        console.log("Selected Countries:", selectedCountries); // Debug log
-    
-        // Fetch country dcids using ISO codes
+    } else if (scope === "country") {
+        // Only fetch ALL countries if showAll === 'showAll'
+        // Otherwise use default countries for better performance
+        let selectedCountries;
 
+        if (showAll === 'showAll') {
+            // Lazy load: Fetch all countries only when "All" is selected
+            if (!allCountriesCache) {
+                console.log("Fetching all countries from RESTCountries API...");
+                const restResponse = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
+                const countriesData = await restResponse.json();
+
+                // Cache the result
+                allCountriesCache = countriesData.map(country => country.cca2).filter(Boolean);
+                console.log(`Loaded ${allCountriesCache.length} countries from API`);
+                // Note: Label will be updated later with actual count of countries that have data
+            } else {
+                console.log("Using cached country data");
+            }
+            selectedCountries = allCountriesCache;
+        } else {
+            // Use default countries for Top 5, Top Economics, Bottom 5
+            selectedCountries = defaultCountries;
+            console.log("Using default countries:", selectedCountries);
+        }
+
+        console.log("Selected Countries:", selectedCountries); // Debug log
+
+        // Fetch country dcids using ISO codes
         response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
             method: 'POST',
             headers: {
@@ -301,13 +317,13 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
                 "property": "<-description{typeOf:Country}->dcid"
             })
         });
-    
+
         data = await response.json();
-    
+
         geoIds = data.entities
             .map(entity => entity?.candidates?.[0]?.dcid)
             .filter(Boolean); // remove undefined/null
-    
+
         // Fetch country names
         const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
             method: 'POST',
@@ -319,9 +335,9 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
                 "property": "->name"
             })
         });
-    
+
         const data2 = await response2.json();
-    
+
         Object.keys(data2.data).forEach(geoId => {
             const countryName = data2.data[geoId]?.arcs?.name?.nodes?.[0]?.value;
             if (countryName) {
@@ -331,7 +347,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
                 };
             }
         });
-       
+
     }
 
     // Fetch observational data using geoIds list
@@ -506,40 +522,67 @@ dataCopy.forEach(location => {
                 : a.latestValue - b.latestValue
         )
         .slice(0, Math.min(5, validData.length));
-            
+
     } else {
         selectedData = dataCopy;
+        // Update label with actual count of countries that have data
+        if (scope === "country" && showAll === 'showAll') {
+            updateAllCountryLabel(selectedData.length);
+        }
     }
+
+    // Reset the "All" label when other modes are selected
+    if (scope === "country" && showAll !== 'showAll') {
+        resetAllCountryLabel();
+    }
+
      console.log("Filtered Countries:", selectedData);
 
     // Get datasets
+    // Deterministic color generator per label so line and area charts match
+    function colorForLabel(label, alpha) {
+        // Simple string hash
+        let hash = 0;
+        for (let i = 0; i < label.length; i++) {
+            hash = label.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const h = Math.abs(hash) % 360; // hue
+        const s = 62; // saturation
+        const l = 48; // lightness
+        if (typeof alpha === 'number') {
+            return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
+        }
+        return `hsl(${h}, ${s}%, ${l}%)`;
+    }
+
     const datasets = selectedData.map(location => {
+        const border = colorForLabel(location.name);
         return {
             label: location.name,
             data: years.map(year => {
-                const observation = location.observations.find(obs => 
-                obs.date.split('-')[0] === year
-            );
-            return observation ? observation.value : null;
-        }),
-            borderColor: 'rgb(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ')',
+                const observation = location.observations.find(obs => obs.date.split('-')[0] === year);
+                return observation ? observation.value : null;
+            }),
+            borderColor: border,
             backgroundColor: 'rgba(0, 0, 0, 0)',
         };
     });
 
-    // For Area Chart
+    // For Area Chart - reuse the same colors (with alpha)
     const datasets1 = selectedData.map(location => {
+        const bg = colorForLabel(location.name, 0.18);
+        const border = colorForLabel(location.name);
         return {
             label: location.name,
             data: years.map(year => {
-                const observation = location.observations.find(obs => obs.date === year);
+                const observation = location.observations.find(obs => obs.date.split('-')[0] === year);
                 return observation ? observation.value : null;
             }),
-            backgroundColor: 'rgba(' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ', ' + Math.floor(Math.random() * 256) + ',0.2)',
+            backgroundColor: bg,
             borderColor: 'rgba(0,0,0,0)',
             fill: true
         };
-    });      
+    });
     const config = {
         type: 'line',
         data: {
@@ -548,16 +591,12 @@ dataCopy.forEach(location => {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
             
             plugins: {
+                // Use a floating DOM legend instead of the built-in Chart.js legend
                 legend: {
-                    position: 'bottom', //Better on small screens
-                    labels: {
-                        boxwidth: 12,
-                        font: {
-                            size: 13 // smaller text for legends
-                        }
-                    }
+                    display: false
                 },
                 title: {
                     display: true,
@@ -610,6 +649,7 @@ dataCopy.forEach(location => {
             data: data1,
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                  // Important for fluid resizing
                 plugins: {
                   title: {
@@ -622,15 +662,10 @@ dataCopy.forEach(location => {
                   tooltip: {
                     mode: 'index'
                   },
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      boxWidth: 12,
-                      font: {
-                        size: 12
-                      }
-                    }
-                  }
+                                        // Disable built-in legend in favor of floating DOM legend
+                                        legend: {
+                                            display: false
+                                        }
                 },
                 interaction: {
                   mode: 'nearest',
@@ -671,6 +706,38 @@ dataCopy.forEach(location => {
               
     }
 
+    window._timelineYears = years;
+    window._timelineCountryDataByName = {};
+    formattedData.forEach(function(loc){ window._timelineCountryDataByName[loc.name] = loc; });
+    window._timelineSelectedLabels = selectedData.map(function(loc){ return loc.name; });
+    window.addCountryToCharts = function(name){
+        try {
+            var loc = window._timelineCountryDataByName && window._timelineCountryDataByName[name];
+            if (!loc) return;
+            var yrs = window._timelineYears || [];
+            var existsLine = false;
+            var existsArea = false;
+            try { existsLine = Array.isArray(timelineChart?.data?.datasets) && timelineChart.data.datasets.some(function(ds){ return ds.label === name; }); } catch (e) {}
+            try { existsArea = Array.isArray(lineAreaChart?.data?.datasets) && lineAreaChart.data.datasets.some(function(ds){ return ds.label === name; }); } catch (e) {}
+            var border = colorForLabel(name);
+            var dataArr = yrs.map(function(year){ var observation = (loc.observations || []).find(function(obs){ return (obs.date.split('-')[0]) === year; }); return observation ? observation.value : null; });
+            if (timelineChart && !existsLine) {
+                try {
+                    timelineChart.data.datasets.push({ label: name, data: dataArr, borderColor: border, backgroundColor: 'rgba(0, 0, 0, 0)' });
+                    timelineChart.update();
+                } catch (e) {}
+            }
+            if (lineAreaChart && !existsArea) {
+                try {
+                    var bg = colorForLabel(name, 0.18);
+                    lineAreaChart.data.datasets.push({ label: name, data: dataArr, backgroundColor: bg, borderColor: 'rgba(0,0,0,0)', fill: true });
+                    lineAreaChart.update();
+                } catch (e) {}
+            }
+            try { if (typeof window.buildFloatingLegendFromChart === 'function') window.buildFloatingLegendFromChart(); } catch (e) {}
+        } catch (e) {}
+    };
+
         if (hash.output === "json") {
         // Output JSON data to the page
         const jsonOutput = {
@@ -691,6 +758,22 @@ dataCopy.forEach(location => {
         const ctx = document.getElementById('timelineChart').getContext('2d');
         timelineChart = new Chart(ctx, config);
 
+        // Trigger floating legend build in the page (if the function exists).
+        // The legend builder lives in the HTML page and may not be defined yet,
+        // so retry a few times with small delays to avoid race conditions.
+        (function tryBuildLegend(attempt) {
+            attempt = attempt || 0;
+            if (typeof window.buildFloatingLegendFromChart === 'function') {
+                try {
+                    window.buildFloatingLegendFromChart();
+                } catch (e) {
+                    console.warn('buildFloatingLegendFromChart failed:', e);
+                }
+            } else if (attempt < 10) {
+                setTimeout(() => tryBuildLegend(attempt + 1), 250);
+            }
+        })();
+
         if (lineAreaChart instanceof Chart) {
             lineAreaChart.destroy();
         }
@@ -709,12 +792,151 @@ dataCopy.forEach(location => {
 
 // Chart resize handler function
 function handleChartResize() {
+    // Only auto-resize if manual sizing is not active
+    if (!manualSizingActive) {
+        if (timelineChart instanceof Chart) {
+            timelineChart.resize();
+        }
+        if (lineAreaChart instanceof Chart) {
+            lineAreaChart.resize();
+        }
+    }
+}
+
+// Chart size control functions
+function updateChartSize() {
+    const widthSlider = document.getElementById('widthSlider');
+    const heightSlider = document.getElementById('heightSlider');
+    const widthValue = document.getElementById('widthValue');
+    const heightValue = document.getElementById('heightValue');
+    
+    if (!widthSlider || !heightSlider || !widthValue || !heightValue) {
+        return; // Elements not found, exit gracefully
+    }
+    
+    const width = widthSlider.value + 'px';
+    const height = heightSlider.value + 'px';
+    
+    // Update display values
+    widthValue.textContent = width;
+    heightValue.textContent = height;
+    
+    // Set manual sizing flag to prevent auto-resize
+    manualSizingActive = true;
+    
+    // Apply size ONLY to chart containers (divs that hold the canvases)
+    // Don't modify canvas attributes directly to avoid diagonal scaling
+    const timelineContainer = document.getElementById('div1');
+    const lineAreaContainer = document.getElementById('div2');
+    
+    if (timelineContainer) {
+        timelineContainer.style.width = width;
+        timelineContainer.style.height = height;
+        // Ensure container has proper positioning for chart sizing
+        timelineContainer.style.position = 'relative';
+    }
+    
+    if (lineAreaContainer) {
+        lineAreaContainer.style.width = width;
+        lineAreaContainer.style.height = height;
+        // Ensure container has proper positioning for chart sizing
+        lineAreaContainer.style.position = 'relative';
+    }
+    
+    // Update chart options to disable aspect ratio maintenance for manual sizing
     if (timelineChart instanceof Chart) {
-        timelineChart.resize();
+        timelineChart.options.maintainAspectRatio = false;
+        timelineChart.options.responsive = true;
+        timelineChart.update('none'); // Update without animation
     }
+    
     if (lineAreaChart instanceof Chart) {
-        lineAreaChart.resize();
+        lineAreaChart.options.maintainAspectRatio = false;
+        lineAreaChart.options.responsive = true;
+        lineAreaChart.update('none'); // Update without animation
     }
+    
+    // Force chart resize with manual sizing active
+    setTimeout(() => {
+        if (timelineChart instanceof Chart) {
+            timelineChart.resize();
+        }
+        if (lineAreaChart instanceof Chart) {
+            lineAreaChart.resize();
+        }
+    }, 100);
+}
+
+function resetChartSize() {
+    const widthSlider = document.getElementById('widthSlider');
+    const heightSlider = document.getElementById('heightSlider');
+    const widthValue = document.getElementById('widthValue');
+    const heightValue = document.getElementById('heightValue');
+    
+    if (!widthSlider || !heightSlider || !widthValue || !heightValue) {
+        return; // Elements not found, exit gracefully
+    }
+    
+    // Reset sliders to default values
+    widthSlider.value = 800;
+    heightSlider.value = 400;
+    
+    // Clear manual sizing flag to restore responsive behavior
+    manualSizingActive = false;
+    
+    // Reset chart containers to auto sizing
+    const timelineContainer = document.getElementById('div1');
+    const lineAreaContainer = document.getElementById('div2');
+    
+    if (timelineContainer) {
+        timelineContainer.style.width = '';
+        timelineContainer.style.height = '';
+    }
+    
+    if (lineAreaContainer) {
+        lineAreaContainer.style.width = '';
+        lineAreaContainer.style.height = '';
+    }
+    
+    // Reset canvases to auto sizing
+    const timelineCanvas = document.getElementById('timelineChart');
+    const lineAreaCanvas = document.getElementById('lineAreaChart');
+    
+    if (timelineCanvas) {
+        timelineCanvas.style.width = '';
+        timelineCanvas.style.height = '';
+        timelineCanvas.removeAttribute('width');
+        timelineCanvas.removeAttribute('height');
+    }
+    
+    if (lineAreaCanvas) {
+        lineAreaCanvas.style.width = '';
+        lineAreaCanvas.style.height = '';
+        lineAreaCanvas.removeAttribute('width');
+        lineAreaCanvas.removeAttribute('height');
+    }
+    
+    // Update display values
+    widthValue.textContent = '800px';
+    heightValue.textContent = '400px';
+    
+    // Restore chart options to default responsive behavior
+    if (timelineChart instanceof Chart) {
+        timelineChart.options.maintainAspectRatio = true;
+        timelineChart.options.responsive = true;
+        timelineChart.update('none'); // Update without animation
+    }
+    
+    if (lineAreaChart instanceof Chart) {
+        lineAreaChart.options.maintainAspectRatio = true;
+        lineAreaChart.options.responsive = true;
+        lineAreaChart.update('none'); // Update without animation
+    }
+    
+    // Trigger chart resize with responsive behavior restored
+    setTimeout(() => {
+        handleChartResize();
+    }, 100);
 }
 
 function refreshTimeline() {
@@ -974,18 +1196,90 @@ function parseCSV(csvText) {
     });
     return rows;
 }
+
+// Function to update the "All" radio button label with country count
+function updateAllCountryLabel(count) {
+    try {
+        // Find the "All" radio button's parent label
+        const allRadio = document.querySelector('input[name="whichLines"][value="showAll"]');
+        if (allRadio && allRadio.parentElement) {
+            // Update the label text to show count in parentheses
+            const labelText = allRadio.parentElement.childNodes;
+            // Find the text node and update it
+            for (let i = 0; i < labelText.length; i++) {
+                if (labelText[i].nodeType === Node.TEXT_NODE && labelText[i].textContent.includes('All')) {
+                    labelText[i].textContent = `All (${count}) `;
+                    console.log(`Updated "All" label to "All (${count})"`);
+                    break;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Could not update All label:', error);
+    }
+}
+
+// Function to reset the "All" radio button label (remove count)
+function resetAllCountryLabel() {
+    try {
+        // Find the "All" radio button's parent label
+        const allRadio = document.querySelector('input[name="whichLines"][value="showAll"]');
+        if (allRadio && allRadio.parentElement) {
+            // Reset the label text to just "All"
+            const labelText = allRadio.parentElement.childNodes;
+            // Find the text node and reset it
+            for (let i = 0; i < labelText.length; i++) {
+                if (labelText[i].nodeType === Node.TEXT_NODE && (labelText[i].textContent.includes('All'))) {
+                    labelText[i].textContent = 'All ';
+                    console.log('Reset "All" label to just "All"');
+                    break;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Could not reset All label:', error);
+    }
+}
+
 function toggleDivs() {
     // Get selected value from radio buttons
     const selectedValue = document.querySelector('input[name="toogleChartType"]:checked').value;
+    
+    const div1 = document.getElementById('div1');
+    const div2 = document.getElementById('div2');
+    
     if (selectedValue == "both") {
-        document.getElementById('div1').style.display = 'block';
-        document.getElementById('div2').style.display = 'block';
+        // Show both charts
+        div1.style.display = 'block';
+        div1.style.height = '';
+        div1.style.margin = '';
+        div1.style.padding = '';
+        
+        div2.style.display = 'block';
+        div2.style.height = '';
+        div2.style.margin = '';
+        div2.style.padding = '';
         return;
     }
-    // Hide both divs initially
-    document.getElementById('div1').style.display = 'none';
-    document.getElementById('div2').style.display = 'none';
+    
+    // Hide both divs initially and remove all spacing
+    div1.style.display = 'none';
+    div1.style.height = '0';
+    div1.style.margin = '0';
+    div1.style.padding = '0';
+    div1.style.overflow = 'hidden';
+    
+    div2.style.display = 'none';
+    div2.style.height = '0';
+    div2.style.margin = '0';
+    div2.style.padding = '0';
+    div2.style.overflow = 'hidden';
 
-    // Show the selected div
-    document.getElementById(selectedValue).style.display = 'block';
+    // Show the selected div and restore its spacing
+    const selectedDiv = document.getElementById(selectedValue);
+    selectedDiv.style.display = 'block';
+    selectedDiv.style.height = '';
+    selectedDiv.style.margin = '';
+    selectedDiv.style.padding = '';
+    selectedDiv.style.overflow = '';
 }

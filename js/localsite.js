@@ -11,6 +11,10 @@ Localsite Path Library - A global namespace singleton
 Define a new object if localsite library does not exist yet.
 */
 
+//if (window.localsiteLoaded) { // Would need to make sure access to variables is not restricted.
+window.localsiteLoaded = true; // Used by embed.js to avoid double loading localsite.js
+
+let localsiteTitle = "Localsite";
 var localStart = Date.now(); // A var so waitForVariableNav detects in navigation.js.
 
 if(typeof onlineApp == 'undefined') {
@@ -19,129 +23,220 @@ if(typeof onlineApp == 'undefined') {
 } else {
   consoleLog("ALERT: Page loads localsite.js more than once.")
 }
-let localsiteTitle = "Localsite";
+
 let defaultState = "";
 if (location.host.indexOf('localhost') >= 0) {
   defaultState = "";  // Set to GA to include additional map layers in top nav.
 }
 consoleLog("start localsite");
-var local_app = local_app || (function(module) {
+
+// Common function to find script with delay handling for DOM recognition
+// NOTE: This Promise will NOT wait forever - it has a built-in 1-second timeout.
+// If script is not found immediately, it waits 1000ms then resolves with either 
+// the found script or null (never rejects, preventing infinite waiting).
+function findScript(scriptName = 'localsite.js') {
+    return new Promise((resolve, reject) => {
+        let scripts = document.getElementsByTagName('script'); 
+        let myScript;
+        
+        // Try to find the specified script
+        for (var i = 0; i < scripts.length; ++i) {
+            if(scripts[i].src && scripts[i].src.indexOf(scriptName) !== -1){
+                myScript = scripts[i];
+                break;
+            }
+        }
+        
+        if (!myScript) {
+            console.log(`%cALERT: ${scriptName} was not yet recognized in the DOM. Waiting for second attempt...`, 'color: red; background: yellow; font-size: 14px');
+            
+            // Handle delay if script is not found by adding retry with timeout
+            // This ensures the Promise resolves within 1 second, never hanging indefinitely
+            setTimeout(function() {
+                let scripts = document.getElementsByTagName('script'); 
+                for (var i = 0; i < scripts.length; ++i) {
+                    if(scripts[i].src && scripts[i].src.indexOf(scriptName) !== -1){
+                        myScript = scripts[i];
+                        break;
+                    }
+                }
+                
+                if (myScript) {
+                    console.log(`%cGot ${scriptName} from DOM after delay!`, 'color: green; background: yellow; font-size: 14px');
+                    resolve(myScript);
+                } else {
+                    console.log(`%c${scriptName} still not found after delay. Using fallback.`, 'color: orange; background: yellow; font-size: 14px');
+                    resolve(null); // Always resolves (never hangs), even when script not found
+                }
+            }, 1000);
+        } else {
+            resolve(myScript);
+        }
+    });
+}
+
+// Ensure local_app exists and extend it with all required methods
+var local_app = local_app || {};
+
+// Add localsite methods to local_app (extending existing object if it already has web_root)
+(function(module) {
     let _args = {}; // private, also worked as []
     let localsite_repo;
-    return {
-        init : function(Args) {
-            _args = Args;
-            // some other initialising
-        },
-        helloWorld : function() {
-            //alert('Hello World! -' + _args[0]);
-            //alert('Hello World! -' + _args.test1);
-            alert(Object.keys(_args)[0]);
-        },
-        localsite_root : function() {
-            if (localsite_repo) { // Intensive, so allows to only run once
+    let modelearth_repo;
+    
+    // Extend local_app with localsite methods
+    local_app.init = local_app.init || function(Args) {
+        _args = Args;
+        // some other initialising
+    };
+    
+    local_app.helloWorld = local_app.helloWorld || function() {
+        //alert('Hello World! -' + _args[0]);
+        //alert('Hello World! -' + _args.test1);
+        alert(Object.keys(_args)[0]);
+    };
+    
+    local_app.localsite_root = local_app.localsite_root || function() {
+            if (localsite_repo) { // Use cached value if available
               return(localsite_repo);
             }
             //alert("get localsite_repo");
 
-            let scripts = document.getElementsByTagName('script'); 
-            let myScript; // = scripts[ scripts.length - 1 ]; // Last script on page, typically the current script localsite.js
-            // Now try to find localsite.js
-            //alert(myScript.length)
-            for (var i = 0; i < scripts.length; ++i) {
-                if(scripts[i].src && scripts[i].src.indexOf('localsite.js') !== -1){
-                  myScript = scripts[i];
-                }
-            }
-            if (!myScript) { // Now try to find one containging map-embed.js
-              for (var i = 0; i < scripts.length; ++i) {
-                if(scripts[i].src && scripts[i].src.indexOf('map-embed.js') !== -1){
-                  myScript = scripts[i];
-                }
-              }
-            }
-            if (!myScript) {
-              console.log('%cALERT: the current script localsite.js was not yet recognized in the DOM. Hit refresh.', 'color: red; background: yellow; font-size: 14px');
-              
-              // If this setTimeout works, we'll add it before extractHostnameAndPort is called.
-              setTimeout( function() {
-                for (var i = 0; i < scripts.length; ++i) {
-                    if(scripts[i].src && scripts[i].src.indexOf('localsite.js') !== -1){
-                      myScript = scripts[i];
-                    }
-                    console.log('%cGot script from DOM after delay! We need to modify code here to add additional attempts. ', 'color: green; background: yellow; font-size: 14px');
-              
-                }
-              }, 1000 );
-
-            }
-
-            let hostnameAndPort = extractHostnameAndPort(myScript.src);
-            console.log("location.host " + location.host);
-            let theroot = location.protocol + '//' + location.host + '/localsite/';
-
-            if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map, and ga-layers.json
-              // Might need (hopefully not) for https://www.georgia.org/center-of-innovation/energy/smart-mobility - needed occasionally for js/jquery.min.js below, not needed when hitting reload.
-              //theroot = "https://map.georgia.org/localsite/";
-              
-              // This could be breaking top links to Location and Good & Services.
-              // But reactivating after smart-mobility page tried to get js/jquery.min.js from geogia.org
-              // Re-omitting because js/jquery.min.js still used geogia.org on first load, once. (not 100% sure if old page was cached)
-              //theroot = hostnameAndPort + "/localsite/";
+            // Get web_root and append "/localsite/" - no DOM checking needed here
+            let web_root = this.web_root();
+            let theroot = web_root + "/localsite/";
+            
+            // Handle special case for Georgia domain
+            if (location.host.indexOf("georgia") >= 0) { 
+              // For feedback link within embedded map, and ga-layers.json
+              // Keep the theroot as determined by web_root + "/localsite/"
+              // This maintains compatibility with embedded maps
             }
             
-            if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
-              console.log("hostnameAndPort " + hostnameAndPort);
-              theroot = hostnameAndPort + "/localsite/";
-              //consoleLog("myScript.src hostname and port: " + extractHostnameAndPort(myScript.src));
-              //consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
-            }
-            if (location.host.indexOf('localhost') >= 0) {
-              // For testing embedding without locathost repo in site theroot. Rename your localsite folder.
-              // Why don't we reach ".showApps click" when activatied?:
-              //theroot = "https://model.earth/localsite/";
-            }
-            localsite_repo = theroot; // Save to reduce DOM hits
+            localsite_repo = theroot; // Cache to reduce repeated calls
             return (theroot);
-        },
-        community_data_root : function() { // General US states and eventually some international
+    };
+    
+    local_app.community_data_root = local_app.community_data_root || function() { // General US states and eventually some international
             let theroot = "https://model.earth/community-data/";
             if (location.host.indexOf('localhost') >= 0 && !onlineApp) {
               theroot = location.protocol + '//' + location.host + '/community-data/';
             }
             return (theroot);
-        },
-        modelearth_root : function() { // General US states and eventually some international
-            let theroot = "https://model.earth";
-            // TO DO: Check if localsite.js include div contains "https://model.earth" (non-relative)
+    };
+    
+    local_app.web_root = local_app.web_root || function() { // General US states and eventually some international
+            // Check if web_root was already populated by widget-embed.js or other scripts
+            // Avoid infinite recursion by checking if window.local_app is a different object
+            if (window.local_app && window.local_app !== local_app && 
+                typeof window.local_app.web_root === 'function') {
+                // Use the existing function from widget-embed.js or other source
+                let existingResult = window.local_app.web_root();
+                if (existingResult) {
+                    modelearth_repo = existingResult; // Cache the result
+                    return existingResult;
+                }
+            }
             
+            if (modelearth_repo) { // Use cached value if available
+                return modelearth_repo;
+            }
+            
+            let theroot = "https://model.earth";
+
+            // Try to find script synchronously first, prioritizing localsite.js
+            let scripts = document.getElementsByTagName('script'); 
+            let myScript;
+            
+            // Use path to localsite.js as location for supporting files - for embedding
+            for (var i = 0; i < scripts.length; ++i) {
+                if(scripts[i].src && scripts[i].src.indexOf('localsite.js') !== -1){
+                    myScript = scripts[i];
+                    break;
+                }
+            }
+            
+            // If localsite.js not found, try map-embed.js as fallback
+            /*
+            if (!myScript) {
+                for (var i = 0; i < scripts.length; ++i) {
+                    if(scripts[i].src && scripts[i].src.indexOf('map-embed.js') !== -1){
+                        myScript = scripts[i];
+                        break;
+                    }
+                }
+            }
+            */
+
+            if (!myScript) {
+                // If not found, try async approach (for future calls)
+                findScript('localsite.js').then(script => {
+                    if (script) {
+                        let hostnameAndPort = extractHostnameAndPort(script.src);
+                        let result = theroot;
+                        if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
+                            result = hostnameAndPort;
+                        } else if ((location.host.indexOf('localhost') >= 0 && location.port == "8887") || location.host.indexOf('127.0.0.1') >= 0) {
+                            result = location.protocol + '//' + location.host;
+                        }
+                        modelearth_repo = result; // Cache for future calls
+                    } else {
+                        /*
+                        // Try map-embed.js as fallback if localsite.js fails
+                        findScript('map-embed.js').then(fallbackScript => {
+                            if (fallbackScript) {
+                                let hostnameAndPort = extractHostnameAndPort(fallbackScript.src);
+                                let result = theroot;
+                                if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
+                                    result = hostnameAndPort;
+                                } else if ((location.host.indexOf('localhost') >= 0 && location.port == "8887") || location.host.indexOf('127.0.0.1') >= 0) {
+                                    result = location.protocol + '//' + location.host;
+                                }
+                                modelearth_repo = result; // Cache for future calls
+                            }
+                        });
+                        */
+                    }
+                });
+                // Return default for immediate use
+                alert(theroot)
+                return theroot;
+            }
+            
+            let hostnameAndPort = extractHostnameAndPort(myScript.src);
+            if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
+              // External webroot
+              modelearth_repo = hostnameAndPort; // Cache result
+              return (hostnameAndPort);
+            }
             // Currently assuming all other ports don't have localsite folder.
             if ((location.host.indexOf('localhost') >= 0 && location.port == "8887") || location.host.indexOf('127.0.0.1') >= 0) {
               theroot = location.protocol + '//' + location.host;
             }
+            modelearth_repo = theroot; // Cache result
             return (theroot);
-        },
-        topojson_root : function() { // General US states and eventually some international
+    };
+    
+    local_app.topojson_root = local_app.topojson_root || function() { // General US states and eventually some international
             // These repos will typically reside on github, so no localhost.
             let theroot = "https://model.earth";
+            //alert("hack")
+            //theroot = "http://localhost:8887";
             if (!onlineApp) {
               theroot = "";
             }
             return (theroot);
-        },
-        custom_data_root : function() { // Unique US states - will use javascript, domain, cookies and json.
+    };
+    
+    local_app.custom_data_root = local_app.custom_data_root || function() { // Unique US states - will use javascript, domain, cookies and json.
             let theroot = location.protocol + '//' + location.host + '/georgia-data/';
             if (location.host.indexOf('localhost') < 0) {
               theroot = "https://neighborhood.org/georgia-data/";
             }
             return (theroot);
-        }
     };
-
-    // EXPORTS
-    //module.init = init;
-    //module.setData = setData;
-}());
+    
+})(); // End of extending local_app
 
 //local_app.loctitle = "what"
 //alert(local_app.loctitle);
@@ -163,7 +258,7 @@ if(typeof hiddenhash == 'undefined') {
   var hiddenhash = {};
 }
 if (hiddenhash.geoview) {
-    alert("BUG L1 hiddenhash.geoview " + hiddenhash.geoview);
+    console.log("BUG L1 hiddenhash.geoview " + hiddenhash.geoview);
 }
 // param values from page are placed in hiddenhash. (UNLESS THEY ARE ALREADY IN THE HASH.)
 // hiddenhash is loaded into hash in gethash if hash does not have an existing value.
@@ -181,9 +276,17 @@ if(typeof param != 'undefined') { // From settings in HTML page
 
 } else { // No param object in page, but could be set in localsite.js include.
   hiddenhash = mix(hiddenhash,paramIncludeFile);
+  var param = {};
+
   // Now we add in the hash, after hiddenhash is set without hash
-  var param = structuredClone(extend(true, loadParams(location.search,location.hash), paramIncludeFile)); // Subsequent overrides first giving priority to setting in page over URL. Clone/copy object without entanglement. 
+  // TO DO - comment this line out since window.param seems to also sets param.  (Observed that in embed.js or map.js)
+  param = structuredClone(extend(true, loadParams(location.search,location.hash), paramIncludeFile)); // Subsequent overrides first giving priority to setting in page over URL. Clone/copy object without entanglement. 
   //param = loadParams(location.search,location.hash); // Includes localsite.js include.
+
+  // Allows embed.js to access. 
+  window.param = structuredClone(extend(true, loadParams(location.search,location.hash), paramIncludeFile)); // Subsequent overrides first giving priority to setting in page over URL. Clone/copy object without entanglement. 
+  
+  //alert("param set in localsite. param.map " + param.map);
 }
 
 if (param.state) {
@@ -359,11 +462,14 @@ function getHashOnly() {
 
 function updateHash(addToHash, addToExisting, removeFromHash) {
     //alert("updateHash object: " + JSON.stringify(addToHash))
+    //let debugMsg = "updateHash called with: " + JSON.stringify(addToHash) + " addToExisting: " + addToExisting + " isPopstateNavigation: " + (typeof isPopstateNavigation !== 'undefined' ? isPopstateNavigation : "undefined");
+    //alert(debugMsg);
+    console.log("updateHash called with:", JSON.stringify(addToHash), "addToExisting:", addToExisting);
     let hash = {}; // Limited to this function
     if (addToExisting != false) {
       hash = getHashOnly(); // Include all existing. Excludes hiddenhash.
     }
-    console.log(addToHash)
+    console.log("updateHash addToHash:", addToHash)
     const newObj = {}; // For removal of blank keys in addToHash
     Object.entries(addToHash).forEach(([k, v]) => {
       if (v != null) {
@@ -388,10 +494,12 @@ function updateHash(addToHash, addToExisting, removeFromHash) {
         if (value && typeof value === 'object' && !Array.isArray(value)) {
             // Flatten nested object properties
             Object.entries(value).forEach(([subKey, subValue]) => {
-                flatHash[`${key}.${subKey}`] = subValue;
+                // Encode & characters in values to prevent hash parsing issues
+                flatHash[`${key}.${subKey}`] = String(subValue).replace(/&/g, '%26');
             });
         } else {
-            flatHash[key] = value;
+            // Encode & characters in values to prevent hash parsing issues
+            flatHash[key] = String(value).replace(/&/g, '%26');
         }
     });
     
@@ -401,14 +509,33 @@ function updateHash(addToHash, addToExisting, removeFromHash) {
     if (window.location.search) { // Existing, for parameters that are retained as hash changes.
       queryString += window.location.search; // Contains question mark (?)
     }
-    if (hashString) { // Remove the hash here if adding to other 
+    if (hashString) { // Remove the hash here if adding to other
       queryString += "#" + hashString;
     }
     let searchTitle = 'Page ' + hashString;
-    //alert(queryString)
-    window.history.pushState("", searchTitle, pathname + queryString);
+    let newURL = pathname + queryString;
+    let currentURL = window.location.pathname + window.location.search + window.location.hash;
+    console.log("pushState - Old URL:", currentURL, "New URL:", newURL);
+
+    // Only push to history if the URL is actually changing
+    if (currentURL !== newURL) {
+      // Use replaceState during back/forward navigation to avoid creating new history entries
+      if (typeof isPopstateNavigation !== 'undefined' && isPopstateNavigation) {
+        // alert("Using REPLACESTATE\nOld: " + currentURL + "\nNew: " + newURL); // Temp for testing
+        window.history.replaceState("", searchTitle, newURL);
+        console.log("replaceState executed - history entry updated (popstate navigation)");
+      } else {
+        //alert("Using PUSHSTATE\nOld: " + currentURL + "\nNew: " + newURL); // Temp for testing
+        window.history.pushState("", searchTitle, newURL);
+        console.log("pushState executed - new history entry created");
+      }
+    } else {
+      console.log("SKIPPING history update - URL unchanged\nURL: " + currentURL); // Temp for testing
+      console.log("pushState/replaceState skipped - URL unchanged");
+    }
 }
 function goHash(addToHash,removeFromHash) {
+  //alert("goHash called with: " + JSON.stringify(addToHash) + "\nremoveFromHash: " + removeFromHash);
   consoleLog("goHash\n" + JSON.stringify(addToHash, null, 2));
   // Get and normalize the current hash
   const currentHash = normalizeHash(window.location.hash);
@@ -417,7 +544,10 @@ function goHash(addToHash,removeFromHash) {
   const newHash = normalizeHash(window.location.hash);
   // Only trigger the event if the normalized hash actually changed
   if (currentHash !== newHash) {
+    consoleLog("goHash triggering hashChangeEvent\nOld hash: " + currentHash + "\nNew hash: " + newHash);
     triggerHashChangeEvent();
+  } else {
+    consoleLog("goHash NOT triggering hashChangeEvent - hash unchanged");
   }
 }
 function go(addToHash) {
@@ -458,6 +588,7 @@ if(typeof priorHash == 'undefined') {
 }
 //let nextPriorHash = {};
 let nextPriorHash = structuredClone(param); // Param values set in pages and the include URL are passed forward as a hiddenhash.
+var isPopstateNavigation = false; // Flag to track if we're in a back/forward navigation. Temp for testing
 // Triggers custom hashChangeEvent in multiple widgets.
 // Exception, React widgets use a different process.
 var triggerHashChangeEvent = function () {
@@ -500,7 +631,7 @@ function loadScript(url, callback)
 
       script.onload = function() {
         consoleLog("loadScript loaded: " + url); // Once the entire file is processed.
-        callback();
+        if(callback) callback();
       }
   } else {
     consoleLog("loadScript script already available: " + url + " via ID: " + urlID);
@@ -604,7 +735,13 @@ function toggleFullScreen(alsoToggleHeader) {
   }
 }
 
+// Determined by where localsite.js if fetched from.
+
 var theroot = get_localsite_root(); // Try using let instead of var to find other declarations.
+
+// TO DO - eliminate theroot and use local_app.localsite_root instead.
+// TO DO - Then eliminate the following get_localsite_root
+
 function get_localsite_root() { // Also in two other places
   if (localsite_repo3) { // Intensive, so limit to running once.
     //alert(localsite_repo);
@@ -612,25 +749,28 @@ function get_localsite_root() { // Also in two other places
   }
 
   let scripts = document.getElementsByTagName('script'); 
-  let myScript = scripts[ scripts.length - 1 ]; // Last script on page, typically the current script localsite.js
-  //let myScript = null;
-  // Now try to find one containging map-embed.js
-  for (var i = 0; i < scripts.length; ++i) {
-      if(scripts[i].src && scripts[i].src.indexOf('map-embed.js') !== -1){
+
+  // let myScript = scripts[ scripts.length - 1 ]; // Last script on page, typically the current script localsite.js - Doesn't work for embedded widgets - returns cloudflare
+
+  let hostnameAndPort = window.location.protocol + '//' + window.location.host; // The base, which includes the port.
+  let myScript;
+  for (var i = 0; i < scripts.length; ++i) { // Using current script
+      if(scripts[i].src && scripts[i].src.indexOf('localsite.js') !== -1){
         myScript = scripts[i];
       }
   }
-  let hostnameAndPort = extractHostnameAndPort(myScript.src);
-  //consoleLog("hostnameAndPort: " + hostnameAndPort);
+  if (myScript) {
+      hostnameAndPort = extractHostnameAndPort(myScript.src);
+      consoleLog("hostnameAndPort from " + myScript.src + " is " + hostnameAndPort);
+  }
   let theroot = location.protocol + '//' + location.host + '/localsite/';
 
   if (location.host.indexOf("georgia") >= 0) { // For feedback link within embedded map
-    //theroot = "https://map.georgia.org/localsite/";
     theroot = hostnameAndPort + "/localsite/";
   }
   if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
     theroot = hostnameAndPort + "/localsite/";
-    //console.log("theroot: " + theroot);
+    console.log("theroot from remotely called localsite: " + theroot);
     //consoleLog("window.location hostname and port: " + window.location.hostname + ((window.location.port) ? ':'+window.location.port :''));
   }
   if (location.host.indexOf('localhost') >= 0) {
@@ -735,7 +875,9 @@ function loadLocalTemplate() {
       consoleLog("Template Loaded: " + datascapeFile);
       initSitelook();
       if (typeof relocatedStateMenu != "undefined") {
-        relocatedStateMenu.appendChild(state_select); // For apps hero
+        // DEACTIVATED, OCCURRED ON LOAD OF /localsite/info/
+        // Move elsewhere if still needed.
+        //relocatedStateMenu.appendChild(state_select); // For apps hero
         $(".stateFilters").hide();
       }
       if (typeof relocatedScopeMenu != "undefined") {
@@ -743,7 +885,8 @@ function loadLocalTemplate() {
       }
       waitForElm('#filterClickLocation').then((elm) => {
         if (param.showstates != "false") {
-            $("#filterClickLocation").show();
+            $("#filterClickState").show();  // Show state name tab
+            $("#filterClickLocation").show(); // Show counties tab
         }
         $("#mapFilters").prependTo("#main-content");
         // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
@@ -771,7 +914,7 @@ function loadLocalTemplate() {
             });
           });
         }
-        if(location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0) {
+        if(location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0 || location.host.indexOf("8888") >= 0) {
           $("#dreamstudio-nav a").each(function() {
             $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
           });
@@ -865,7 +1008,7 @@ function loadLeafletAndMapFilters() {
   }
 }
 if (typeof Cookies != 'undefined') {
-  alert(Cookies.get('sitelook'));
+  //alert('sitelook' + Cookies.get('sitelook'));
 };
 // WAIT FOR JQuery
 loadScript(theroot + 'js/jquery.min.js', function(results) {
@@ -900,8 +1043,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           sitelook = param.sitelook;
         }
         if (sitelook == "light") {
-          removeElement('/localsite/css/bootstrap.darkly.min.css');
-          removeElement('/explore/css/site-dark.css');
+          removeElement(theroot + 'css/bootstrap.darkly.min.css');
+          removeElement(theroot + '../explore/css/site-dark.css');
           //includeCSS3(theroot + 'css/light.css',theroot);
           if (typeof Cookies != 'undefined') {
               waitForElm('#sitelook').then((elm) => {
@@ -985,11 +1128,12 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
             
             // Show/hide gravatar image based on checkbox and valid email
             if (gravatarChecked && isValidEmail(email)) {
-              loadScript('http://pajhome.org.uk/crypt/md5/md5.js', function(results) {
+                // https://pajhome.org.uk/crypt/md5/md5.js
+              loadScript('/localsite/js/md5.js', function(results) { // For gravatar image display
                 let userImg = $.gravatar(email);
                 if (userImg) {
                   localStorage.userImg = userImg;
-                  $("#gravatarImg").html("<img src='" + localStorage.userImg + "' style='width:100%;max-width:220px;border-radius:30px;'><br><br>");
+                  $("#gravatarImg").html("<img src='" + localStorage.userImg + "' style='width:100%;max-width:100px;border-radius:50px;'><br><br>");
                 }
               });
             } else {
@@ -1006,14 +1150,16 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
                 $(".uIn").hide();
                 if (isValid(email)) {
                   Cookies.set('golog', window.location.href);
-                  alert("valid email")
-                  window.location = "/explore/menu/login/azure/";
+                  if (location.host.indexOf('localhost') >= 0) {
+                    alert("Redirect to explore - invalid email")
+                  }
+                  window.location = "/explore";
                   return;
                 }
 
                 if ($("#getGravatar").is(":checked")) {
                   // BUGBUG - Redirect above will bypass.
-                  loadScript('http://pajhome.org.uk/crypt/md5/md5.js', function(results) {
+                  loadScript('/localsite/js/md5.js', function(results) {
                     let userImg = $.gravatar(email);
                     if (userImg) {
                       localStorage.userImg = userImg;
@@ -1023,7 +1169,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
                   });
                 }
               } else {
-                alert("email required"); // TO DO: Display in browser
+                //alert("email required"); // TO DO: Display in browser
                 $("#input123").focus();
               }
           }
@@ -1104,7 +1250,8 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         
       });
 
-      $(window).on('hashchange', function() { // Avoid window.onhashchange since overridden by map and widget embeds  
+      $(window).on('hashchange', function() { // Avoid window.onhashchange since overridden by map and widget embeds
+        //alert("HASHCHANGE event fired!\nNew URL: " + window.location.href);
         consoleLog("window hashchange");
         consoleLog("delete hiddenhash.name");
         delete hiddenhash.name; // Not sure where this is set.
@@ -1112,6 +1259,25 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         //delete hiddenhash.geo; // Not sure where this is set.
 
         triggerHashChangeEvent();
+      });
+
+      // Handle browser back/forward button navigation
+      window.addEventListener('popstate', function(event) {
+        console.log("popstate event, back/forward button navigation - URL:", window.location.href);
+        isPopstateNavigation = true;
+        // The hashchange event should handle the actual hash change,
+        // but we trigger it explicitly to ensure it fires
+        triggerHashChangeEvent();
+
+        // Temp for testing
+        // Reset flag after a short delay to allow hash change handlers to complete
+        /*
+        setTimeout(function() {
+          isPopstateNavigation = false;
+          console.log("isPopstateNavigation reset to false");
+        }, 100);
+        */
+
       });
       //MutationObserver.observe(hiddenhash, triggerHashChangeEvent);
 
@@ -1274,6 +1440,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   }
 
   function loadMapAndMapFilters() {
+    return; //TEMP
     console.log("loadScript called from localsite.js");
     loadSearchFilterCss(); 
     loadScript(theroot + 'js/navigation.js', function(results) {
@@ -1847,14 +2014,8 @@ function loadTabulator() {
   if (typeof Tabulator === 'undefined') {
     includeCSS3(theroot + 'css/tabulator.min.css',theroot);
     includeCSS3(theroot + 'css/base-tabulator.css',theroot);
-    
-    // BUGBUG - Tabulator v6.2.0 error at http://localhost:8887/localsite/info/#geoview=country
-    // Uncaught RangeError: Maximum call stack size exceeded
-    //loadScript(theroot + 'js/tabulator.min.js', function(results) {});
-
-    // HACK - using 5.5.2 until above resolved
-    //alert("tabulator552")
-    loadScript(theroot + 'js/tabulator552.min.js', function(results) {});
+    // Be aware that including observablehq/runtime@4/dist/runtime.js in page breaks nav location filter's topojson and tabulator
+    loadScript(theroot + 'js/tabulator.min.js', function(results) {});
   }
 }
 
@@ -2010,7 +2171,7 @@ function showSearchFilter() {
         
       if (document.getElementById("filterFieldContent") == null) { 
         //alert("load filter.html")
-        let filterFile = local_app.modelearth_root() + "/localsite/map/filter.html";
+        let filterFile = local_app.web_root() + "/localsite/map/filter.html";
         $("#filterFieldsHolder").load(filterFile, function( response, status, xhr ) {
 
         }); // End $("#filters").load
@@ -2638,9 +2799,13 @@ function useSet() {
         if (uAcc < 5) {
           Cookies.set('golog', window.location.href);
           if (param.minred) {
-            window.location = param.minred;
+            //window.location = param.minred;
+            window.location.replace(param.minred); // So backing up skips the redirecting page.
           } else {
-            window.location = "/explore/menu/login/azure";
+            if (location.host.indexOf('localhost') >= 0) {
+                alert("Redirect to explore 4")
+            }
+            window.location = "/explore";
           }
           return;
         }
@@ -2944,7 +3109,7 @@ function setSitelook(siteLook) {
         //toggleVideo("show","nochange");
         document.body.classList.add("dark");
         //removeElement('/localsite/css/light.css');
-        includeCSS3('/localsite/css/bootstrap.darkly.min.css');
+        includeCSS3(theroot + 'css/bootstrap.darkly.min.css');
   
         // Move search text elements
         const searchTextHolder = document.querySelector('.searchTextHolder');
@@ -2954,10 +3119,10 @@ function setSitelook(siteLook) {
         }
     } else if (siteLook == "default") {
         document.body.classList.remove("dark");
-        removeElement('/localsite/css/bootstrap.darkly.min.css');
+        removeElement(theroot + 'css/bootstrap.darkly.min.css');
     } else { // Light
         document.body.classList.remove("dark");
-        removeElement('/localsite/css/bootstrap.darkly.min.css');
+        removeElement(theroot + 'css/bootstrap.darkly.min.css');
         //const sitebasemapElements = document.querySelectorAll('.sitebasemap');
         //sitebasemapElements.forEach(element => {
         //    element.value = "positron_light_nolabels";
@@ -2967,9 +3132,11 @@ function setSitelook(siteLook) {
 }
 function setDevmode(devmode) {
   if (devmode == "dev") {
-    includeCSS3(local_app.localsite_root() + 'css/dev.css');
+    //includeCSS3(local_app.localsite_root() + 'css/dev.css');
+    includeCSS3(theroot + 'css/dev.css');
   } else {
-    removeElement('/localsite/css/dev.css');
+    //removeElement('/localsite/css/dev.css');
+    removeElement(theroot + 'css/dev.css');
   }
 }
 function setOnlinemode(onlinemode) {
@@ -3100,7 +3267,7 @@ function formatRow(key,value,level,item) {
       //if(value && value.length > 0) { // Hides blank for nutrition
       if(value) { // Hides blank for nutrition
         // level" + level + " 
-        addHtml += "<div class='keyonly titlecell celltop'><b>" + key + "</b></div>";
+        addHtml += "<div class='keyonly barTitle titlecell celltop'><b>" + key + "</b></div>";
       }
     }
   } else {
@@ -3148,7 +3315,7 @@ function formatRow(key,value,level,item) {
       }
       if (barTitle) {
         addHtml += "<div class='floating-object celltop rowlevel" + level + " objectcell objectcell-lines' style='" + insertStyle + "'>"; // Around rows
-        addHtml += "<div keyname='" + keyName + "' class='barTitle child-count-" + Object.keys(value).length + "'>" + barTitle + "</div>\n";
+        addHtml += "<div keyname='" + keyName + "' class='child-count-" + Object.keys(value).length + "'>" + barTitle + "</div>\n";
       } else {
         addHtml += "<!--Child count " + Object.keys(value).length + "-->";
         addHtml += "<div class='floating-object celltop rowlevel" + level + " objectcell' style='" + insertStyle + "'>"; // Around rows
@@ -3354,22 +3521,41 @@ function isValidJSON(str) {
     }
 }
 
-
 function formatCell(input, format) {
-    //alert("format: " + format)
-    // Debug: log the input value
-    if (Math.abs(input) < 1e-10 && input !== 0) {
-        console.log('formatCell received very small value:', input, 'type:', typeof input);
+    // If format is none or blank, return input as it is.
+    if (format === 'none' || format === '' || input === '') {
+        return input;
     }
     
-    // If format is none or blank, return input as it is.
-    if (format === 'none' || format === '') {
-        return input;
+    // Store original input for fallback
+    const originalInput = input;
+    
+    // Convert input to a number to prevent toFixed errors
+    input = parseFloat(input);
+    
+    // If input is not a valid number, return original input
+    if (isNaN(input)) {
+        return originalInput;
+    }
+    
+    if (Math.abs(input) < 1e-10 && input !== 0) {
+        //console.log('formatCell received very small value:', input, 'type:', typeof input);
     }
 
     // Format as scientific notation
     if (format === 'scientific') {
-        return input.toExponential(1);
+        let scientificValue = input.toExponential(1);
+        let parts = scientificValue.split('e');
+        let base = parts[0];
+        let exponent = parseInt(parts[1]);
+        
+        // Don't show power notation for exponent of 0
+        if (exponent === 0) {
+            return base;
+        }
+        
+        // Format with HTML superscript
+        return `${base}&times;10<sup>${exponent}</sup>`;
     }
 
     // Format as full number with all decimal places
@@ -3648,7 +3834,8 @@ function adjustAnythingLLMNavigation() {
 }
 
 // Initialize AnythingLLM navigation adjustments when DOM is ready
-document.addEventListener('DOMContentLoaded', adjustAnythingLLMNavigation);
+// Saving incase anyone wants to include AnythingLLM in webroot
+//document.addEventListener('DOMContentLoaded', adjustAnythingLLMNavigation);
 
 // Auth Modal Integration - lazy load and show modal
 function showAuthModal() {
