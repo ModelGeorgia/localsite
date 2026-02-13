@@ -76,14 +76,15 @@ function findScript(scriptName = 'localsite.js') {
 }
 
 // Ensure local_app exists and extend it with all required methods
-var local_app = local_app || {};
+window.local_app = window.local_app || {};
 
 // Add localsite methods to local_app (extending existing object if it already has web_root)
 (function(module) {
     let _args = {}; // private, also worked as []
     let localsite_repo;
     let modelearth_repo;
-    
+    let local_app = window.local_app; // Reference to global local_app
+
     // Extend local_app with localsite methods
     local_app.init = local_app.init || function(Args) {
         _args = Args;
@@ -235,8 +236,8 @@ var local_app = local_app || {};
             }
             return (theroot);
     };
-    
-})(); // End of extending local_app
+
+})(local_app); // End of extending local_app
 
 //local_app.loctitle = "what"
 //alert(local_app.loctitle);
@@ -854,7 +855,9 @@ function consoleLog(text,value) {
 function loadLocalTemplate() {
   consoleLog("loadLocalTemplate()");
   let datascapeFile = theroot + "info/template-main.html";
-  let datascapeFileDiv = "#datascape";
+  // Use body if #datascape doesn't exist
+  let datascapeFileDiv = $("#datascape").length ? "#datascape" : "body";
+
   waitForElm(datascapeFileDiv).then((elm) => {
 
     $.get(datascapeFile, function(theTemplate) { // Get and append template-main.html to #datascape
@@ -881,11 +884,11 @@ function loadLocalTemplate() {
         $(".stateFilters").hide();
       }
       if (typeof relocatedScopeMenu != "undefined") {
-        relocatedScopeMenu.appendChild(selectScope); // For apps hero
+        // DROPDOWN #selectScope was REMOVED  relocatedScopeMenu.appendChild(selectScope); // For apps hero
       }
       waitForElm('#filterClickLocation').then((elm) => {
         if (param.showstates != "false") {
-            $("#filterClickState").show();  // Show state name tab
+            $("#geoviewSelectHolder").show();
             $("#filterClickLocation").show(); // Show counties tab
         }
         $("#mapFilters").prependTo("#main-content");
@@ -1398,6 +1401,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
       fullsite = true;
       includeCSS3(theroot + 'css/map.css',theroot); // Before naics.js so #industries can be overwritten.
+      //includeCSS3(theroot + '../team/projects/map/location.css',theroot);
 
       // TODO - Try limiting to param.display == "everything"
       //includeCSS3(theroot + 'css/naics.css',theroot);
@@ -1510,6 +1514,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   $(document).on("click", "#earthClose", function(event) { // ZOOM IN
     $("#nullschoolHeader").hide();
     $("#hero_holder").show();
+    if (typeof goHash === "function") {
+      goHash({"geoview":""});
+    }
     event.stopPropagation();
   });
   $(document).on("click", "#earthZoom .leaflet-control-zoom-in", function(event) { // ZOOM IN
@@ -2183,8 +2190,8 @@ function showSearchFilter() {
     }
 
     let expandIcon = '<div class="hideNarrow" style="position:absolute;z-index:10000">' +
-            '<div class="closeSideTabs expandToFullscreen iconPadding" style="border:0px;"><i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D0;</i></div>' +
-            '<div class="closeSideTabs reduceFromFullscreen iconPadding" style="display:none; border:0px;"><i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D1;</i></div>' +
+            '<div class="closeSideTabs expandToFullscreen" style="border:0px;"><i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D0;</i></div>' +
+            '<div class="closeSideTabs reduceFromFullscreen" style="display:none; border:0px;"><i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D1;</i></div>' +
         '</div>';
     //$('#datascape').prepend(expandIcon);
 
@@ -3851,6 +3858,903 @@ function showAuthModal() {
       }
     });
   }
+}
+
+// ========================================
+// Panel Menu Toggle System
+// ========================================
+
+/**
+ * Builds menu configuration based on panel type
+ * @param {string} panelType - Type of panel (Content, List, Map)
+ * @param {string} panelId - ID of the panel element
+ * @param {string} datasourcePath - Path for datasource insights link (optional)
+ * @returns {Array} Array of menu item objects
+ */
+function buildMenuConfig(panelType, panelId, datasourcePath = '') {
+  const menuItems = [];
+
+  // Expand/Collapse item (label updated dynamically)
+  menuItems.push({
+    label: `Expand ${panelType}`,
+    action: 'expand',
+    icon: 'open_in_full'
+  });
+
+  // Hide item
+  menuItems.push({
+    label: `Hide ${panelType}`,
+    action: 'hide',
+    icon: 'visibility_off'
+  });
+
+  // Panel-specific items
+  if (panelType === 'Content') {
+    // Add separator then all existing filter menu items
+    menuItems.push({ divider: true });
+    menuItems.push({ label: 'Earth', action: 'earth', icon: '', hasCheck: true });
+    menuItems.push({ label: 'Countries', action: 'countries', icon: '', hasCheck: true });
+    menuItems.push({ label: 'States', action: 'state', icon: '', hasCheck: true });
+    menuItems.push({ label: 'Counties', action: 'county', icon: '', hasCheck: true });
+    menuItems.push({ label: 'Topics', action: 'topics', icon: '', hasCheck: true });
+    menuItems.push({ divider: true });
+    menuItems.push({ label: 'About Filters', action: 'aboutfilters', icon: '', isLink: true });
+    menuItems.push({ label: 'Hide Filter Bar', action: 'hidefilters', icon: '' });
+    menuItems.push({ label: 'Close Map View', action: 'closemapview', icon: '', display: 'none', class: 'filterFieldMenuClose' });
+    menuItems.push({ label: 'Close App View', action: 'closeappview', icon: '', display: 'none', class: 'filterFieldMenuClose' });
+  } else if (panelType === 'List') {
+    // Add separator then Inspect and List Insights
+    menuItems.push({ divider: true });
+    menuItems.push({
+      label: 'Inspect',
+      action: 'inspect',
+      icon: 'bug_report',
+      hasCheck: true
+    });
+    menuItems.push({
+      label: `${panelType} Insights`,
+      action: 'link',
+      icon: 'insights',
+      href: `/team/projects/#path=${datasourcePath}`,
+      display: 'none',
+      class: 'local'
+    });
+  } else if (panelType === 'View') {
+    // Add Start Tour first
+    menuItems.unshift({
+      label: 'Start Tour',
+      action: 'starttour',
+      icon: 'play_circle'
+    });
+
+    // Add separator then View Insights link (local only)
+    menuItems.push({ divider: true });
+    menuItems.push({
+      label: 'View Insights',
+      action: 'link',
+      icon: 'insights',
+      href: `/team/projects/#path=${datasourcePath}`,
+      display: 'none',
+      class: 'local'
+    });
+  }
+  // Map type has no additional items
+
+  return menuItems;
+}
+
+/**
+ * Sets the panel toggle icon
+ * @param {string} holderId - ID of the toggle holder element
+ * @param {string} iconName - Name of the icon (arrow_right or arrow_drop_down_circle)
+ */
+function setPanelToggleIcon(holderId, iconName) {
+  const holder = document.getElementById(holderId);
+  if (!holder) return;
+
+  const iconElement = holder.querySelector('[id$="MenuToggleIcon"]');
+  const circleElement = holder.querySelector('.material-icons:not([id])');
+
+  if (!iconElement) return;
+
+  iconElement.textContent = iconName;
+
+  if (iconName === 'arrow_right') {
+    iconElement.style.fontSize = '18px';
+    iconElement.style.transform = 'translate(-50%, -50%)';
+    if (circleElement) {
+      circleElement.style.display = '';
+      circleElement.style.fontSize = '24px';
+      circleElement.style.transform = 'translate(-50%, -50%)';
+    }
+  } else if (iconName === 'arrow_drop_down_circle') {
+    iconElement.style.fontSize = '24px';
+    iconElement.style.transform = 'translate(-50%, -50%)';
+    if (circleElement) {
+      circleElement.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Refreshes the panel toggle icon based on menu visibility
+ * @param {string} holderId - ID of the toggle holder element
+ * @param {string} panelId - ID of the panel element
+ */
+function refreshPanelToggleIcon(holderId, panelId) {
+  const menu = document.getElementById(panelId + 'Menu');
+  if (!menu) return;
+
+  const isMenuVisible = menu.style.display !== 'none';
+  setPanelToggleIcon(holderId, isMenuVisible ? 'arrow_drop_down_circle' : 'arrow_right');
+}
+
+/**
+ * Finds and expands/collapses sibling panels
+ * @param {string} panelId - ID of the panel that was toggled
+ * @param {boolean} isExpanding - True if expanding, false if collapsing
+ */
+function toggleSiblingPanels(panelId, isExpanding) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  const myparent = panel.getAttribute('myparent');
+  if (!myparent) return;
+
+  const parentContainer = document.getElementById(myparent);
+  if (!parentContainer) return;
+
+  // Find all sibling panels with myparent attribute in the same parent
+  const allPanelsWithParent = document.querySelectorAll(`[myparent="${myparent}"]`);
+  const siblingPanels = Array.from(allPanelsWithParent).filter(sibling => sibling.id !== panelId);
+
+  siblingPanels.forEach(sibling => {
+    const siblingId = sibling.id;
+
+    // Check if sibling is already in the correct state
+    const siblingMyparent = sibling.getAttribute('myparent');
+    const siblingOriginalParent = siblingMyparent ? document.getElementById(siblingMyparent) : null;
+    const siblingIsExpanded = siblingOriginalParent && !siblingOriginalParent.contains(sibling);
+
+    // Only toggle if sibling is in opposite state
+    if (isExpanding && !siblingIsExpanded) {
+      // Expand sibling
+      if (window.listingsApp && typeof window.listingsApp.myHero === 'function') {
+        const mockButton = document.createElement('button');
+        mockButton.setAttribute('mywidgetpanel', siblingId);
+        mockButton.className = 'fullscreen-toggle-btn';
+
+        const syntheticEvent = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+
+        Object.defineProperty(syntheticEvent, 'target', {
+          value: mockButton,
+          enumerable: true
+        });
+
+        const originalEvent = window.event;
+        window.event = syntheticEvent;
+
+        window.listingsApp.myHero();
+
+        window.event = originalEvent;
+      }
+    } else if (!isExpanding && siblingIsExpanded) {
+      // Collapse sibling
+      if (window.listingsApp && typeof window.listingsApp.myHero === 'function') {
+        const mockButton = document.createElement('button');
+        mockButton.setAttribute('mywidgetpanel', siblingId);
+        mockButton.className = 'fullscreen-toggle-btn';
+
+        const syntheticEvent = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+
+        Object.defineProperty(syntheticEvent, 'target', {
+          value: mockButton,
+          enumerable: true
+        });
+
+        const originalEvent = window.event;
+        window.event = syntheticEvent;
+
+        window.listingsApp.myHero();
+
+        window.event = originalEvent;
+      }
+    }
+
+    // Update sibling menu labels
+    setTimeout(() => {
+      const siblingMenu = document.getElementById(siblingId + 'Menu');
+      if (siblingMenu) {
+        // Determine panel type from menu or default to generic
+        let siblingType = 'Panel';
+        if (siblingId.includes('map')) siblingType = 'Map';
+        else if (siblingId.includes('Details')) siblingType = 'List';
+        else if (siblingId.includes('Gallery')) siblingType = 'Content';
+
+        updateMenuLabels(siblingId + 'Menu', siblingId, siblingType);
+        refreshPanelToggleIcon(siblingId + 'MenuToggleHolder', siblingId);
+      }
+    }, 100);
+  });
+}
+
+/**
+ * Updates menu labels based on panel state
+ * @param {string} menuId - ID of the menu element
+ * @param {string} panelId - ID of the panel element
+ * @param {string} panelType - Type of panel (Content, List, Map)
+ */
+function updateMenuLabels(menuId, panelId, panelType) {
+  const menu = document.getElementById(menuId);
+  const panel = document.getElementById(panelId);
+  if (!menu || !panel) return;
+
+  // Check if panel is in hero container (expanded) or fullscreen mode
+  let isExpanded = panel.dataset && panel.dataset.menuExpanded === 'true' ? true : false;
+
+  if (panelType === 'View') {
+    // For View type, check if in fullscreen mode (body has fullscreenMode class or similar)
+    isExpanded = document.body.classList.contains('fullscreenMode') ||
+                 document.documentElement.classList.contains('fullscreenMode');
+  } else {
+    // Generic approach: check if panel has been moved from its original parent
+    const myparent = panel.getAttribute('myparent');
+    if (myparent) {
+      const originalParent = document.getElementById(myparent);
+      // Panel is expanded if it's NOT in its original parent
+      if (!panel.dataset || panel.dataset.menuExpanded === undefined) {
+        isExpanded = originalParent && !originalParent.contains(panel);
+      }
+    } else {
+      // Fallback: check if in any hero container (for panels without myparent attribute)
+      const heroContainers = ['widgetHero', 'detailHero'].map(id => document.getElementById(id)).filter(Boolean);
+      if (!panel.dataset || panel.dataset.menuExpanded === undefined) {
+        isExpanded = heroContainers.some(hero => hero.contains(panel) && hero.style.display !== 'none');
+      }
+    }
+  }
+
+  // Find expand/collapse menu item
+  const expandItem = menu.querySelector('[data-action="expand"], [data-action="collapse"]');
+  if (expandItem) {
+    const iconElement = expandItem.querySelector('.material-icons');
+    if (isExpanded) {
+      expandItem.childNodes.forEach(node => {
+        if (node.nodeType === 3) { // Text node
+          node.textContent = `Collapse ${panelType}`;
+        }
+      });
+      if (iconElement) iconElement.textContent = 'close_fullscreen';
+      expandItem.setAttribute('data-action', 'collapse');
+    } else {
+      expandItem.childNodes.forEach(node => {
+        if (node.nodeType === 3) { // Text node
+          node.textContent = `Expand ${panelType}`;
+        }
+      });
+      if (iconElement) iconElement.textContent = 'open_in_full';
+      expandItem.setAttribute('data-action', 'expand');
+    }
+  }
+}
+
+// Tour state management
+window.tourState = {
+  isPlaying: false,
+  currentIndex: -1,
+  listingIds: [],
+  timeoutId: null,
+  panelId: null
+};
+const tourState = window.tourState;
+
+/**
+ * Toggles tour play/pause
+ * @param {string} panelId - ID of the panel
+ */
+function toggleTour(panelId) {
+  if (tourState.isPlaying) {
+    stopTour(panelId);
+  } else {
+    startTour(panelId);
+  }
+}
+
+/**
+ * Starts the tour
+ * @param {string} panelId - ID of the panel
+ * @param {boolean} isReload - Whether this is a reload/resume from hash
+ */
+function startTour(panelId, isReload = false) {
+  // Get listing IDs from DOM elements
+  const listingCards = document.querySelectorAll('.listing-card[data-listing-id]');
+  tourState.listingIds = Array.from(listingCards)
+    .map(card => card.getAttribute('data-listing-id'))
+    .filter(id => id); // Filter out undefined/null/empty
+
+  if (tourState.listingIds.length === 0) {
+    console.warn('No listings available for tour');
+    return;
+  }
+
+  // Clear any existing timeout first to prevent multiple timers
+  if (tourState.timeoutId) {
+    clearTimeout(tourState.timeoutId);
+    tourState.timeoutId = null;
+  }
+
+  tourState.isPlaying = true;
+  tourState.panelId = panelId;
+
+  // Update icon to pause - with retry to ensure element exists
+  const setIconWithRetry = (retries = 5) => {
+    const iconElement = document.getElementById(panelId + 'MenuToggleIcon');
+    if (iconElement) {
+      updateTourIcon(panelId, 'pause');
+    } else if (retries > 0) {
+      setTimeout(() => setIconWithRetry(retries - 1), 100);
+    }
+  };
+  setIconWithRetry();
+
+  if (isReload) {
+    // Reloading from hash - find current id and resume from there
+    const hash = (typeof getHash === 'function') ? getHash() : {};
+    const currentId = hash.id;
+
+    if (currentId) {
+      // Find the index of the current id
+      const currentIdx = tourState.listingIds.indexOf(currentId);
+      tourState.currentIndex = currentIdx >= 0 ? currentIdx : 0;
+    } else {
+      tourState.currentIndex = 0;
+    }
+
+    // Don't navigate - already on the correct id
+    // Set timeout for 8 seconds to advance to next slide
+    // Each slide sets its own timeout when it loads
+    tourState.timeoutId = setTimeout(() => {
+      // Check if detailplay is still in hash (user might have removed it)
+      const currentHash = (typeof getHash === 'function') ? getHash() : {};
+      if (!currentHash.detailplay || currentHash.detailplay !== 'true') {
+        // User removed detailplay, stop the tour
+        stopTour(panelId);
+        return;
+      }
+
+      tourState.currentIndex++;
+
+      if (tourState.currentIndex >= tourState.listingIds.length) {
+        // Tour completed, loop back to start
+        tourState.currentIndex = 0;
+      }
+
+      if (typeof goHash === 'function') {
+        const currentHash = getHash();
+        goHash({ id: tourState.listingIds[tourState.currentIndex], detailplay: 'true', view: currentHash.view || '' });
+      }
+    }, 8000);
+  } else {
+    // Fresh start from clicking "Start Tour" - continue from current position
+    const hash = (typeof getHash === 'function') ? getHash() : {};
+    const currentId = hash.id;
+
+    if (currentId) {
+      // Find the index of the current id
+      const currentIdx = tourState.listingIds.indexOf(currentId);
+      tourState.currentIndex = currentIdx >= 0 ? currentIdx : -1;
+    } else {
+      // No current id, start from beginning
+      tourState.currentIndex = -1;
+    }
+
+    // Immediately advance to next item
+    tourState.currentIndex++;
+    if (tourState.currentIndex >= tourState.listingIds.length) {
+      tourState.currentIndex = 0;
+    }
+
+    if (typeof goHash === 'function') {
+      const currentHash = getHash();
+      goHash({ id: tourState.listingIds[tourState.currentIndex], detailplay: 'true', view: currentHash.view || '' });
+    }
+
+    // Note: The page reload will trigger startTour(panelId, true) which will set the timeout
+    // No need to set timeout here as the reload case handles it
+  }
+}
+
+// Make startTour globally accessible
+window.startTour = startTour;
+
+/**
+ * Stops the tour
+ * @param {string} panelId - ID of the panel
+ */
+function stopTour(panelId) {
+  tourState.isPlaying = false;
+
+  if (tourState.timeoutId) {
+    clearTimeout(tourState.timeoutId);
+    tourState.timeoutId = null;
+  }
+
+  // Update icon back to arrow
+  updateTourIcon(panelId, 'arrow');
+
+  // Remove detailplay from hash
+  if (typeof goHash === 'function') {
+    goHash({ detailplay: '' });
+  }
+}
+
+// Make stopTour globally accessible
+window.stopTour = stopTour;
+
+/**
+ * Updates the tour icon
+ * @param {string} panelId - ID of the panel
+ * @param {string} iconType - 'pause' or 'arrow'
+ */
+function updateTourIcon(panelId, iconType) {
+  const iconElement = document.getElementById(panelId + 'MenuToggleIcon');
+  const circleElement = document.querySelector(`#${panelId}MenuToggleHolder .material-icons:not([id])`);
+
+  if (!iconElement) return;
+
+  if (iconType === 'pause') {
+    iconElement.textContent = 'pause';
+    iconElement.style.fontSize = '24px';
+    iconElement.style.transform = 'translate(-50%, -50%)';
+    iconElement.classList.add('pause-icon');
+    if (circleElement) circleElement.style.display = 'none';
+  } else {
+    iconElement.textContent = 'arrow_right';
+    iconElement.style.fontSize = '18px';
+    iconElement.style.transform = 'translate(-50%, -50%)';
+    iconElement.classList.remove('pause-icon');
+    if (circleElement) {
+      circleElement.style.display = '';
+      circleElement.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  // Update menu label
+  const menu = document.getElementById(panelId + 'Menu');
+  if (menu) {
+    const startTourItem = menu.querySelector('[data-action="starttour"]');
+    if (startTourItem) {
+      const iconEl = startTourItem.querySelector('.material-icons');
+      const labelNode = Array.from(startTourItem.childNodes).find(node => node.nodeType === 3);
+
+      if (iconType === 'pause') {
+        if (iconEl) iconEl.textContent = 'pause_circle';
+        if (labelNode) labelNode.textContent = 'Pause Tour';
+      } else {
+        if (iconEl) iconEl.textContent = 'play_circle';
+        if (labelNode) labelNode.textContent = 'Start Tour';
+      }
+    }
+  }
+}
+
+/**
+ * Handles panel menu actions
+ * @param {string} action - Action to perform
+ * @param {string} panelId - ID of the panel element
+ * @param {string} panelType - Type of panel (Content, List, Map)
+ */
+function handlePanelAction(action, panelId, panelType) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  if (action === 'starttour') {
+    toggleTour(panelId);
+  } else if (action === 'expand' || action === 'collapse') {
+    // Special handling for detailmap - call toggleDetailMapHero
+    if (panelId === 'detailmap') {
+      if (window.listingsApp && typeof window.listingsApp.toggleDetailMapHero === 'function') {
+        window.listingsApp.toggleDetailMapHero();
+
+        // Determine if we're expanding or collapsing (use wrapper for detailmap)
+        const wrapper = document.getElementById('detailmapWrapper');
+        const myparent = wrapper ? wrapper.getAttribute('myparent') : null;
+        const originalParent = myparent ? document.getElementById(myparent) : null;
+        const isExpanding = originalParent && !originalParent.contains(wrapper);
+
+        // Toggle sibling panels (use wrapper id for detailmap siblings)
+        toggleSiblingPanels('detailmapWrapper', isExpanding);
+
+        // Update menu labels after state change
+        setTimeout(() => {
+          updateMenuLabels(panelId + 'Menu', panelId, panelType);
+          refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+        }, 50);
+      }
+    }
+    // Special handling for View type - click .expandToFullscreen and .closeSideTabs
+    else if (panelType === 'View') {
+      const expandBtn = document.querySelector('.expandToFullscreen');
+      const closeSideTabsBtn = document.querySelector('.closeSideTabs');
+
+      if (expandBtn) expandBtn.click();
+      if (closeSideTabsBtn) closeSideTabsBtn.click();
+
+      // Update menu labels after state change
+      setTimeout(() => {
+        updateMenuLabels(panelId + 'Menu', panelId, panelType);
+        refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+      }, 50);
+    } else {
+      // Original behavior for other panel types
+      // Create a mock button element with mywidgetpanel attribute
+      const mockButton = document.createElement('button');
+      mockButton.setAttribute('mywidgetpanel', panelId);
+      mockButton.className = 'fullscreen-toggle-btn';
+
+      // Create a synthetic event with the mock button as target
+      const syntheticEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      });
+
+      // Temporarily set window.event to our synthetic event with the button target
+      Object.defineProperty(syntheticEvent, 'target', {
+        value: mockButton,
+        enumerable: true
+      });
+
+      // Store original event
+      const originalEvent = window.event;
+      window.event = syntheticEvent;
+
+      // Call myHero to toggle expansion
+      if (window.listingsApp && typeof window.listingsApp.myHero === 'function') {
+        window.listingsApp.myHero();
+
+        // Restore original event
+        window.event = originalEvent;
+
+        // Determine if we're expanding or collapsing
+        const panel = document.getElementById(panelId);
+        const myparent = panel ? panel.getAttribute('myparent') : null;
+        const originalParent = myparent ? document.getElementById(myparent) : null;
+        const isExpanding = originalParent && !originalParent.contains(panel);
+
+        // Toggle sibling panels
+        toggleSiblingPanels(panelId, isExpanding);
+
+        // Update menu labels after state change
+        setTimeout(() => {
+          updateMenuLabels(panelId + 'Menu', panelId, panelType);
+          refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+        }, 50);
+      }
+    }
+  } else if (action === 'hide') {
+    // Hide panel and parent
+    const myparent = panel.getAttribute('myparent');
+    if (myparent) {
+      const parentDiv = document.getElementById(myparent);
+      if (parentDiv) {
+        parentDiv.style.display = 'none';
+      }
+    }
+    panel.style.display = 'none';
+
+    // Close menu
+    const menu = document.getElementById(panelId + 'Menu');
+    if (menu) menu.style.display = 'none';
+    refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+  } else if (action === 'inspect') {
+    // Toggle inspect mode
+    if (!window.listingsApp) return;
+
+    const isInspectMode = window.listingsApp.inspectMode || false;
+    window.listingsApp.inspectMode = !isInspectMode;
+
+    // Show placeholder immediately BEFORE any other processing
+    if (window.listingsApp.inspectMode) {
+      const listingsGrid = document.querySelector('.listings-grid');
+      if (listingsGrid && !document.getElementById('inspect-debug-card')) {
+        // Insert empty placeholder immediately
+        const placeholderHtml = `
+          <div class="listing-card" id="inspect-debug-card" style="background: #1a1a1a; color: #00ff00; border: 2px solid #00ff00; position: relative;">
+            <div class="listing-content">
+              <h3 class="listing-title" style="color: #00ff00; display: flex; justify-content: space-between; align-items: center;">
+                <span>Debug Messages</span>
+                <button id="close-inspect-debug" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" title="Close debug messages">&times;</button>
+              </h3>
+              <div id="inspect-debug-messages" style="font-family: 'Courier New', monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">
+                <div style="color: #00ff00; padding: 8px;">Loading messages...</div>
+              </div>
+            </div>
+          </div>
+        `;
+        listingsGrid.insertAdjacentHTML('afterbegin', placeholderHtml);
+      }
+    }
+
+    // Update menu item check state
+    const menu = document.getElementById(panelId + 'Menu');
+    if (menu) {
+      const inspectItem = menu.querySelector('[data-action="inspect"]');
+      const checkMark = inspectItem?.querySelector('.menuToggleCheck');
+      if (checkMark) {
+        checkMark.style.display = window.listingsApp.inspectMode ? 'inline' : 'none';
+      }
+    }
+
+    // Populate with actual messages after showing placeholder
+    if (window.listingsApp.inspectMode) {
+      setTimeout(() => {
+        if (window.listingsApp.populateDebugCard) {
+          window.listingsApp.populateDebugCard();
+        }
+      }, 0);
+    } else {
+      // Hide debug card immediately
+      const debugCard = document.getElementById('inspect-debug-card');
+      if (debugCard) {
+        debugCard.remove();
+      }
+    }
+  }
+}
+
+/**
+ * Creates and adds a panel menu toggle to a panel
+ * @param {Object} options - Configuration options
+ * @param {string} options.panelType - Type of panel (Content, List, Map)
+ * @param {string} options.targetPanelId - ID of the target panel element
+ * @param {string} options.containerSelector - CSS selector for where to insert the toggle
+ * @param {Array} options.menuItems - Optional custom menu items (uses buildMenuConfig if not provided)
+ * @param {string} options.datasourcePath - Path for datasource insights link (optional)
+ * @param {string} options.menuPopupHolder - Optional CSS selector for where to render the menu popup (if not provided, menu is rendered next to toggle)
+ * @returns {Object} Object with render(), destroy(), updateState() methods
+ */
+function addPanelMenu(options) {
+  const {
+    panelType,
+    targetPanelId,
+    containerSelector,
+    menuItems,
+    datasourcePath = '',
+    inline = false,
+    menuPopupHolder = '',
+    onAction = null
+  } = options;
+
+  const items = menuItems || buildMenuConfig(panelType, targetPanelId, datasourcePath);
+
+  const render = () => {
+    const container = document.querySelector(containerSelector);
+    if (!container) {
+      console.warn(`Container not found: ${containerSelector}`);
+      return;
+    }
+
+    // Generate toggle holder HTML
+    let toggleHtml;
+    if (inline) {
+      // For inline containers (like search-fields-control), don't add positioning wrapper
+      toggleHtml = `
+        <div id="${targetPanelId}MenuToggleHolder" class="menuIconHolder menuToggleHolderInline"
+             title="Panel menu">
+          <i class="material-icons" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:24px;">circle</i>
+          <i id="${targetPanelId}MenuToggleIcon" class="material-icons"
+             style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:18px;">arrow_right</i>
+        </div>
+      `;
+    } else {
+      // For absolute positioned containers
+      const holderClass = panelType === 'Map' ? 'menuIconHolder menuToggleHolderMap' : 'menuIconHolder';
+      toggleHtml = `
+        <div style="position:absolute; right:8px; top:8px; z-index:1000;">
+          <div id="${targetPanelId}MenuToggleHolder" class="${holderClass}"
+               style="position:relative; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;"
+               title="Panel menu">
+            <i class="material-icons circle-bg" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);">circle</i>
+            <i id="${targetPanelId}MenuToggleIcon" class="material-icons menu-toggle-arrow"
+               style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);">arrow_right</i>
+          </div>
+        </div>
+      `;
+    }
+
+    // Generate menu HTML
+    const menuClass = inline ? 'menuToggleMenuInline' : 'menuToggleMenu';
+    let menuHtml = `<div id="${targetPanelId}Menu" class="${menuClass}" style="display:none;">`;
+    items.forEach(item => {
+      if (item.divider) {
+        menuHtml += '<div class="menuToggleDivider"></div>';
+      } else {
+        const displayStyle = item.display ? `display:${item.display};` : '';
+        const className = item.class ? ` ${item.class}` : '';
+        const dataAction = item.action ? ` data-action="${item.action}"` : '';
+
+        if (item.href) {
+          menuHtml += `<a href="${item.href}" class="menuToggleItem${className}"${dataAction} style="${displayStyle}">`;
+        } else {
+          menuHtml += `<div class="menuToggleItem${className}"${dataAction} style="${displayStyle}">`;
+        }
+
+        if (item.icon) {
+          menuHtml += `<i class="material-icons">${item.icon}</i>`;
+        }
+        menuHtml += item.label;
+
+        if (item.hasCheck) {
+          menuHtml += '<span class="material-icons menuToggleCheck">check</span>';
+        }
+
+        if (item.href) {
+          menuHtml += '</a>';
+        } else {
+          menuHtml += '</div>';
+        }
+      }
+    });
+    menuHtml += '</div>';
+
+    // Insert into DOM
+    if (menuPopupHolder) {
+      // Insert toggle into the specified container
+      container.insertAdjacentHTML('afterbegin', toggleHtml);
+
+      // Insert menu into the popup holder container
+      const popupContainer = document.querySelector(menuPopupHolder);
+      if (popupContainer) {
+        popupContainer.insertAdjacentHTML('afterbegin', menuHtml);
+      } else {
+        console.warn(`Menu popup holder not found: ${menuPopupHolder}`);
+      }
+    } else {
+      // Insert both toggle and menu together (original behavior)
+      container.insertAdjacentHTML('afterbegin', toggleHtml + menuHtml);
+    }
+
+    // Setup event listeners
+    setupPanelMenuEvents(targetPanelId, panelType);
+  };
+
+  const destroy = () => {
+    const holder = document.getElementById(targetPanelId + 'MenuToggleHolder');
+    const menu = document.getElementById(targetPanelId + 'Menu');
+
+    // Remove holder
+    if (menuPopupHolder) {
+      // When using popup holder, holder is always inserted directly
+      if (holder) holder.remove();
+    } else if (inline) {
+      // For inline, only remove the holder itself
+      if (holder) holder.remove();
+    } else {
+      // For absolute positioned, remove the wrapper div
+      if (holder) holder.parentElement?.remove();
+    }
+
+    // Remove menu (always independent of holder when using menuPopupHolder)
+    if (menu) menu.remove();
+  };
+
+  const updateState = () => {
+    updateMenuLabels(targetPanelId + 'Menu', targetPanelId, panelType);
+    refreshPanelToggleIcon(targetPanelId + 'MenuToggleHolder', targetPanelId);
+  };
+
+  if (typeof onAction === 'function') {
+    if (!window.panelMenuCallbacks) window.panelMenuCallbacks = {};
+    window.panelMenuCallbacks[targetPanelId] = onAction;
+  }
+
+  return { render, destroy, updateState };
+}
+
+/**
+ * Sets up event listeners for a panel menu
+ * @param {string} panelId - ID of the panel element
+ * @param {string} panelType - Type of panel (Content, List, Map)
+ */
+function setupPanelMenuEvents(panelId, panelType) {
+  const holderId = panelId + 'MenuToggleHolder';
+  const menuId = panelId + 'Menu';
+
+  // Toggle menu on holder click
+  document.addEventListener('click', function(e) {
+    const holder = e.target.closest(`#${holderId}`);
+    if (!holder) return;
+    e.stopPropagation();
+
+    // Close any open search popup
+    if (window.listingsApp && typeof window.listingsApp.closeSearchPopup === 'function') {
+      window.listingsApp.closeSearchPopup();
+    }
+
+    // If tour is playing, clicking the holder toggles pause
+    if (tourState.isPlaying && tourState.panelId === panelId) {
+      toggleTour(panelId);
+      return;
+    }
+
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    const isVisible = menu.style.display !== 'none';
+
+    // Close all other panel menus
+    document.querySelectorAll('.menuToggleMenu, .menuToggleMenuInline').forEach(m => {
+      if (m.id !== menuId) m.style.display = 'none';
+    });
+
+    // Toggle this menu
+    menu.style.display = isVisible ? 'none' : 'block';
+
+    // Update icon
+    refreshPanelToggleIcon(holderId, panelId);
+
+    // Update menu labels
+    updateMenuLabels(menuId, panelId, panelType);
+  });
+
+  // Handle menu item clicks
+  const menuClickHandler = function(e) {
+    const target = e.target.closest(`#${menuId} .menuToggleItem[data-action]`);
+    if (!target) return;
+    const action = target.getAttribute('data-action');
+    const href = target.getAttribute('href');
+
+    if (action && !href) {
+      e.preventDefault();
+      let handled = false;
+      if (window.panelMenuCallbacks && typeof window.panelMenuCallbacks[panelId] === 'function') {
+        handled = window.panelMenuCallbacks[panelId](action, panelId, panelType) === true;
+      }
+      if (!handled) {
+        handlePanelAction(action, panelId, panelType);
+      }
+
+      if (action === 'expand') {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.dataset.menuExpanded = 'true';
+      }
+      if (action === 'collapse') {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.dataset.menuExpanded = 'false';
+      }
+
+      // Close menu after action
+      const menu = document.getElementById(menuId);
+      if (menu) menu.style.display = 'none';
+      // Refresh icon after action (expand/collapse may update layout)
+      setTimeout(() => {
+        refreshPanelToggleIcon(holderId, panelId);
+        updateMenuLabels(menuId, panelId, panelType);
+      }, 50);
+    }
+    // If href exists, let the link navigate normally
+  };
+  document.addEventListener('click', menuClickHandler);
+
+  // Close menu when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest(`#${holderId}, #${menuId}`)) {
+      const menu = document.getElementById(menuId);
+      if (menu && menu.style.display !== 'none') {
+        menu.style.display = 'none';
+        refreshPanelToggleIcon(holderId, panelId);
+      }
+    }
+  });
 }
 
 consoleLog("end localsite");

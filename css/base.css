@@ -28,7 +28,7 @@ Used in localsite, modelearth, io, neighborhood, trees
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 #side-nav {
-  width: 67px;
+  width: 62px;
   flex-shrink: 0;
 }
 .main-nav {
@@ -43,15 +43,24 @@ Used in localsite, modelearth, io, neighborhood, trees
   width: 252px !important;
   flex-shrink: 0; /* Prevents the column from shrinking below 257px */
 }
-.dark #side-nav-absolute {
-  background-color: #666667;
-}
 @media (max-width: 600px) {
   .main-nav {
     width:100% !important;
+    flex: 2;
   }
   .main-nav-full {
     width:100% !important;
+  }
+  .chart-controls {
+    width: 100%;
+  }
+  .chart-controls select {
+    width: 100%;
+  }
+  #main-content .whichLinesHolder {
+    display: block !important;
+    width: 100%;
+    margin-bottom: 10px;
   }
 }
 .sidebar-hidden #side-nav {
@@ -145,6 +154,9 @@ body {
   color: #333;
   line-heightX:0; /* prevents gaps betweet images, but 0 caused text to overlap on start and nav icons. */
 }
+#datascape {
+  font-size: 0; /* prevents 19px tall blank space */
+}
 .dark {
   color: #eee;
   background-color: #333;
@@ -181,6 +193,17 @@ body {
   }
   .bodyRightMargin {
     margin-right: 0px;
+  }
+}
+@media (max-width: 600px) {
+  .content ul,
+  .content ol {
+    margin-left: 0;
+    padding-left: 0;
+    list-style-position: inside;
+  }
+  .content li {
+    text-indent: -0.2em;
   }
 }
 @media (max-width: 1450px) { /* 1250px */
@@ -393,6 +416,11 @@ h1 {
   font-size: 31px;
   font-family: "Amaze", "Helvetica Neue", Helvetica, "Lato", sans-serif;
 }
+@container (max-width: 400px) {
+  h1 {
+    font-size: 24px;
+  }
+}
 .h1-home {
   font-size: 28pt;
   font-family: "Helvetica Neue", Helvetica, "Lato", sans-serif;
@@ -419,7 +447,9 @@ h2 {
   visibility: hidden; 
   pointer-events: none;
 }
-.flexmain section::before { /* Prevents hashtag section links from being covered by site header */
+/* Prevents hashtag section links from being covered by site header */
+/* test and maybe reactivate */
+.flexmain section::before { 
   display: block; 
   content: " "; 
   margin-top: -120px; 
@@ -622,13 +652,13 @@ summary::-webkit-details-marker {
   padding-right: 30px;
   padding-bottom: 30px;
 }
-.content a, .contentfull a {
+.content a, .contentfull a, .content-color a {
   text-decoration: none;
 }
-.content a:link, .content a:visited, .contentfull a:link, .contentfull a:visited {
+.content a:link, .content a:visited, .contentfull a:link, .contentfull a:visited, .content-color a:link, .content-color a:visited {
   color: #0366d6;
 }
-.dark .content a:link, .dark .content a:visited {
+.dark .content a:link, .dark .content a:visited, .dark .content-color a:link, .dark .content-color a:visited  {
   color: #acb;
 }
 .lite { /* Also in DS */
@@ -789,6 +819,9 @@ summary::-webkit-details-marker {
   margin-bottom: 16px;
 }
 @media (max-width:980px) {
+  .topcolumns {
+    margin-bottom: 20px;
+  }
   .pageColumn, .two .pageColumn {
     width:100%;
     float:none;
@@ -798,6 +831,8 @@ summary::-webkit-details-marker {
   }
   .pageColumnInside {
     margin-right: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
   }
 }
 .contentArea {
@@ -809,6 +844,9 @@ summary::-webkit-details-marker {
 .litePanel {
     background-color: #eee; /* also set .litePanelFadeOut 238 */
     overflow:auto;
+}
+.dark .litePanel {
+  background-color: #444;
 }
 .litePanelFadeOut {
   margin-top:10px;
@@ -838,7 +876,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   background-color: #eee;
   padding:15px;
   border-left: 4px solid #137AD1;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
   display: block;
   unicode-bidi: embed;
   font-family: monospace;
@@ -945,22 +983,18 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 .btn {
     display: inline-block;
     font-weight: 400;
-    color: #fff;
+    color: #343434;
+    background-color: rgb(239, 239, 239); /* matches useragent buttonface */
     text-align: center;
     vertical-align: middle;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    /* background-color: transparent; */
     border: 1px solid transparent;
     padding: 0.375rem 1rem;
     line-height: 1.5;
     border-radius: 2rem;
-    -webkit-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
     cursor: pointer;
     margin-right:6px;
     margin-bottom:8px;
@@ -975,6 +1009,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 .btn:hover {
     background-color: #b9da79;
     border-color: #b9da79;
+    color: #111;
     text-decoration: none;
 }
 .btn-lg {
@@ -983,6 +1018,14 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   line-height: 2.15;
   border-radius: 1.5rem;
   padding: 0.375rem 1.3rem;
+}
+.btn-sm {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.2rem 0.55rem;
+  border-radius: 2rem;
+  display: inline-flex;
+  width: auto;
 }
 
 /* color is !important so surrounding a href color from menu.css does not override */
@@ -1073,6 +1116,10 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 @media (max-width: 500px) {
   .btn {
     width:100%;
+  }
+  .btn-sm {
+    width: auto;
+    display: inline-flex;
   }
 }
 .nav {
@@ -1378,6 +1425,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 
 #headerLocTitleHolder {
   float:left;
+  positionX: relative; /* moves too high, needs work */
   /*
   padding:10px 0 0 0px;
   font-size: 22px;
@@ -1396,7 +1444,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   font-family: Helvetica !important;
   font-weight: 100;
   color: #777;
-  letter-spacing: 2px;
+  letter-spacing: 1.4px;
   padding-bottom: 5px;
 
   /* Align vertically */
@@ -1455,6 +1503,21 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   border-bottom: 1px solid rgb(238,238,238);
   background-color: #eee;
 }
+/*
+.showSideTabs:hover,
+.showSideTabs:hover i {
+  background-color: transparent !important;
+  color: #555;
+  box-shadow: none;
+  text-shadow: none;
+  filter: none;
+}
+.dark .showSideTabs:hover,
+.dark .showSideTabs:hover i {
+  color: #fff;
+}
+*/
+
 .dark .headerbar {
   background: #222;
   border-bottom: 1px solid #333;
@@ -1519,7 +1582,8 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   margin-top:14px;
 }
 #headerIcons:hover {
-  background-color: #ddd;
+  background-colorX: #ddd;
+  background-color: transparent !important; /* temp to override bootstrap until #headerIcons is renamed */
 }
 :root {
   --header-offset-height: 79px; /* Default header offset height */
@@ -1582,34 +1646,6 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 }
 
 /* .upperIcons > */
-.iconPadding {
-  height: 64px;
-  min-width: 58px;
-  text-align: center;
-  /* padding: 5px 26px 2px 12px; */
-  cursor: pointer;
-  color: #888;
-}
-.iconPadding:hover {
-  color: #222;
-}
-.dark .iconPadding {
-  color: #ccc;
-}
-.dark .iconPadding:hover {
-  color: #fff;
-}
-.darkDivText .iconPadding:hover {
-  color: #fff;
-}
-
-#goatIcons .iconPadding {
-    height: 64px;
-    min-width: 58px;
-    text-align: center;
-    padding: 16px 12px 2px 12px;
-    cursor: pointer;
-}
 
 .upperIcons > div:hover {
   cursor: pointer;
@@ -1985,9 +2021,22 @@ h2 .num {
 .tabulator .tabulator-header .tabulator-col {
     border-right: none !important;
 }
-
-
-
+.tabulator-col {
+  line-height: 1.55em; /* Allos for consisten heaer arro position*/
+}
+/* Arrow on left of column titles, applied only when prior title div has text-align: left */
+.tabulator-col:not(:has(.tabulator-col-title[style*="text-align: right"])) .tabulator-col-title {
+  padding-right: 5px !important;
+  position: relative !important;
+  float: left !important;
+  width: auto !important;
+}
+.tabulator-col:not(:has(.tabulator-col-title[style*="text-align: right"])) .tabulator-col-sorter {
+  position:relative !important;
+  float:left !important;
+  padding: 5px !important;
+  padding-top: 7px !important;
+}
 
 /* Nav.css */
 
@@ -2252,6 +2301,11 @@ body.sidebar-hovered {
     display: flex;
     flex-direction: row;
     overflow-y: auto;
+    background-color: #efefef;
+    z-index: 10050;
+}
+.dark #side-nav-absolute {
+    background-color: #666667;
 }
 #side-nav-content {
     flex: 1;
@@ -2991,4 +3045,326 @@ body.sidebar-hidden #openNav {
     min-height: 32px;
     justify-content: center;
     box-sizing: border-box;
+}
+
+/* Panel Menu Toggle Styles - Reusable across panels */
+.menuToggleMenu {
+  position: absolute;
+  right: 10px;
+  top: 50px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  padding: 6px 0;
+  z-index: 1001;
+}
+.menuToggleMenuInline {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 180px;
+  padding: 6px 0;
+}
+.dark .menuToggleMenu {
+  background: #333;
+  border-color: #555;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.dark .menuToggleMenuInline {
+  background: #333;
+  border-color: #555;
+}
+.menuToggleItem {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #444;
+  display: block;
+  text-decoration: none;
+  position: relative;
+  line-height: 1;
+}
+.menuToggleItem .material-icons {
+  font-size: 16px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.menuToggleCheck {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #888;
+  display: none !important;
+}
+.menuToggleItem.is-active .menuToggleCheck {
+  display: inline-block !important;
+}
+.menuToggleItem:hover {
+  background: #f2f2f2;
+  color: #111;
+}
+.menuToggleDivider {
+  border-top: 1px solid #eee;
+  margin: 4px 0;
+}
+.menuToggleLink {
+  color: inherit;
+}
+.dark .menuToggleItem {
+  color: #eee;
+}
+.dark .menuToggleCheck {
+  color: #aaa;
+}
+.dark .menuToggleItem:hover {
+  background: #444;
+  color: #fff;
+}
+.dark .menuToggleLink {
+  color: inherit;
+}
+.dark .menuToggleDivider {
+  border-top-color: #555;
+}
+.menuToggleHolderInline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #ddd; /* For #widgetDetailsControls (which is not the detail panel) */
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.menuToggleHolderInline .material-icons {
+  transition: none;
+}
+.menuToggleHolderInline:hover {
+  border-color: #007bff;
+  background: #f8f9fa;
+}
+.dark .menuToggleHolderInline {
+  background: #333;
+  border-color: #555;
+}
+.dark .menuToggleHolderInline:hover {
+  border-color: #007bff;
+  background: #444;
+}
+.menuToggleHolderMap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+}
+/* Add white transparent circle behind map icons */
+.menuToggleHolderMap::before {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  transition: background 0.2s ease;
+}
+.menuToggleHolderMap:hover::before {
+  background: #333;
+}
+.dark .menuToggleHolderMap::before {
+  background: rgba(255, 255, 255, 0.5);
+}
+.dark .menuToggleHolderMap:hover::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+.menuToggleHolderMap .material-icons {
+  transition: color 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+.menuToggleHolderMap:hover .menu-toggle-arrow {
+  color: white;
+}
+.dark .menuToggleHolderMap:hover .menu-toggle-arrow {
+  color: #aaa;
+}
+/* Common circle background styling for menu toggle icons */
+.menuToggleHolderMap .material-icons.circle-bg {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 34px;
+}
+.dark .menuToggleHolderMap .material-icons.circle-bg {
+  color: rgba(255, 255, 255, 0.5);
+}
+/* Circle background for non-map panels */
+.menuIconHolder:not(.menuToggleHolderMap) .material-icons.circle-bg {
+  color: #ddd;
+  font-size: 32px;
+}
+.dark .menuIconHolder:not(.menuToggleHolderMap) .material-icons.circle-bg {
+  color: rgba(255, 255, 255, 0.7);
+}
+/* Common arrow icon styling for all MenuToggleHolder arrows */
+.menu-toggle-arrow {
+  font-size: 28px;
+  font-weight: 500;
+  color: #aaa;
+}
+/* Ensure icon positioning is stable */
+#widgetDetailsMenuToggleHolder .material-icons,
+#widgetmapWrapperMenuToggleHolder .material-icons,
+#pageGalleryMenuToggleHolder .material-icons,
+#location-sectionMenuToggleHolder .material-icons {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+#widgetDetailsMenuToggleHolder .material-icons[id$="MenuToggleIcon"],
+#widgetmapWrapperMenuToggleHolder .material-icons[id$="MenuToggleIcon"],
+#pageGalleryMenuToggleHolder .material-icons[id$="MenuToggleIcon"],
+#location-sectionMenuToggleHolder .material-icons[id$="MenuToggleIcon"] {
+  position: absolute !important;
+}
+/* Fade transition for location-section during tour */
+.location-section {
+  transition: opacity 0.2s ease-in-out;
+}
+.location-section.fading {
+  opacity: 0.5;
+}
+/* Wider clickable area for location-section menu toggle */
+#location-sectionMenuToggleHolder {
+  padding: 8px 12px !important;
+}
+#rightIcons {
+  max-height: 54px;
+  overflow: visible;
+}
+#filterFieldsDropdownToggle {
+  display: none;
+  float: left;
+  padding: 6px;
+  padding-left: 0;
+  opacity: 0.3;
+  cursor: pointer;
+}
+#filterFieldsDropdownToggle .material-icons {
+  font-size: 35px;
+  font-weight: 500;
+  opacity: 1;
+  color: #333;
+  padding-top: 3px;
+  padding-left: 5px;
+  padding-right: 2px;
+  min-width: 38px;
+}
+.dark #filterFieldsDropdownToggle .material-icons {
+  color: #bbb;
+}
+.filterTopIconHolder {
+  position: relative;
+  float: left;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  overflow: visible;
+}
+.bar-centered-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+#filterFieldToggleHolder {
+  width: 93px;
+  min-width: 93px;
+  cursor: pointer;
+}
+#filterFieldToggleInHeader {
+  width: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  display: none;
+}
+#showSideTabsInBar {
+  width: 42px;
+}
+#filterFieldToggleHolder i,
+#filterFieldToggleInHeader i {
+  font-size: 32px;
+  color: #888;
+  cursor: pointer;
+}
+#filterFieldToggleIcon,
+#filterFieldToggleIconInHeader,
+.filter-field-toggle-icon {
+  position: absolute !important;
+  font-size: 28px;
+}
+/*
+#filterFieldToggleHolder:not(.filter-toggle-forward) #filterFieldToggleIcon {
+  font-size: 28px;
+}
+*/
+#filterFieldToggleHolder.filter-toggle-forward .filter-field-toggle-icon,
+#filterFieldToggleInHeader.filter-toggle-forward .filter-field-toggle-icon {
+  font-size: 28px;
+}
+@media (max-width: 400px) {
+  #filterFieldToggleHolder i,
+  #filterFieldToggleInHeader i {
+    font-size: 36px;
+  }
+  #filterFieldToggleIcon,
+  #filterFieldToggleIconInHeader,
+  .filter-field-toggle-icon {
+    font-size: 32px;
+  }
+  #filterFieldToggleHolder:not(.filter-toggle-forward) .filter-field-toggle-icon,
+  #filterFieldToggleInHeader:not(.filter-toggle-forward) .filter-field-toggle-icon {
+    font-size: 32px;
+  }
+  #filterFieldToggleHolder.filter-toggle-forward .filter-field-toggle-icon,
+  #filterFieldToggleInHeader.filter-toggle-forward .filter-field-toggle-icon {
+    font-size: 32px;
+  }
+}
+@media (max-width: 600px) {
+  #filterFieldsDropdownToggle {
+    display: block;
+  }
+  #filterFieldToggleHolder {
+    display: none;
+  }
+  #filterFieldToggleInHeader {
+    display: inline-flex;
+  }
+  #filteFieldsDropdowns {
+    container-type: inline-size;
+  }
+  #filteFieldsDropdowns.auto-hide-narrow {
+    display: none;
+  }
+}
+/* Orange color for pause icon during tour */
+#location-sectionMenuToggleIcon.pause-icon {
+  color: #ff6b35 !important;
 }
