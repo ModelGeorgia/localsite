@@ -367,7 +367,12 @@
     border-bottom: 1px solid #e5e5e5;
 }
 
-
+.bucketcontent h2 {
+  margin-bottom: 16px;
+}
+.bucketcontent h3 {
+  margin-top: 0px;
+}
 
 /* Open nav icons when rolling over. Originally Bootstrap. */
 ul.nav li.dropdown:hover ul.dropdown-menu {
@@ -631,6 +636,8 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 #listLeft b, .sidecolumnLeft b, #cloneRight b {
     color:#333;
     font-weight:800;
+    display:block;
+    min-height: 26.5px;
 }
 #listLeft .legendDot {
 	padding:0px;
@@ -685,7 +692,7 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 .sidecolumnLeft b a {
 	color: #333;
-	font-size: 16px;
+	font-size: 14.5px;
 	line-height: 1.8em;
 	padding-left: 20px;
 }
@@ -702,11 +709,13 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 	width: 100%;
 	/* max-width: 300px; */
 }
+/*
 @media (max-width: 800px) {
 	.navcolumnClear {
 		background-color: #aaa;
 	}
 }
+*/
 .navcolumnClear b a, .navcolumnClear b a:visited {
 	color: #fff !important; /* important to override base.css. Not sure why this later css not given priority. */
 }
@@ -728,7 +737,7 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 	flex: 1 1 auto;
 	min-width: 0; /* Allow map/filter bar to shrink when sidebar opens */
 }
-.dark #main-container  a:link, .dark #main-container  a:visited {
+.dark #main-container a:not(.btn):link, .dark #main-container a:not(.btn):visited {
   color: #acb;
 }
 .dark #main-container  b a:link, .dark #main-container  b a:visited {
@@ -803,6 +812,13 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     padding-right: 30px;
     border: 0px !important;
 }
+#rightTopMenu select:focus,
+#rightTopMenu select:active,
+#rightTopMenu select:focus-visible {
+    border: 0px !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
 .dark #rightTopMenu select {
 	color: #eee !important;
 }
@@ -836,7 +852,6 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 .menuTitle {
   font-size:18pt;
-  margin-bottom:30px
 }
 .accountPanel {
     position:absolute;
@@ -890,6 +905,7 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     box-shadow: -8px -2px 8px 1px rgba(0, 0, 0, 0.4);
 }
 #rightTopMenu p {
+	margin: 0px;
 	margin-bottom: 6px;
 }
 #rightTopMenu h2 {
@@ -913,12 +929,26 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     /* top: 48px; */
     float:left;
 }
+#resourcesPanel {
+	line-height: 1.8;
+}
+#resourcesPanel a {
+	display: inline-block;
+}
+#resourcesPanel a:hover {
+	background-color: #444 !important;
+}
 /* Avoid adding .moduleJS to three-dot menu, else font-family not applied to left menu  */
 .rightTopMenuInner { /* lives outside .moduleJS when full header displayed */
     min-width: 110px;
     font-family: 'Open Sans', 'Helvetica Neue', HelveticaNeue, calibri, arial, sans-serif;
     padding-left: 8px;
     max-width: 165px;
+}
+@media (max-height: 550px) {
+	.rightTopMenuInner {
+    	line-height: 1;
+	}
 }
 .rightTopMenuInner i {
     color: #ddd !important;

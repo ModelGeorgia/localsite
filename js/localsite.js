@@ -28,6 +28,10 @@ let defaultState = "";
 if (location.host.indexOf('localhost') >= 0) {
   defaultState = "";  // Set to GA to include additional map layers in top nav.
 }
+if (typeof modelsiteUniversal == 'undefined') {
+  // Universal modelsite fallback for pages that run before the cookie exists.
+  var modelsiteUniversal = "";
+}
 consoleLog("start localsite");
 
 // Common function to find script with delay handling for DOM recognition
@@ -200,7 +204,7 @@ window.local_app = window.local_app || {};
                     }
                 });
                 // Return default for immediate use
-                alert(theroot)
+                console.log("There was an alert here for months, but it wasn't reached (displayed) to my knowledge - LH. theroot: " + theroot)
                 return theroot;
             }
             
@@ -382,8 +386,10 @@ function loadParams(paramStr,hashStr) {
   for (let i = 0; i < hashPairs.length; i++) {
       if(!hashPairs[i])
           continue;
-      if (i==0 && hashPairs[i].indexOf("=") == -1) {
-        params[""] = hashPairs[i];  // Allows for initial # params without =.
+      if (hashPairs[i].indexOf("=") == -1) {
+        if (!params[""]) {
+          params[""] = decodeURIComponent(hashPairs[i]);  // Allows a standalone hash token in any position.
+        }
         continue;
       }
       let hashPair = hashPairs[i].split('=');
@@ -423,11 +429,52 @@ function mix(incoming, target) { // Combine two objects, priority to incoming. D
 function getHash() {
   return (mix(getHashOnly(),hiddenhash)); // Includes hiddenhash
 }
+function ensureHideWhenGeoviewStyle() {
+  if (document.getElementById('hide-when-geoview-style')) return;
+  var style = document.createElement('style');
+  style.id = 'hide-when-geoview-style';
+  style.textContent = '.hash-has-geoview .hideWhenGeoview{display:none !important;}';
+  document.head.appendChild(style);
+}
+function isEarthHashValue(token) {
+  return typeof token === 'string' && token.indexOf('/wind/surface/') >= 0 && token.indexOf('orthographic=') >= 0;
+}
+function syncDerivedHiddenhashFromHashOnly() {
+  let hashOnly = getHashOnly();
+  if (!hashOnly.geoview) {
+    if (isEarthHashValue(hashOnly.earth) || isEarthHashValue(hashOnly[""])) {
+      hiddenhash.geoview = 'earth';
+    } else if (hiddenhash.geoview == 'earth') {
+      delete hiddenhash.geoview;
+    }
+  }
+}
+function syncHideWhenGeoviewFromHash() {
+  let hash = getHash();
+  let hasGeoview = !!hash.geoview;
+  ensureHideWhenGeoviewStyle();
+  document.documentElement.classList.toggle('hash-has-geoview', hasGeoview);
+  if (document.body) {
+    document.body.classList.toggle('hash-has-geoview', hasGeoview);
+  }
+  document.querySelectorAll('.hideWhenGeoview').forEach(function(el) {
+    el.style.display = hasGeoview ? 'none' : '';
+  });
+}
 function getHashOnly() {
   return (function (pairs) {
     if (pairs == "") return {};
     var result = {};
     pairs.forEach(function (pair) {
+      if (!pair) {
+        return;
+      }
+      if (pair.indexOf('=') === -1) {
+        if (!result[""]) {
+          result[""] = decodeURIComponent(pair);
+        }
+        return;
+      }
       // Split the pair on "=" to get key and value
       let keyValue = pair.split('=');
       let key = keyValue[0];
@@ -458,7 +505,7 @@ function getHashOnly() {
   })(window.location.hash.substr(1).split('&'));
 }
 
-// Avoids triggering hash change event. 
+// updateHash avoids triggering hash change event.
 // Also called by goHash, which does trigger hash change event.
 
 function updateHash(addToHash, addToExisting, removeFromHash) {
@@ -504,7 +551,15 @@ function updateHash(addToHash, addToExisting, removeFromHash) {
         }
     });
     
-    const hashString = decodeURIComponent(new URLSearchParams(flatHash).toString()); // decode to display commas and slashes in URL hash values
+    let standaloneHashKey = "";
+    if (typeof flatHash[""] !== "undefined" && flatHash[""] !== "") {
+      standaloneHashKey = decodeURIComponent(encodeURIComponent(String(flatHash[""])));
+      delete flatHash[""];
+    }
+    const hashParamString = decodeURIComponent(new URLSearchParams(flatHash).toString()); // decode to display commas and slashes in URL hash values
+    const hashString = standaloneHashKey
+      ? (hashParamString ? standaloneHashKey + "&" + hashParamString : standaloneHashKey)
+      : hashParamString;
     var pathname = window.location.pathname.replace(/\/\/+/g, '\/')
     var queryString = "";
     if (window.location.search) { // Existing, for parameters that are retained as hash changes.
@@ -545,10 +600,26 @@ function goHash(addToHash,removeFromHash) {
   const newHash = normalizeHash(window.location.hash);
   // Only trigger the event if the normalized hash actually changed
   if (currentHash !== newHash) {
-    consoleLog("goHash triggering hashChangeEvent\nOld hash: " + currentHash + "\nNew hash: " + newHash);
+    //console.log("goHash triggering hashChangeEvent\nOld hash: " + currentHash + "\nNew hash: " + newHash);
     triggerHashChangeEvent();
   } else {
     consoleLog("goHash NOT triggering hashChangeEvent - hash unchanged");
+  }
+}
+// Like goHash but uses replaceState so the change does not create a browser history entry.
+// Use when toggling UI state (e.g. opening a settings panel) so the user can press Back
+// without the panel reopening.
+function goHashNoHistory(addToHash,removeFromHash) {
+  consoleLog("goHashNoHistory\n" + JSON.stringify(addToHash, null, 2));
+  const currentHash = normalizeHash(window.location.hash);
+  isPopstateNavigation = true; // Causes updateHash to use replaceState instead of pushState
+  updateHash(addToHash,true,removeFromHash);
+  isPopstateNavigation = false;
+  const newHash = normalizeHash(window.location.hash);
+  if (currentHash !== newHash) {
+    triggerHashChangeEvent();
+  } else {
+    consoleLog("goHashNoHistory NOT triggering hashChangeEvent - hash unchanged");
   }
 }
 function go(addToHash) {
@@ -593,8 +664,9 @@ var isPopstateNavigation = false; // Flag to track if we're in a back/forward na
 // Triggers custom hashChangeEvent in multiple widgets.
 // Exception, React widgets use a different process.
 var triggerHashChangeEvent = function () {
+    syncDerivedHiddenhashFromHashOnly();
     // priorHash includes remaining values in hiddenhash (which originate from param values in page)
-    priorHash = structuredClone($.extend(true, {}, nextPriorHash));
+    priorHash = structuredClone(nextPriorHash || {});
     //alert("hiddenhash.geoview " + hiddenhash.geoview);
     //nextPriorHash = getHashOnly();
     nextPriorHash = getHash(); // Includes hiddenhash
@@ -604,6 +676,16 @@ var triggerHashChangeEvent = function () {
     // Dispatch the event
     document.dispatchEvent(event);
 };
+document.addEventListener('hashChangeEvent', syncHideWhenGeoviewFromHash, false);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    syncDerivedHiddenhashFromHashOnly();
+    syncHideWhenGeoviewFromHash();
+  });
+} else {
+  syncDerivedHiddenhashFromHashOnly();
+  syncHideWhenGeoviewFromHash();
+}
 
 // COMMON
 function loadScript(url, callback)
@@ -886,10 +968,15 @@ function loadLocalTemplate() {
       if (typeof relocatedScopeMenu != "undefined") {
         // DROPDOWN #selectScope was REMOVED  relocatedScopeMenu.appendChild(selectScope); // For apps hero
       }
-      waitForElm('#filterClickLocation').then((elm) => {
+      onElmReady('#filterClickLocation', function() {
         if (param.showstates != "false") {
             $("#geoviewSelectHolder").show();
-            $("#filterClickLocation").show(); // Show counties tab
+            // Only show counties tab if sub-selections exist
+            let hash = getHash();
+            let hideCountiesTab = (hash.geoview == "country" && !hash.state) || (hash.geoview == "state" && !hash.geo);
+            if (!hideCountiesTab) {
+                $("#filterClickLocation").show(); // Show counties tab
+            }
         }
         $("#mapFilters").prependTo("#main-content");
         // Move back up to top. Used when header.html loads search-filters later (when clicking search icon)
@@ -898,7 +985,7 @@ function loadLocalTemplate() {
         //$("#headerbar").prependTo("#main-container");
       });
       
-      waitForElm('#main-container').then((elm) => {
+      onElmReady('#main-container', function() {
         $("#main-header").insertBefore("#main-container");
 
         //$("#headerbaroffset").prependTo("#main-container");
@@ -944,14 +1031,14 @@ function hideHeaderBar() {
   $('.bothSideIcons').removeClass('sideIconsLower');
 }
 function showHeaderBar() {
-  waitForElm('#headerbar').then((elm) => {
+  onElmReady('#headerbar', function() {
     console.log("showHeaderBar")
-    //$('.headerOffset').show(); 
+    //$('.headerOffset').show();
     $('#headerbar').show();
     $('#headerbar').removeClass("headerbarhide");
     $('.bothSideIcons').addClass('sideIconsLower');
     $(".pagecolumn").addClass("pagecolumnLower"); // Didn't seem to be working
-    waitForElm('#main-nav').then((elm) => {
+    onElmReady('#main-nav', function() {
       $("#main-nav").addClass("pagecolumnLower");
     });
     if (param.shortheader != "true") {
@@ -1046,7 +1133,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           sitelook = param.sitelook;
         }
         if (sitelook == "light") {
-          removeElement(theroot + 'css/bootstrap.darkly.min.css');
+          ////removeElement(theroot + 'css/bootstrap.darkly.min.css');
           removeElement(theroot + '../explore/css/site-dark.css');
           //includeCSS3(theroot + 'css/light.css',theroot);
           if (typeof Cookies != 'undefined') {
@@ -1272,14 +1359,10 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         // but we trigger it explicitly to ensure it fires
         triggerHashChangeEvent();
 
-        // Temp for testing
         // Reset flag after a short delay to allow hash change handlers to complete
-        /*
         setTimeout(function() {
           isPopstateNavigation = false;
-          console.log("isPopstateNavigation reset to false");
         }, 100);
-        */
 
       });
       //MutationObserver.observe(hiddenhash, triggerHashChangeEvent);
@@ -1311,13 +1394,10 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       });
       $(document).on("click", ".showSearch", function(event) {
         showSearchFilter();
-        // Auto-close right navigation on narrow screens
-        if (window.innerWidth <= 1000) {
-            if (typeof goHash === 'function') {
-                goHash({'sidetab':''});
-            } else {
-                updateHash({"sidetab":""});
-            }
+        if (typeof goHash === 'function') {
+            goHash({'sidetab':''});
+        } else {
+            updateHash({"sidetab":""});
         }
       });
       
@@ -1460,7 +1540,14 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
     // This was inside FULL SITE above, but it is needed for menus embedded in external sites.
     !function() {
       // Setting up listener for font checking
-      var font = "1rem 'Material Icons'";
+      var font = "1rem 'Material Symbols Outlined'";
+      var canTrackFontLoad = !!(document.fonts && document.fonts.load);
+      function markMaterialIconsLoaded() {
+        document.documentElement.classList.add('material-icons-loaded');
+        if (typeof document.dispatchEvent === 'function') {
+          document.dispatchEvent(new CustomEvent('materialIconsLoaded'));
+        }
+      }
 
       // Not sure why we had this. It renders on load, and then again each time browser is resized.
       //document.fonts.addEventListener('loadingdone', function(event) {
@@ -1472,6 +1559,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           head = document.getElementsByTagName('head')[0];
 
       link.addEventListener('load', function() {
+          if (!canTrackFontLoad) {
+            markMaterialIconsLoaded();
+          }
           //alert('Font loaded');
           $(document).ready(function () {
             //$(".show-on-load").show(); // This might only get applied to first instance of class.
@@ -1493,7 +1583,16 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
           //body.appendChild(link); // Doesn't get appended. Error: body is not defined
         });
       } else {
+        if (document.fonts && document.fonts.check && document.fonts.check(font)) {
+          markMaterialIconsLoaded();
+        }
         console.log("link.id " + link.id);
+      }
+
+      if (canTrackFontLoad) {
+        document.fonts.load(font).then(function() {
+          markMaterialIconsLoaded();
+        }).catch(function() {});
       }
     }();
   }
@@ -1508,112 +1607,6 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       console.log('%cALERT: JQUERY NOT YET AVAILABLE! JQuery probably needs to be added to calling page.', 'color: red; background: yellow; font-size: 14px');    
     }
   }
-  
-
-  // NULLSCHOOL
-  $(document).on("click", "#earthClose", function(event) { // ZOOM IN
-    $("#nullschoolHeader").hide();
-    $("#hero_holder").show();
-    if (typeof goHash === "function") {
-      goHash({"geoview":""});
-    }
-    event.stopPropagation();
-  });
-  $(document).on("click", "#earthZoom .leaflet-control-zoom-in", function(event) { // ZOOM IN
-    zoomEarth(200);
-    event.stopPropagation();
-  });
-  $(document).on("click", "#earthZoom .leaflet-control-zoom-out", function(event) { // ZOOM IN
-    zoomEarth(-200);
-    event.stopPropagation();
-  });
-  function zoomEarth(zoomAmount) {
-    if (!localObject.earth) {
-      let earthSrc = document.getElementById("mainframe").src; // Only returns the initial cross-domain uri.
-      localObject.earth = getEarthObject(earthSrc.split('#')[1]);
-    }
-    // Add 100 to orthographic map zoom
-    let orthographic = localObject.earth.orthographic.split(",");
-    localObject.earth.orthographic = orthographic[0] + "," + orthographic[1] + "," + (+orthographic[2] + zoomAmount);
-    
-    /*
-    let theMonth = 6;
-    let theDay = 1;
-    let theHour = 0;
-
-    let monthStr = String(theMonth).padStart(2, '0');
-    let dayStr = String(theDay).padStart(2, '0');
-    let hourStr = String(theHour).padStart(2, '0');
-    $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
-    */
-
-    let earthUrl = "https://earth.nullschool.net/#";
-    if (localObject.earth.date) {
-      earthUrl += localObject.earth.date + "/" + localObject.earth.time + "/";
-    } else {
-      earthUrl += "current/";
-    }
-    earthUrl += localObject.earth.mode + "/overlay=" + localObject.earth.overlay + "/orthographic=" + localObject.earth.orthographic;
-    loadIframe("mainframe", earthUrl);
-    //loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-  }
-  function getEarthObject(url) {
-    console.log("map.js getEarthObject " + url);
-    if (url == undefined) {
-      console.log("BUG - getEarthObject url undefined");
-      return;
-    }
-    let urlPart = url.split('/');
-    let params = {};
-    if (urlPart.length > 6) { // URL contains date and time
-      params.date = urlPart[0] + "/" + urlPart[1] + "/" + urlPart[2];
-      params.time = urlPart[3];
-      params.mode = urlPart[4] + "/" + urlPart[5] + "/" + urlPart[6];
-    } else {
-      params.mode = urlPart[1] + "/" + urlPart[2] + "/" + urlPart[3];
-    }
-    for (let i = 4; i < urlPart.length; i++) {
-        if(!urlPart[i])
-            continue;
-        if (i==0 && urlPart[i].indexOf("=") == -1) {
-          params[""] = urlPart[i];  // Allows for initial # params without =.
-          continue;
-        }
-        let hashPair = urlPart[i].split('=');
-        params[decodeURIComponent(hashPair[0]).toLowerCase()] = decodeURIComponent(hashPair[1]);
-     }
-     return params;
-  }
-  function delay(time) {
-    return new Promise(resolve => setTimeout(resolve, time));
-  }
-  async function loopMap() {
-    await delay(200);
-    let theMonth = 6;
-    let theDay = 1;
-    let theHour = 0;
-    while (theDay <= 20) {
-      let monthStr = String(theMonth).padStart(2, '0');
-      let dayStr = String(theDay).padStart(2, '0');
-      let hourStr = String(theHour).padStart(2, '0');
-      $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " " + theHour + ":00 GMT (7 PM EST)");
-
-      loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/" + hourStr + "00Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-      await delay(1000);
-
-      $("#mapText").html("NO<sub>2</sub> - " + monthStr  + "/" + dayStr + "/2022 " + " 12:00 GMT (7 AM EST)");
-      loadIframe("mainframe","https://earth.nullschool.net/#2022/" + monthStr + "/" + dayStr + "/1200Z/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");  
-      await delay(1000);
-
-      theDay += 1;
-      //theHour += 2;   
-    }
-  }
-  $(document).ready(function () {
-    // Run animation - add a button for this
-    //loopMap();
-  });
-  // END NULLSCHOOL
 
 }, 10); // End block, could move to end of jQuery loadScript.
 
@@ -2017,13 +2010,58 @@ function extend () {
   return extended;
 };
 
+var _tabulatorReadyPromise = null;
 function loadTabulator() {
-  if (typeof Tabulator === 'undefined') {
-    includeCSS3(theroot + 'css/tabulator.min.css',theroot);
+  if (_tabulatorReadyPromise) {
+    return _tabulatorReadyPromise;
+  }
+  if (typeof Tabulator !== 'undefined') {
+    _tabulatorReadyPromise = Promise.resolve();
+    return _tabulatorReadyPromise;
+  }
+  _tabulatorReadyPromise = new Promise(function(resolve) {
+    var cssLoaded = false;
+    var jsLoaded = false;
+    function checkReady() {
+      if (cssLoaded && jsLoaded) {
+        resolve();
+      }
+    }
+    // Load CSS with onload detection
+    var cssUrl = theroot + 'css/tabulator.min.css';
+    var cssUrlID = getUrlID3(cssUrl);
+    var existingLink = document.getElementById(cssUrlID);
+    if (existingLink) {
+      cssLoaded = true;
+    } else {
+      var link = document.createElement('link');
+      link.id = cssUrlID;
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = cssUrl;
+      link.media = 'all';
+      link.onload = function() {
+        cssLoaded = true;
+        checkReady();
+      };
+      link.onerror = function() {
+        cssLoaded = true;
+        checkReady();
+      };
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
     includeCSS3(theroot + 'css/base-tabulator.css',theroot);
     // Be aware that including observablehq/runtime@4/dist/runtime.js in page breaks nav location filter's topojson and tabulator
-    loadScript(theroot + 'js/tabulator.min.js', function(results) {});
-  }
+    loadScript(theroot + 'js/tabulator.min.js', function(results) {
+      jsLoaded = true;
+      checkReady();
+    });
+    // If CSS was already loaded, just wait for JS
+    if (cssLoaded) {
+      checkReady();
+    }
+  });
+  return _tabulatorReadyPromise;
 }
 
 // Serialize a key/value object.
@@ -2164,6 +2202,12 @@ function showSearchFilter() {
     });
     $('html,body').scrollTop(0);
     loadFilters = true;
+    // template-main.html may still be loading; once its container arrives, load filter.html into it
+    waitForElm('#filterFieldsHolder').then(function() {
+      if (!document.getElementById('filterFieldContent')) {
+        $("#filterFieldsHolder").load(local_app.web_root() + "/localsite/map/filter.html");
+      }
+    });
   } else {
     let filterTop = $("#filterFieldsHolder").offset().top - window.pageYOffset;
     consoleLog("showSearchFilter #filterFieldsHolder offset top: " + filterTop);
@@ -2196,7 +2240,7 @@ function showSearchFilter() {
     //$('#datascape').prepend(expandIcon);
 
     if (loadFilters) {
-      waitForElm('#datascape #filterFieldContent').then((elm) => {
+      waitForElm('#filterFieldContent').then((elm) => {
         revealFilters();
       });
     }
@@ -2205,7 +2249,13 @@ function showSearchFilter() {
 }
 function closeSideTabs() {
   console.log("closeSideTabs()");
-  updateHash({"sidetab":""});
+  if (typeof goHashNoHistory === 'function') {
+    goHashNoHistory({'sidetab':''});
+  } else if (typeof goHash === 'function') {
+    goHash({'sidetab':''});
+  } else {
+    updateHash({"sidetab":""});
+  }
   $("#rightSideTabs").hide();
   $("body").removeClass("bodyRightMargin");
   if (!$('body').hasClass('bodyLeftMargin')) {
@@ -2224,28 +2274,48 @@ function revealFilters() {
   $('html,body').scrollTop(0);
 }
 function showGlobalMap(globalMap) { // Used by community/index.html, green-sah
-  $("#nullschoolHeader").show();
+  // If a page manages its own #mainframe outside #mainEarthDisplay, don't create a duplicate.
+  var existingFrame = document.getElementById('mainframe');
+  if (existingFrame && !$('#mainEarthDisplay').find('#mainframe').length) {
+    return;
+  }
 
-  if($("#globalMapHolder").length <= 1) {
-    //$("#globalMapHolder").html('<iframe src="https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
-    
+  $("#mainEarthDisplay").show();
+
+  if (!existingFrame) {
     // Two steps prevent loading error
     $("#globalMapHolder").html('<iframe src="" class="iframe" name="mainframe" id="mainframe"></iframe><div id="mapText" style="padding-left:20px"></div>');
-    
-    loadIframe("mainframe",globalMap);
-
-    // Chem Currents NO2 - Since Wind makes NO2 clouds hard to see
-    //loadIframe("mainframe","https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
-
   }
+
+  var _hashForMap = (typeof getHash === 'function') ? getHash() : {};
+  if (_hashForMap.earth) {
+    loadIframe("mainframe", 'https://earth.nullschool.net/#' + _hashForMap.earth);
+  } else if (_hashForMap['']) {
+    loadIframe("mainframe", 'https://earth.nullschool.net/#' + _hashForMap['']);
+  } else {
+    loadIframe("mainframe", globalMap);
+  }
+
+  includeCSS3(theroot + 'css/nouislider.min.css', '');
+  if (typeof window.setupGlobalMapSlider === 'function') {
+    window.setupGlobalMapSlider(globalMap);
+  } else {
+    loadScript(theroot + 'js/nouislider.min.js', function() {
+      waitForVariable('setupGlobalMapSlider', function() {
+        window.setupGlobalMapSlider(globalMap);
+      });
+    });
+  }
+  // Chem Currents NO2 - Since Wind makes NO2 clouds hard to see
+  //loadIframe("mainframe","https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
 }
 function loadIframe(iframeName, url) {  
   var $iframe = $('#' + iframeName);
   if ($iframe.length) {
       //alert("loadIframe" + url)
       $iframe.attr('src',url);
-      $("#nullschoolHeader #mainbucket").show();
-      $("#nullschoolHeader #earthZoom").show();
+      $("#mainEarthDisplay #mainbucket").show();
+      $(".earth-zoom-controls").show();
       return false;
   }
   return true;
@@ -2299,12 +2369,37 @@ function waitForVariable(variable, callback) { // Declare variable using var sin
 
 // TO DO: Optimize by checking just the nodes in the mutations
 // https://stackoverflow.com/questions/5525071/how-to-wait-until-an-element-exists
+function isSimpleClassSelector(selector) {
+  return (selector || "").match(/^\.[^\s>+~#.:[\],]+$/) !== null;
+}
+
+function isSimpleIdSelector(selector) {
+  return (selector || "").startsWith('#') && (selector || "").match(/^[#][^\s>+~.:[\],]+$/) !== null;
+}
+
+function waitForElmLookup(selector) {
+    const rawSelector = `${selector || ''}`.trim();
+    if (!rawSelector) return null;
+    if (isSimpleClassSelector(rawSelector)) {
+        return document.getElementsByClassName(rawSelector.slice(1))[0] || null;
+    }
+    if (isSimpleIdSelector(rawSelector)) {
+        return document.getElementById(rawSelector.slice(1));
+    }
+    try {
+        return document.querySelector(rawSelector);
+    } catch (error) {
+        const id = rawSelector.startsWith('#') ? rawSelector.slice(1) : rawSelector;
+        return document.getElementById(id);
+    }
+}
+
 function waitForElm(selector) {
+    const existingElement = waitForElmLookup(selector);
+    if (existingElement) {
+        return Promise.resolve(existingElement);
+    }
     return new Promise(resolve => {
-        if (document.querySelector(selector)) {
-            consoleLog("waitForElm found " + selector);
-            return resolve(document.querySelector(selector));
-        }
         if (document.body) {
           waitForElmKickoff(selector,resolve);
         } else {
@@ -2315,11 +2410,21 @@ function waitForElm(selector) {
         }
     });
 }
+
+function onElmReady(selector, callback) {
+  const existingElement = waitForElmLookup(selector);
+  if (existingElement) {
+    callback(existingElement);
+    return;
+  }
+  waitForElm(selector).then(callback);
+}
 function waitForElmKickoff(selector, resolve) {
-  consoleLog("waitForElm waiting for " + selector);
+  //consoleLog("waitForElm waiting for " + selector);
   const observer = new MutationObserver(mutations => {
-      if (document.querySelector(selector)) {
-          resolve(document.querySelector(selector));
+      const foundElement = waitForElmLookup(selector);
+      if (foundElement) {
+          resolve(foundElement);
           observer.disconnect();
       }
   });
@@ -2327,6 +2432,26 @@ function waitForElmKickoff(selector, resolve) {
   observer.observe(document.body, {
       childList: true, //This is a must have for the observer with subtree
       subtree: true //Set to true if changes must also be observed in descendants.
+  });
+}
+
+// Like waitForElm but waits for the element to have non-zero dimensions (layout complete).
+// Uses ResizeObserver to detect when the browser finishes layout for the element.
+function waitForLayout(elm) {
+  return new Promise(function(resolve) {
+    if (elm.offsetWidth > 0) {
+      consoleLog("waitForLayout: element already has width " + elm.offsetWidth);
+      return resolve(elm);
+    }
+    consoleLog("waitForLayout: waiting for element to get dimensions");
+    var observer = new ResizeObserver(function(entries) {
+      if (elm.offsetWidth > 0) {
+        observer.disconnect();
+        consoleLog("waitForLayout: element now has width " + elm.offsetWidth);
+        resolve(elm);
+      }
+    });
+    observer.observe(elm);
   });
 }
 
@@ -2557,7 +2682,43 @@ function formatBuckets(htmlText) {
   return tempDiv.innerHTML;
 }
 
+function addBrInSpans(html) {
+  // Remove <p> wrappers around standalone <span> elements at the top level.
+  // Because showdown wraps inline tags like <span> in <p>, unlike block tags like <div>.
+  html = html.replace(/<p>(\s*<span\b[^>]*>(?:(?!<\/span>)[\s\S])*<\/span>\s*)<\/p>/gi, '$1');
+
+  // simpleLineBreaks doesn't apply inside HTML elements, so add <br> for single newlines within <span> tags
+  return html.replace(/<span(\b[^>]*)>([\s\S]*?)<\/span>/gi, function(match, attrs, content) {
+    // Temporarily replace HTML comments to avoid affecting their contents
+    var comments = [];
+    content = content.replace(/<!--[\s\S]*?-->/g, function(comment) {
+      comments.push(comment);
+      return '\x00COMMENT' + (comments.length - 1) + '-->';
+    });
+    // Strip any <p> and </p> tags from span content.
+    // <span> is inline and cannot contain block-level <p> elements. When a multiline HTML
+    // comment interrupts a paragraph, showdown splits the span across paragraph boundaries,
+    // inserting stray </p> and <p> tags. The browser's innerHTML parser then auto-closes
+    // the span at the first block element, causing </span> to be lost.
+    content = content.replace(/<\/?p\b[^>]*>/gi, '');
+    // Add <br> for single newlines, but not after block/void elements or comment close.
+    // Temporarily normalize all <br> variants to a placeholder so the lookbehind catches
+    // them reliably regardless of form (<br>, <br/>, <br />), then restore afterward.
+    // This also preserves intentional <br><br> pairs — the placeholder-to-placeholder
+    // boundary still satisfies the lookbehind, so no extra <br> is inserted between them.
+    content = content.replace(/<br\s*\/?>/gi, '\x00BR\x00');
+    content = content.replace(/(?<=[^\n])(?<!<\/div>|<\/span>|<\/h1>|<\/h2>|<\/h3>|<\/h4>|<\/h5>|<\/h6>|\x00BR\x00|-->)\n(?=[^\n])/g, '<br>\n');
+    content = content.replace(/\x00BR\x00/g, '<br>');
+    // Restore HTML comments
+    content = content.replace(/\x00COMMENT(\d+)-->/g, function(m, i) {
+      return comments[parseInt(i)];
+    });
+    return '<span' + attrs + '>' + content + '</span>';
+  });
+}
+
 function loadMarkdown(pagePath, divID, target, attempts, callback) {
+  // Include markdown="1" on div tags to process <div> content as markdown.
   if (typeof attempts === 'undefined') {
     attempts = 1;
   }
@@ -2567,11 +2728,13 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
   loadScript(theroot + 'js/showdown.min.js', function(results) {
 
   if (typeof customD3loaded !== 'undefined' && typeof showdownLoaded !== 'undefined') { // Ready
-  } else if (attempts < 300) { // Wait and try again
+  } else if (attempts < 100) { // Wait and try again
+    if (attempts % 20 === 0) { // Every 2 seconds (20 * 100ms)
+      console.warn("loadMarkdown waiting for scripts (" + (attempts / 10) + "s): customD3loaded=" + (typeof customD3loaded !== 'undefined') + ", showdownLoaded=" + (typeof showdownLoaded !== 'undefined'));
+    }
     setTimeout( function() {
-      //consoleLog("try loadMarkdown again")
       loadMarkdown(pagePath, divID, target, attempts+1, callback);
-    }, 30 );
+    }, 100 );
     return;
   } else {
     consoleLog("ERROR: loadMarkdown exceeded " + attempts + " attempts.");
@@ -2648,6 +2811,7 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
 
       var converter = new showdown.Converter({tables:true, metadata:true, simpleLineBreaks: true}),
       html = editReadme + converter.makeHtml(data);
+      html = addBrInSpans(html);
 
       var metadata = converter.getMetadata(true); // returns a string with the raw metadata
       var metadataFormat = converter.getMetadataFormat(); // returns the format of the metadata
@@ -2680,6 +2844,7 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
 
       // Appends rather than overwrites
       loadIntoDiv(pageFolder,divID,html, function() {
+        _attachMarkdownEditMenu(pagePath, divID);
         // Call the main callback after loadIntoDiv finishes
         if (typeof callback === 'function') {
           //alert("valid") // BUGBUG Not reaching
@@ -2745,19 +2910,22 @@ function loadIntoDiv(pageFolder,divID,html,callback) {
     */
 
     links.forEach(function(currentElement) {
-      // Check if the link is a relative link
-      if (currentElement.getAttribute("href").toLowerCase().indexOf("http") < 0) {
-        // Update the href attribute with the pageFolder
-        currentElement.setAttribute("href", pageFolder + currentElement.getAttribute('href'));
-        //console.log("Showdown link update: " + pageFolder + " plus " + currentElement.getAttribute('href'));
+      var href = currentElement.getAttribute("href");
+      // Skip absolute URLs, root-relative paths, and in-page hash links
+      if (/^http/i.test(href) || href.startsWith('/') || href.startsWith('#')) {
+        return;
       }
-      // Check if the link is not a full URL
-      else if (!/^http/.test(currentElement.getAttribute("href"))) {
-        console.log("ALERT Adjust: " + currentElement.getAttribute('href'));
-        // Update the href attribute with the pageFolder
-        currentElement.setAttribute("href", pageFolder + currentElement.getAttribute('href'));
-        //console.log("Showdown link update2: " + pageFolder + " plus " + currentElement.getAttribute('href'));
+      currentElement.setAttribute("href", pageFolder + href);
+    });
+
+    // Update relative image src attributes to be relative to the markdown file's folder
+    let images = element.querySelectorAll('img[src]');
+    images.forEach(function(currentElement) {
+      var src = currentElement.getAttribute("src");
+      if (/^http/i.test(src) || src.startsWith('/') || src.startsWith('data:')) {
+        return;
       }
+      currentElement.setAttribute("src", pageFolder + src);
     });
 
 
@@ -2993,24 +3161,250 @@ function loadUse(use) {
 
 // End: explore/js/embed.js
 
+function defaultModelsiteOptions() {
+    return [
+        { value: "tools", label: "PartnerTools" },
+        { value: "model.earth", label: "Model Earth", selected: true }
+    ];
+}
+
+function parseYamlScalar(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+    let parsed = String(value).trim();
+    if (
+        (parsed.startsWith('"') && parsed.endsWith('"')) ||
+        (parsed.startsWith("'") && parsed.endsWith("'"))
+    ) {
+        parsed = parsed.slice(1, -1);
+    }
+    if (/^(true|false)$/i.test(parsed)) {
+        return parsed.toLowerCase() === "true";
+    }
+    return parsed;
+}
+
+function parseModelsiteYaml(yamlText) {
+    const options = [];
+    const lines = yamlText.split(/\r?\n/);
+    let current = null;
+
+    function pushCurrent() {
+        if (!current) {
+            return;
+        }
+        if (!current.value || !current.label) {
+            current = null;
+            return;
+        }
+        options.push(current);
+        current = null;
+    }
+
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        if (!trimmed || trimmed.startsWith("#")) {
+            continue;
+        }
+        if (trimmed === "modelsites:" || trimmed === "sites:") {
+            continue;
+        }
+
+        const listStart = line.match(/^\s*-\s*(.*)$/);
+        if (listStart) {
+            pushCurrent();
+            current = {};
+            const inline = listStart[1].trim();
+            if (inline) {
+                const inlinePair = inline.match(/^([A-Za-z0-9_-]+)\s*:\s*(.+)$/);
+                if (inlinePair) {
+                    current[inlinePair[1]] = parseYamlScalar(inlinePair[2]);
+                }
+            }
+            continue;
+        }
+
+        const pair = line.match(/^\s*([A-Za-z0-9_-]+)\s*:\s*(.+)\s*$/);
+        if (pair && current) {
+            current[pair[1]] = parseYamlScalar(pair[2]);
+        }
+    }
+    pushCurrent();
+    return options;
+}
+
+function renderModelsiteOptions(selectElm, options) {
+    if (!selectElm) {
+        return;
+    }
+    selectElm.innerHTML = "";
+    for (let i = 0; i < options.length; i += 1) {
+        const config = options[i];
+        if (!config || !config.value || !config.label) {
+            continue;
+        }
+        const optionElm = document.createElement("option");
+        optionElm.value = String(config.value);
+        optionElm.textContent = String(config.label);
+        if (config.class) {
+            optionElm.className = String(config.class);
+        }
+        if (config.style) {
+            optionElm.style.cssText = String(config.style);
+        }
+        if (!isCurrentHostLocalhost() && config.class && String(config.class).split(/\s+/).includes("local")) {
+            optionElm.style.display = "none";
+        }
+        if (config.selected === true || String(config.selected).toLowerCase() === "true") {
+            optionElm.selected = true;
+        }
+        selectElm.appendChild(optionElm);
+    }
+}
+
+async function loadModelsiteOptions() {
+    if (typeof window.loadWebrootYaml === 'function') {
+        const config = await window.loadWebrootYaml();
+        const ids = Object.keys(config.sites || {});
+        if (ids.length) {
+            return ids.map(function(id) {
+                var site = config.sites[id];
+                return { value: id, label: site.title || id, selected: id === config.default, class: site.visibility || '' };
+            });
+        }
+    }
+    return defaultModelsiteOptions();
+}
+
+function setupModelsiteSelect() {
+    waitForElm("#modelsite").then(async function(selectElm) {
+        const options = await loadModelsiteOptions();
+        renderModelsiteOptions(selectElm, options);
+
+        let selectedValue = "";
+        if (typeof Cookies !== "undefined" && Cookies.get("modelsite")) {
+            selectedValue = Cookies.get("modelsite");
+        }
+        if (!selectedValue) {
+            const selectedOption = options.find(function(option) {
+                return option && (option.selected === true || String(option.selected).toLowerCase() === "true");
+            });
+            if (selectedOption && selectedOption.value) {
+                selectedValue = String(selectedOption.value);
+            }
+        }
+        if (!selectedValue && options.length) {
+            selectedValue = String(options[0].value);
+        }
+        if (selectedValue) {
+            const hasMatch = Array.from(selectElm.options).some(function(optionElm) {
+                return optionElm.value === selectedValue;
+            });
+            if (hasMatch) {
+                selectElm.value = selectedValue;
+            }
+        }
+    });
+}
+
+function isCurrentHostLocalhost() {
+    return window.location
+        && (window.location.hostname == 'localhost' || window.location.hostname == '127.0.0.1');
+}
+function getAccesslocalCookieValue() {
+    if (typeof Cookies == 'undefined') {
+        return "";
+    }
+    return Cookies.get('accesslocal') || "";
+}
+function getAccesslocalSetting() {
+    const accesslocal = getAccesslocalCookieValue();
+    if (accesslocal == "true" || accesslocal == "enabled") {
+        return "enabled";
+    }
+    if (accesslocal == "false" || accesslocal == "block") {
+        return "block";
+    }
+    if (accesslocal == "install") {
+        return "install";
+    }
+    return "";
+}
+function syncAccesslocalControl() {
+    const accesslocalElement = document.getElementById("accesslocal");
+    if (accesslocalElement) {
+        accesslocalElement.value = getAccesslocalSetting();
+    }
+}
+function updateAccesslocalVisibility(devmode) {
+    const accesslocalHolder = document.getElementById("accesslocalHolder");
+    if (!accesslocalHolder) {
+        return;
+    }
+    // We avoid showing the accesslocal menu when already on localhost.
+    accesslocalHolder.style.display = (!isCurrentHostLocalhost() && devmode == "dev") ? "" : "none";
+}
+window.shouldAccessLocalhost = function() {
+    const accesslocal = getAccesslocalSetting();
+    if (accesslocal == "enabled") {
+        return true;
+    }
+    if (accesslocal == "block") {
+        return false;
+    }
+    return isCurrentHostLocalhost();
+};
+function setAccesslocal(accesslocal) {
+    if (typeof Cookies != 'undefined') {
+        if (accesslocal == "enabled") {
+            Cookies.set('accesslocal', 'enabled');
+        } else if (accesslocal == "block") {
+            Cookies.set('accesslocal', 'block');
+        } else {
+            Cookies.remove('accesslocal');
+        }
+    }
+    syncAccesslocalControl();
+    document.dispatchEvent(new CustomEvent('accesslocalChanged', {
+        detail: {
+            value: accesslocal,
+            setting: getAccesslocalSetting()
+        }
+    }));
+    if (accesslocal == "install") {
+        window.location = "/team/setup";
+    }
+}
+
 // Copied from setting.js initElements()
 function initSitelook() {
-    let sitemode;
     let sitesource;
     let sitelook;
+    let stylelook;
     let devmode;
     let onlinemode;
     let globecenter;
     let modelsite;
     let gitrepo;
 
+    if (typeof populateStylelookSelect === 'function') {
+        populateStylelookSelect(document.getElementById("stylelook"), 'settings');
+    }
+
     if(typeof Cookies != 'undefined') {
         if (Cookies.get('sitelook')) {
           $("#sitelook").val(Cookies.get('sitelook'));
           sitelook = Cookies.get('sitelook');
         }
-        if (Cookies.get('sitemode')) {
-            $(".sitemode").val(Cookies.get('sitemode'));
+        if (Cookies.get('stylelook')) {
+            $("#stylelook").val(Cookies.get('stylelook'));
+            stylelook = Cookies.get('stylelook');
+        }
+        if (Cookies.get('accesslocal')) {
+            syncAccesslocalControl();
         }
         if (Cookies.get('sitesource')) {
             $("#sitesource").val(Cookies.get('sitesource'));
@@ -3041,14 +3435,31 @@ function initSitelook() {
         }
     }
     if (param["sitelook"]) { // From URL
-        sitelook = param["sitelook"]; 
+        sitelook = param["sitelook"];
     }
+    if (param["style"] !== undefined) { // From URL
+        stylelook = param["style"];
+        $("#stylelook").val(stylelook || "base");
+        if (typeof Cookies != 'undefined') {
+            Cookies.set('stylelook', stylelook || "base");
+        }
+    }
+    if (param["modelsite"]) { // From page param - set cookie so navigation to other pages uses same modelsite
+        modelsite = param["modelsite"];
+        $("#modelsite").val(modelsite);
+        if (typeof Cookies != 'undefined') {
+            Cookies.set('modelsite', modelsite);
+        }
+    }
+    syncAccesslocalControl();
     setSitelook(sitelook);
+    setStylelook(stylelook);
     setDevmode(devmode);
     setModelsite(modelsite);
     setGitrepo(modelsite);
     setOnlinemode(onlinemode);
     setGlobecenter(globecenter);
+    setupModelsiteSelect();
     if (localStorage.email) {
       $("#input123").val(localStorage.email);
       $(".uIn").hide();$(".uOut").show();
@@ -3080,6 +3491,108 @@ waitForBody(applyColorSchemeClass);
 
 function setSitemode(sitemode) {
   // Not copied over from settings.js
+}
+const localStylelookThemes = ['notion', 'claude', 'openai', 'codex', 'grok', 'xai', 'georgia'];
+const cvStylelookThemes = [
+  'creative-studio',
+  'data-driven',
+  'elegant',
+  'executive-slate',
+  'kendall',
+  'macchiato',
+  'minimalist',
+  'modern-classic',
+  'onepage',
+  'professional',
+  'pumpkin',
+  'striking'
+];
+function normalizeStylelookValue(styleLook) {
+    return styleLook;
+}
+function getStylelookThemeUrl(styleLook) {
+    styleLook = normalizeStylelookValue(styleLook);
+    if (!styleLook || styleLook == "base") {
+      return "";
+    }
+    if (localStylelookThemes.includes(styleLook)) {
+      return local_app.web_root() + '/cms/themes/' + encodeURIComponent(styleLook) + '.css';
+    }
+    if (cvStylelookThemes.includes(styleLook)) {
+      const cvThemeRoot = (location.host.indexOf('localhost') >= 0 || location.host.indexOf('127.0.0.1') >= 0)
+        ? local_app.web_root()
+        : 'https://model.earth';
+      return cvThemeRoot + '/cv/common/themes/' + encodeURIComponent(styleLook) + '/style.css';
+    }
+    return "";
+}
+function pageHasStylesheet(url) {
+    if (!url) {
+      return false;
+    }
+    let targetUrl;
+    try {
+      targetUrl = new URL(url, window.location.href).href;
+    } catch (err) {
+      return false;
+    }
+    return Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(function(link) {
+      if (link.id == "stylelookThemeStylesheet") {
+        return false;
+      }
+      try {
+        return link.href && new URL(link.href, window.location.href).href == targetUrl;
+      } catch (err) {
+        return false;
+      }
+    });
+}
+function setStylelook(styleLook) {
+    if (!document.body) {
+      return;
+    }
+    styleLook = normalizeStylelookValue(styleLook);
+    if (styleLook == "base") {
+      styleLook = "";
+    }
+    if (!styleLook) {
+      styleLook = "";
+    }
+
+    const stylelookElement = document.getElementById("stylelook");
+    if (stylelookElement) {
+        stylelookElement.value = styleLook || "base";
+        if (stylelookElement.value !== (styleLook || "base")) {
+            stylelookElement.value = "base";
+        }
+    }
+
+    document.body.classList.remove(...localStylelookThemes, 'cv-theme');
+
+    let themeUrl = getStylelookThemeUrl(styleLook);
+    if (localStylelookThemes.includes(styleLook)) {
+      document.body.classList.add(styleLook);
+    } else if (cvStylelookThemes.includes(styleLook)) {
+      document.body.classList.add('cv-theme');
+    }
+
+    let themeLink = document.getElementById("stylelookThemeStylesheet");
+    if (!themeUrl || pageHasStylesheet(themeUrl)) {
+      if (themeLink) {
+        themeLink.parentNode.removeChild(themeLink);
+      }
+      return;
+    }
+
+    if (!themeLink) {
+      themeLink = document.createElement('link');
+      themeLink.id = "stylelookThemeStylesheet";
+      themeLink.rel = 'stylesheet';
+      themeLink.type = 'text/css';
+      themeLink.media = 'all';
+      document.getElementsByTagName('head')[0].appendChild(themeLink);
+    }
+    themeLink.href = themeUrl;
 }
 function setSitelook(siteLook) {
     //let root = "/explore/"; // TEMP
@@ -3116,7 +3629,7 @@ function setSitelook(siteLook) {
         //toggleVideo("show","nochange");
         document.body.classList.add("dark");
         //removeElement('/localsite/css/light.css');
-        includeCSS3(theroot + 'css/bootstrap.darkly.min.css');
+        ////includeCSS3(theroot + 'css/bootstrap.darkly.min.css');
   
         // Move search text elements
         const searchTextHolder = document.querySelector('.searchTextHolder');
@@ -3126,10 +3639,10 @@ function setSitelook(siteLook) {
         }
     } else if (siteLook == "default") {
         document.body.classList.remove("dark");
-        removeElement(theroot + 'css/bootstrap.darkly.min.css');
+        ////removeElement(theroot + 'css/bootstrap.darkly.min.css');
     } else { // Light
         document.body.classList.remove("dark");
-        removeElement(theroot + 'css/bootstrap.darkly.min.css');
+        ////removeElement(theroot + 'css/bootstrap.darkly.min.css');
         //const sitebasemapElements = document.querySelectorAll('.sitebasemap');
         //sitebasemapElements.forEach(element => {
         //    element.value = "positron_light_nolabels";
@@ -3138,13 +3651,14 @@ function setSitelook(siteLook) {
     }
 }
 function setDevmode(devmode) {
+  const devCssUrl = theroot + 'css/dev.css';
   if (devmode == "dev") {
     //includeCSS3(local_app.localsite_root() + 'css/dev.css');
-    includeCSS3(theroot + 'css/dev.css');
+    includeCSS3(devCssUrl);
   } else {
-    //removeElement('/localsite/css/dev.css');
-    removeElement(theroot + 'css/dev.css');
+    removeElement(getUrlID3(devCssUrl, theroot));
   }
+  updateAccesslocalVisibility(devmode);
 }
 function setOnlinemode(onlinemode) {
   if (onlinemode == "true") {
@@ -3172,21 +3686,24 @@ function setGlobecenter(globecenter, promptForCurrentPosition) {
   }
   //alert("Lat: " + $("#globeLongitude").val());
 
-  // Limit to when nullschool already visible.
-  if ($('#nullschoolHeader').is(':visible')) {
+  // Limit to when nullschool already visible and no incoming hash earth value.
+  if ($('#mainEarthDisplay').is(':visible')) {
     if ($("#globeLatitude").val() && $("#globeLongitude").val()) {
-        // Add latlon validation
-        let globeZoom = "800"; // "1037";
+        var _hashCheck = (typeof getHash === 'function') ? getHash() : {};
+        if (!_hashCheck.earth && !_hashCheck['']) {
+          // Add latlon validation
+          let globeZoom = "800"; // "1037";
 
-        // Move these into dropdown attributes
-        if ($("#globeLongitude").val() == "-160") {
-          globeZoom = "300"; // For Pacific
-        } else if ($("#globeLongitude").val() == "80") {
-          globeZoom = "600"; // For India
+          // Move these into dropdown attributes
+          if ($("#globeLongitude").val() == "-160") {
+            globeZoom = "300"; // For Pacific
+          } else if ($("#globeLongitude").val() == "80") {
+            globeZoom = "600"; // For India
+          }
+
+          let latLonZoom = $("#globeLongitude").val() + "," + $("#globeLatitude").val() + "," + globeZoom;
+          showGlobalMap(`https://earth.nullschool.net/#current/wind/surface/level/orthographic=${latLonZoom}`);
         }
-
-        let latLonZoom = $("#globeLongitude").val() + "," + $("#globeLatitude").val() + "," + globeZoom;
-        showGlobalMap(`https://earth.nullschool.net/#current/wind/surface/level/orthographic=${latLonZoom}`);
     }
   }
 }
@@ -3209,10 +3726,23 @@ function geoSuccess(pos) {
 }
 
 function setModelsite(modelsite) {
-  if (modelsite != "") {
-    console.log("setModelsite() is not currently used.");
-    // Avoid calling refresh here since runs when page loads.
+  const nextModelsite = (typeof modelsite === 'string' && modelsite) ? modelsite : "";
+  const priorModelsite = (typeof window !== 'undefined' && typeof window.modelsiteUniversal === 'string')
+    ? window.modelsiteUniversal
+    : modelsiteUniversal;
+
+  modelsiteUniversal = nextModelsite;
+  if (typeof window !== 'undefined') {
+    window.modelsiteUniversal = nextModelsite;
   }
+
+  if (typeof document !== 'undefined' && priorModelsite !== nextModelsite) {
+    document.dispatchEvent(new CustomEvent('modelsiteChanged', {
+      detail: { modelsite: nextModelsite }
+    }));
+  }
+
+  return nextModelsite;
 }
 function setGitrepo(gitrepo) {
   if (gitrepo != "") {
@@ -3452,7 +3982,9 @@ addEventListener("load", function(){
     return null;
   };
   document.querySelector("body").addEventListener('click', function(e) {
-    $(".hideOnBodyClick").hide();
+    document.querySelectorAll(".hideOnBodyClick").forEach(function(el) {
+      el.style.display = "none";
+    });
     var anchor = getParentAnchor(e.target);
     if(anchor !== null) {
       //$('#log_display').hide();
@@ -3617,7 +4149,7 @@ function formatCell(input, format) {
         }
         // Show up to 15 decimal places, removing trailing zeros
         let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
-        console.log('Small positive formatting:', input, '->', formatted);
+        //console.log('Small positive formatting:', input, '->', formatted);
         return formatted === '' ? '0' : formatted;
     } else if (input === 0) {
         return '0';
@@ -3674,105 +4206,6 @@ function formatCell(input, format) {
 //console.log(formatCell(99.99, 'easy') + " - BUG, let's avoid adding .0 when rounding");        // Output: "100.0" - 
 //console.log(formatCell(0.0005, 'easy'));      // Output: "5.0e-4"
 // console.log(formatCell(45000000, 'scientific')); // Output: "4.5e+7"
-
-function formatCellX(input, format) {
-    // If format is none or blank, return input as it is.
-    if (format === 'none' || format === '' || input === '') {
-        return ''
-    }
-    input = parseFloat(input); // Convert input to a number
-    // Format as scientific notation
-    if (format === 'scientific') {
-        return input.toExponential(1);
-    }
-
-    // Format as easy
-    if (input >= 1e12) {
-        // Round to billions
-        return (input / 1e12).toFixed(3) + ' Trillion';
-    } else if (input >= 1e9) {
-        // Round to billions
-        return (input / 1e9).toFixed(1) + ' Billion';
-    } else if (input >= 1e6) {
-        // Round to millions
-        return (input / 1e6).toFixed(1) + ' Million';
-    } else if (input >= 1000) {
-        // Round to thousands
-        return (input / 1000).toFixed(1) + ' K';
-    } else if (input >= 1) {
-        // Round to one decimal. Remove .0
-        //console.log("input:" + input + "-")
-        return input.toFixed(1).replace(/\.0$/, '');
-    } else if (input > 0) {
-        // Small positive values - for very small numbers, use named suffixes
-        if (input <= 1e-33) { // decillionth or less
-            return (input / 1e-33).toFixed(3) + ' Decillionth';
-        } else if (input <= 1e-30) { // nonillionth or less
-            return (input / 1e-30).toFixed(3) + ' Nonillionth';
-        } else if (input <= 1e-27) { // octillionth or less
-            return (input / 1e-27).toFixed(3) + ' Octillionth';
-        } else if (input <= 1e-24) { // septillionth or less
-            return (input / 1e-24).toFixed(3) + ' Septillionth';
-        } else if (input <= 1e-21) { // sextillionth or less
-            return (input / 1e-21).toFixed(3) + ' Sextillionth';
-        } else if (input <= 1e-18) { // quintillionth or less
-            return (input / 1e-18).toFixed(3) + ' Quintillionth';
-        } else if (input <= 1e-15) { // quadrillionth or less
-            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
-        } else if (input <= 1e-12) { // trillionth or less
-            return (input / 1e-12).toFixed(3) + ' Trillionth';
-        } else if (input <= 1e-9) { // billionth or less
-            return (input / 1e-9).toFixed(3) + ' Billionth';
-        } else if (input <= 1e-6) { // millionth or less
-            return (input / 1e-6).toFixed(3) + ' Millionth';
-        }
-        // Show up to 15 decimal places, removing trailing zeros
-        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
-        return formatted === '' ? '0' : formatted;
-    } else if (input === 0) {
-        return '0';
-    } else if (input <= -1e12) {
-        return (input / 1e12).toFixed(3) + ' Trillion';
-    } else if (input <= -1e9) {
-        return (input / 1e9).toFixed(1) + ' Billion';
-    } else if (input <= -1e6) {
-        return (input / 1e6).toFixed(1) + ' Million';
-    } else if (input <= -1000) {
-        return (input / 1e3).toFixed(1) + ' K';
-    } else if (input <= -1) {
-        // Round to one decimal. Remove .0
-        return input.toFixed(1).replace(/\.0$/, '');
-    } else if (input < 0) {
-        // Small negative values - for very small numbers, use named suffixes
-        if (input <= -1e-33) { // decillionth or less
-            return (input / 1e-33).toFixed(3) + ' Decillionth';
-        } else if (input <= -1e-30) { // nonillionth or less
-            return (input / 1e-30).toFixed(3) + ' Nonillionth';
-        } else if (input <= -1e-27) { // octillionth or less
-            return (input / 1e-27).toFixed(3) + ' Octillionth';
-        } else if (input <= -1e-24) { // septillionth or less
-            return (input / 1e-24).toFixed(3) + ' Septillionth';
-        } else if (input <= -1e-21) { // sextillionth or less
-            return (input / 1e-21).toFixed(3) + ' Sextillionth';
-        } else if (input <= -1e-18) { // quintillionth or less
-            return (input / 1e-18).toFixed(3) + ' Quintillionth';
-        } else if (input <= -1e-15) { // quadrillionth or less
-            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
-        } else if (input <= -1e-12) { // trillionth or less
-            return (input / 1e-12).toFixed(3) + ' Trillionth';
-        } else if (input <= -1e-9) { // billionth or less
-            return (input / 1e-9).toFixed(3) + ' Billionth';
-        } else if (input <= -1e-6) { // millionth or less
-            return (input / 1e-6).toFixed(3) + ' Millionth';
-        }
-        // Show up to 15 decimal places, removing trailing zeros
-        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
-        return formatted === '' || formatted === '-' ? '0' : formatted;
-    } else {
-        // Fallback for any edge cases
-        return input.toExponential(1);
-    }
-}
 
 // AnythingLLM left side navigation header adjustment
 // Monitors header visibility and adjusts top positioning while keeping content within flexMain
@@ -3871,27 +4304,30 @@ function showAuthModal() {
  * @param {string} datasourcePath - Path for datasource insights link (optional)
  * @returns {Array} Array of menu item objects
  */
-function buildMenuConfig(panelType, panelId, datasourcePath = '') {
+function buildMenuConfig(panelType, panelId, datasourcePath = '', panelLabel = '') {
   const menuItems = [];
+  const effectivePanelLabel = panelLabel || panelType;
 
   // Expand/Collapse item (label updated dynamically)
   menuItems.push({
-    label: `Expand ${panelType}`,
+    label: `Expand ${effectivePanelLabel}`,
     action: 'expand',
     icon: 'open_in_full'
   });
 
   // Hide item
   menuItems.push({
-    label: `Hide ${panelType}`,
+    label: `Hide ${effectivePanelLabel}`,
     action: 'hide',
     icon: 'visibility_off'
   });
 
   // Panel-specific items
   if (panelType === 'Content') {
-    // Add separator then all existing filter menu items
+    // Put close action at top, followed by a separator
+    menuItems.push({ label: 'Close Map View', action: 'closemapview', icon: '', display: 'none', class: 'filterFieldMenuClose' });
     menuItems.push({ divider: true });
+    // Then all existing filter menu items
     menuItems.push({ label: 'Earth', action: 'earth', icon: '', hasCheck: true });
     menuItems.push({ label: 'Countries', action: 'countries', icon: '', hasCheck: true });
     menuItems.push({ label: 'States', action: 'state', icon: '', hasCheck: true });
@@ -3900,7 +4336,6 @@ function buildMenuConfig(panelType, panelId, datasourcePath = '') {
     menuItems.push({ divider: true });
     menuItems.push({ label: 'About Filters', action: 'aboutfilters', icon: '', isLink: true });
     menuItems.push({ label: 'Hide Filter Bar', action: 'hidefilters', icon: '' });
-    menuItems.push({ label: 'Close Map View', action: 'closemapview', icon: '', display: 'none', class: 'filterFieldMenuClose' });
     menuItems.push({ label: 'Close App View', action: 'closeappview', icon: '', display: 'none', class: 'filterFieldMenuClose' });
   } else if (panelType === 'List') {
     // Add separator then Inspect and List Insights
@@ -3919,7 +4354,7 @@ function buildMenuConfig(panelType, panelId, datasourcePath = '') {
       display: 'none',
       class: 'local'
     });
-  } else if (panelType === 'View') {
+  } else if (panelType === 'View' || panelType === 'Details') {
     // Add Start Tour first
     menuItems.unshift({
       label: 'Start Tour',
@@ -3987,6 +4422,27 @@ function refreshPanelToggleIcon(holderId, panelId) {
 
   const isMenuVisible = menu.style.display !== 'none';
   setPanelToggleIcon(holderId, isMenuVisible ? 'arrow_drop_down_circle' : 'arrow_right');
+}
+
+/**
+ * Gets panel menu options for a panel ID
+ * @param {string} panelId - ID of the panel element
+ * @returns {Object} Panel menu options
+ */
+function getPanelMenuOptions(panelId) {
+  if (!window.panelMenuOptions) return {};
+  return window.panelMenuOptions[panelId] || {};
+}
+
+/**
+ * Gets panel label for menu text
+ * @param {string} panelId - ID of the panel element
+ * @param {string} panelType - Type of panel (Content, List, Map)
+ * @returns {string} Panel label for text
+ */
+function getPanelLabel(panelId, panelType) {
+  const options = getPanelMenuOptions(panelId);
+  return options.panelLabel || panelType;
 }
 
 /**
@@ -4080,7 +4536,7 @@ function toggleSiblingPanels(panelId, isExpanding) {
         else if (siblingId.includes('Gallery')) siblingType = 'Content';
 
         updateMenuLabels(siblingId + 'Menu', siblingId, siblingType);
-        refreshPanelToggleIcon(siblingId + 'MenuToggleHolder', siblingId);
+        refreshPanelToggleIcon(siblingId + 'MenuControl', siblingId);
       }
     }, 100);
   });
@@ -4096,14 +4552,23 @@ function updateMenuLabels(menuId, panelId, panelType) {
   const menu = document.getElementById(menuId);
   const panel = document.getElementById(panelId);
   if (!menu || !panel) return;
+  const panelLabel = getPanelLabel(panelId, panelType);
+  const menuOptions = getPanelMenuOptions(panelId);
+  const expandBehavior = menuOptions.expandBehavior || (panelType === 'View' ? 'fullscreen' : 'hero');
 
   // Check if panel is in hero container (expanded) or fullscreen mode
   let isExpanded = panel.dataset && panel.dataset.menuExpanded === 'true' ? true : false;
 
-  if (panelType === 'View') {
-    // For View type, check if in fullscreen mode (body has fullscreenMode class or similar)
-    isExpanded = document.body.classList.contains('fullscreenMode') ||
-                 document.documentElement.classList.contains('fullscreenMode');
+  if (typeof menuOptions.isExpanded === 'function') {
+    isExpanded = !!menuOptions.isExpanded(panel, panelId, panelType);
+  } else if (expandBehavior === 'fullscreen') {
+    // For fullscreen-style panels, use fullscreen state and fullscreen button visibility.
+    const reduceBtn = document.querySelector('.reduceFromFullscreen');
+    const reduceBtnVisible = !!(reduceBtn && getComputedStyle(reduceBtn).display !== 'none');
+    isExpanded = !!document.fullscreenElement ||
+                 document.body.classList.contains('fullscreenMode') ||
+                 document.documentElement.classList.contains('fullscreenMode') ||
+                 reduceBtnVisible;
   } else {
     // Generic approach: check if panel has been moved from its original parent
     const myparent = panel.getAttribute('myparent');
@@ -4129,7 +4594,7 @@ function updateMenuLabels(menuId, panelId, panelType) {
     if (isExpanded) {
       expandItem.childNodes.forEach(node => {
         if (node.nodeType === 3) { // Text node
-          node.textContent = `Collapse ${panelType}`;
+          node.textContent = `Collapse ${panelLabel}`;
         }
       });
       if (iconElement) iconElement.textContent = 'close_fullscreen';
@@ -4137,7 +4602,7 @@ function updateMenuLabels(menuId, panelId, panelType) {
     } else {
       expandItem.childNodes.forEach(node => {
         if (node.nodeType === 3) { // Text node
-          node.textContent = `Expand ${panelType}`;
+          node.textContent = `Expand ${panelLabel}`;
         }
       });
       if (iconElement) iconElement.textContent = 'open_in_full';
@@ -4174,11 +4639,24 @@ function toggleTour(panelId) {
  * @param {boolean} isReload - Whether this is a reload/resume from hash
  */
 function startTour(panelId, isReload = false) {
-  // Get listing IDs from DOM elements
-  const listingCards = document.querySelectorAll('.listing-card[data-listing-id]');
-  tourState.listingIds = Array.from(listingCards)
-    .map(card => card.getAttribute('data-listing-id'))
-    .filter(id => id); // Filter out undefined/null/empty
+  const menuOptions = (typeof getPanelMenuOptions === 'function') ? getPanelMenuOptions(panelId) : {};
+  let listingIds = [];
+
+  if (menuOptions && typeof menuOptions.getTourListingIds === 'function') {
+    const customIds = menuOptions.getTourListingIds({ panelId, isReload });
+    if (Array.isArray(customIds)) {
+      listingIds = customIds.filter(id => id);
+    }
+  }
+
+  if (!listingIds.length) {
+    const listingCards = document.querySelectorAll('.listing-card[data-listing-id]');
+    listingIds = Array.from(listingCards)
+      .map(card => card.getAttribute('data-listing-id'))
+      .filter(id => id);
+  }
+
+  tourState.listingIds = listingIds;
 
   if (tourState.listingIds.length === 0) {
     console.warn('No listings available for tour');
@@ -4246,8 +4724,11 @@ function startTour(panelId, isReload = false) {
     // Fresh start from clicking "Start Tour" - continue from current position
     const hash = (typeof getHash === 'function') ? getHash() : {};
     const currentId = hash.id;
+    const startTourAtFirstListing = !!(menuOptions && menuOptions.startTourAtFirstListing);
 
-    if (currentId) {
+    if (startTourAtFirstListing) {
+      tourState.currentIndex = -1;
+    } else if (currentId) {
       // Find the index of the current id
       const currentIdx = tourState.listingIds.indexOf(currentId);
       tourState.currentIndex = currentIdx >= 0 ? currentIdx : -1;
@@ -4306,7 +4787,7 @@ window.stopTour = stopTour;
  */
 function updateTourIcon(panelId, iconType) {
   const iconElement = document.getElementById(panelId + 'MenuToggleIcon');
-  const circleElement = document.querySelector(`#${panelId}MenuToggleHolder .material-icons:not([id])`);
+  const circleElement = document.querySelector(`#${panelId}MenuControl .material-icons:not([id])`);
 
   if (!iconElement) return;
 
@@ -4355,43 +4836,56 @@ function updateTourIcon(panelId, iconType) {
 function handlePanelAction(action, panelId, panelType) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
+  const menuOptions = getPanelMenuOptions(panelId);
+  const expandBehavior = menuOptions.expandBehavior || (panelType === 'View' ? 'fullscreen' : 'hero');
 
   if (action === 'starttour') {
     toggleTour(panelId);
   } else if (action === 'expand' || action === 'collapse') {
-    // Special handling for detailmap - call toggleDetailMapHero
-    if (panelId === 'detailmap') {
-      if (window.listingsApp && typeof window.listingsApp.toggleDetailMapHero === 'function') {
-        window.listingsApp.toggleDetailMapHero();
+    // Per-panel custom toggle behavior via passed options
+    if (typeof menuOptions.toggleExpand === 'function') {
+      menuOptions.toggleExpand(action, panelId, panelType);
 
-        // Determine if we're expanding or collapsing (use wrapper for detailmap)
-        const wrapper = document.getElementById('detailmapWrapper');
-        const myparent = wrapper ? wrapper.getAttribute('myparent') : null;
-        const originalParent = myparent ? document.getElementById(myparent) : null;
-        const isExpanding = originalParent && !originalParent.contains(wrapper);
-
-        // Toggle sibling panels (use wrapper id for detailmap siblings)
-        toggleSiblingPanels('detailmapWrapper', isExpanding);
-
-        // Update menu labels after state change
-        setTimeout(() => {
-          updateMenuLabels(panelId + 'Menu', panelId, panelType);
-          refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
-        }, 50);
+      const siblingPanelId = menuOptions.siblingPanelId || panelId;
+      const siblingPanel = document.getElementById(siblingPanelId);
+      const siblingParentId = siblingPanel ? siblingPanel.getAttribute('myparent') : null;
+      const siblingOriginalParent = siblingParentId ? document.getElementById(siblingParentId) : null;
+      let isExpanding = false;
+      if (typeof menuOptions.isExpanded === 'function') {
+        isExpanding = !!menuOptions.isExpanded(panel, panelId, panelType);
+      } else if (siblingOriginalParent && siblingPanel) {
+        isExpanding = !siblingOriginalParent.contains(siblingPanel);
       }
-    }
-    // Special handling for View type - click .expandToFullscreen and .closeSideTabs
-    else if (panelType === 'View') {
-      const expandBtn = document.querySelector('.expandToFullscreen');
-      const closeSideTabsBtn = document.querySelector('.closeSideTabs');
+      if (menuOptions.toggleSiblings !== false) {
+        toggleSiblingPanels(siblingPanelId, isExpanding);
+      }
 
-      if (expandBtn) expandBtn.click();
-      if (closeSideTabsBtn) closeSideTabsBtn.click();
+      setTimeout(() => {
+        updateMenuLabels(panelId + 'Menu', panelId, panelType);
+        refreshPanelToggleIcon(panelId + 'MenuControl', panelId);
+      }, 50);
+    }
+    // Fullscreen behavior for panels configured as fullscreen mode
+    else if (expandBehavior === 'fullscreen') {
+      const expandBtn = document.querySelector('.expandToFullscreen');
+      const reduceBtn = document.querySelector('.reduceFromFullscreen');
+      const expandVisible = !!(expandBtn && getComputedStyle(expandBtn).display !== 'none');
+      const reduceVisible = !!(reduceBtn && getComputedStyle(reduceBtn).display !== 'none');
+
+      if (action === 'expand') {
+        if (expandBtn && expandVisible) {
+          expandBtn.click();
+        }
+      } else if (action === 'collapse') {
+        if (reduceBtn && reduceVisible) {
+          reduceBtn.click();
+        }
+      }
 
       // Update menu labels after state change
       setTimeout(() => {
         updateMenuLabels(panelId + 'Menu', panelId, panelType);
-        refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+        refreshPanelToggleIcon(panelId + 'MenuControl', panelId);
       }, 50);
     } else {
       // Original behavior for other panel types
@@ -4436,7 +4930,7 @@ function handlePanelAction(action, panelId, panelType) {
         // Update menu labels after state change
         setTimeout(() => {
           updateMenuLabels(panelId + 'Menu', panelId, panelType);
-          refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+          refreshPanelToggleIcon(panelId + 'MenuControl', panelId);
         }, 50);
       }
     }
@@ -4454,7 +4948,7 @@ function handlePanelAction(action, panelId, panelType) {
     // Close menu
     const menu = document.getElementById(panelId + 'Menu');
     if (menu) menu.style.display = 'none';
-    refreshPanelToggleIcon(panelId + 'MenuToggleHolder', panelId);
+    refreshPanelToggleIcon(panelId + 'MenuControl', panelId);
   } else if (action === 'inspect') {
     // Toggle inspect mode
     if (!window.listingsApp) return;
@@ -4531,10 +5025,18 @@ function addPanelMenu(options) {
     datasourcePath = '',
     inline = false,
     menuPopupHolder = '',
-    onAction = null
+    onAction = null,
+    panelLabel = '',
+    expandBehavior = '',
+    isExpanded = null,
+    toggleExpand = null,
+    siblingPanelId = '',
+    toggleSiblings = true
   } = options;
 
-  const items = menuItems || buildMenuConfig(panelType, targetPanelId, datasourcePath);
+  const resolvedExpandBehavior = expandBehavior || (panelType === 'View' ? 'fullscreen' : 'hero');
+  const resolvedPanelLabel = panelLabel || panelType;
+  const items = menuItems || buildMenuConfig(panelType, targetPanelId, datasourcePath, resolvedPanelLabel);
 
   const render = () => {
     const container = document.querySelector(containerSelector);
@@ -4548,7 +5050,7 @@ function addPanelMenu(options) {
     if (inline) {
       // For inline containers (like search-fields-control), don't add positioning wrapper
       toggleHtml = `
-        <div id="${targetPanelId}MenuToggleHolder" class="menuIconHolder menuToggleHolderInline"
+        <div id="${targetPanelId}MenuControl" class="menuIconHolder menuToggleHolderInline"
              title="Panel menu">
           <i class="material-icons" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:24px;">circle</i>
           <i id="${targetPanelId}MenuToggleIcon" class="material-icons"
@@ -4560,7 +5062,7 @@ function addPanelMenu(options) {
       const holderClass = panelType === 'Map' ? 'menuIconHolder menuToggleHolderMap' : 'menuIconHolder';
       toggleHtml = `
         <div style="position:absolute; right:8px; top:8px; z-index:1000;">
-          <div id="${targetPanelId}MenuToggleHolder" class="${holderClass}"
+          <div id="${targetPanelId}MenuControl" class="${holderClass}"
                style="position:relative; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;"
                title="Panel menu">
             <i class="material-icons circle-bg" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);">circle</i>
@@ -4628,7 +5130,7 @@ function addPanelMenu(options) {
   };
 
   const destroy = () => {
-    const holder = document.getElementById(targetPanelId + 'MenuToggleHolder');
+    const holder = document.getElementById(targetPanelId + 'MenuControl');
     const menu = document.getElementById(targetPanelId + 'Menu');
 
     // Remove holder
@@ -4649,13 +5151,23 @@ function addPanelMenu(options) {
 
   const updateState = () => {
     updateMenuLabels(targetPanelId + 'Menu', targetPanelId, panelType);
-    refreshPanelToggleIcon(targetPanelId + 'MenuToggleHolder', targetPanelId);
+    refreshPanelToggleIcon(targetPanelId + 'MenuControl', targetPanelId);
   };
 
   if (typeof onAction === 'function') {
     if (!window.panelMenuCallbacks) window.panelMenuCallbacks = {};
     window.panelMenuCallbacks[targetPanelId] = onAction;
   }
+  if (!window.panelMenuOptions) window.panelMenuOptions = {};
+  window.panelMenuOptions[targetPanelId] = {
+    panelType,
+    panelLabel: resolvedPanelLabel,
+    expandBehavior: resolvedExpandBehavior,
+    isExpanded,
+    toggleExpand,
+    siblingPanelId,
+    toggleSiblings
+  };
 
   return { render, destroy, updateState };
 }
@@ -4666,7 +5178,7 @@ function addPanelMenu(options) {
  * @param {string} panelType - Type of panel (Content, List, Map)
  */
 function setupPanelMenuEvents(panelId, panelType) {
-  const holderId = panelId + 'MenuToggleHolder';
+  const holderId = panelId + 'MenuControl';
   const menuId = panelId + 'Menu';
 
   // Toggle menu on holder click
@@ -4756,5 +5268,442 @@ function setupPanelMenuEvents(panelId, panelType) {
     }
   });
 }
+
+// Universal top navigation offset.
+// Tracks the combined height of fixed/sticky elements occupying the top of the viewport:
+//   1. #main-header (sticky, gains height when #headerbar is visible)
+//   2. #filterFieldsHolder when .filterFieldsHolderFixed is present
+//   3. #local-header (non-sticky initial header) when it is still in the viewport
+// Exposes window.topNavOffset (number, pixels) and the --top-nav-offset CSS custom property
+// so any fixed element can use var(--top-nav-offset) without hardcoding header heights.
+// Event sources: MutationObserver (attribute/class changes) + IntersectionObserver on
+// #local-header (fires when it scrolls in/out of view). No scroll polling.
+function initTopNavOffset() {
+  // These may be null at call time if elements are injected dynamically; waitForElm
+  // below will populate them once available and re-run computeTopNavOffset.
+  var mainHeader = null;
+  var filterHolder = null;
+
+  function computeTopNavOffset() {
+    var offset = 0;
+    if (mainHeader) {
+      offset += mainHeader.getBoundingClientRect().height;
+    }
+    if (filterHolder && filterHolder.classList.contains('filterFieldsHolderFixed')) {
+      offset += filterHolder.offsetHeight;
+    }
+    // Always include the visible portion of #local-header (non-sticky page-load header).
+    // Math.max ensures the offset never drops below local-header's bottom edge while it is
+    // still in the viewport — prevents fixed navs from overlapping local-header content
+    // when the filter bar first becomes sticky. When local-header is not visible,
+    // lhBottom <= 0 and this has no effect.
+    var lh = document.getElementById('local-header');
+    if (lh) {
+      var lhBottom = lh.getBoundingClientRect().bottom;
+      if (lhBottom > offset) { offset = Math.round(lhBottom); }
+    }
+    window.topNavOffset = offset;
+    document.documentElement.style.setProperty('--top-nav-offset', offset + 'px');
+    var headerbarOffset = mainHeader ? Math.round(mainHeader.getBoundingClientRect().height) : 0;
+    if (headerbarOffset === 0 && filterHolder && filterHolder.classList.contains('filterFieldsHolderFixed')) {
+      headerbarOffset = filterHolder.offsetHeight;
+    }
+    document.documentElement.style.setProperty('--headerbar-offset', headerbarOffset + 'px');
+  }
+
+  if (typeof waitForElm === 'function') {
+    // #main-header may be injected dynamically; capture it and recompute once available.
+    waitForElm('#main-header').then(function(mh) {
+      mainHeader = mh;
+      computeTopNavOffset();
+    });
+
+    // Watch #headerbar for class changes (headerbarhide added/removed) and inline style
+    // changes (jQuery .hide()/.show()), both of which affect #main-header's rendered height.
+    waitForElm('#headerbar').then(function(hb) {
+      new MutationObserver(computeTopNavOffset).observe(hb, {
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+      computeTopNavOffset();
+    });
+
+    // Watch filterFieldsHolder for the filterFieldsHolderFixed class being added/removed.
+    waitForElm('#filterFieldsHolder').then(function(fh) {
+      filterHolder = fh;
+      new MutationObserver(computeTopNavOffset).observe(fh, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+      computeTopNavOffset();
+    });
+
+    // #local-header is non-sticky; use IntersectionObserver to fire when it scrolls
+    // in/out of the viewport — the scroll-away case not captured by MutationObservers.
+    waitForElm('#local-header').then(function(lh) {
+      new IntersectionObserver(computeTopNavOffset, { threshold: 0 }).observe(lh);
+    });
+  }
+}
+
+// ── Markdown inline editor ────────────────────────────────────────────────────
+
+var _mdEditorStyled = false;
+function _injectMdEditorStyles() {
+    if (_mdEditorStyled) return;
+    _mdEditorStyled = true;
+    var s = document.createElement('style');
+    s.textContent = '.md-edit-menu{position:absolute;top:8px;right:8px;z-index:10;font-family:system-ui,sans-serif}'
+        + '.md-edit-trigger{background:rgba(255,255,255,.92);border:1px solid #d1d5db;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.1)}'
+        + '.md-edit-trigger:hover{background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15)}'
+        + '.md-edit-dropdown{display:none;position:fixed;background:#fff;border:1px solid #e5e7eb;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);min-width:140px;overflow:hidden;z-index:9999}'
+        + '.md-edit-item{padding:9px 16px;cursor:pointer;font-size:13px;color:#374151}'
+        + '.md-edit-item:hover{background:#f9fafb}'
+        + '.md-editor-overlay{position:absolute;inset:0;z-index:20;background:#fff;display:flex;flex-direction:column;min-height:300px;font-family:system-ui,sans-serif}'
+        + '.md-editor-header{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;flex-shrink:0}'
+        + '.md-editor-title{flex:1;font-weight:500;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+
+        + '.md-editor-textarea{flex:1;font-family:monospace;font-size:13px;border:none;border-bottom:1px solid #e5e7eb;padding:12px;resize:none;outline:none;line-height:1.6;min-height:200px}'
+        + '.md-editor-confirm{display:none;align-items:center;gap:8px;padding:10px 12px;background:#fffbeb;border-top:1px solid #fde68a;flex-shrink:0;font-size:13px;color:#92400e}'
+        + '.md-editor-confirm.active{display:flex}'
+        + '.md-save-btn{padding:5px 14px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px}'
+        + '.md-save-btn:hover{background:#1d4ed8}'
+        + '.md-discard-btn{padding:5px 14px;background:#fff;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:13px;color:#374151}'
+        + '.md-discard-btn:hover{background:#f9fafb}';
+    document.head.appendChild(s);
+}
+
+function _attachMarkdownEditMenu(pagePath, divID) {
+    if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+    var container = document.getElementById(divID);
+    if (!container || container.querySelector('.md-edit-menu')) return;
+    _injectMdEditorStyles();
+
+    var menu     = document.createElement('div');   menu.className = 'md-edit-menu local'; menu.style.display = 'none';
+    var trigger  = document.createElement('button'); trigger.className = 'md-edit-trigger'; trigger.title = 'Edit options'; trigger.innerHTML = '<span class="material-icons" style="font-size:16px;line-height:1">edit_note</span>';
+    var dropdown = document.createElement('div');   dropdown.className = 'md-edit-dropdown';
+    var item     = document.createElement('div');   item.className = 'md-edit-item'; item.textContent = 'Edit Content';
+
+    var ghAccounts = {'locations.georgia.org': 'georgiadata', 'locations.pages.dev': 'georgiadata'};
+    var ghAccount  = ghAccounts[location.hostname] || 'modelearth';
+    var ghUrl = 'https://github.com/modelearth';
+    if (pagePath) {
+        var p = pagePath;
+        if (p.indexOf('raw.githubusercontent.com') >= 0) {
+            var raw = p.replace('https://raw.githubusercontent.com/', '').split('/');
+            // raw: [user, repo, branch, ...path]
+            if (raw.length >= 3) {
+                ghUrl = 'https://github.com/' + raw[0] + '/' + raw[1] + '/blob/' + raw.slice(2).join('/');
+            }
+        } else {
+            var repoName = location.pathname.replace(/^\//, '').split('/')[0];
+            var pageDir  = location.pathname.replace(/^\/[^\/]+\//, '').replace(/[^\/]+\.[^\/]+$/, '').replace(/\/$/, '');
+            var filename = p.split('/').pop();
+            var filePath = (pageDir ? pageDir + '/' : '') + filename;
+            if (repoName) {
+                ghUrl = 'https://github.com/' + ghAccount + '/' + repoName
+                    + (filePath ? '/blob/main/' + filePath : '');
+            }
+        }
+    }
+    var ghItem = document.createElement('div'); ghItem.className = 'md-edit-item'; ghItem.textContent = 'View on Github';
+
+    dropdown.appendChild(item);
+    dropdown.appendChild(ghItem);
+    menu.appendChild(trigger);
+    menu.appendChild(dropdown);
+    container.appendChild(menu);
+
+    trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        } else {
+            var rect = trigger.getBoundingClientRect();
+            dropdown.style.top  = (rect.bottom + 2) + 'px';
+            dropdown.style.left = (rect.right - 140) + 'px';
+            dropdown.style.display = 'block';
+        }
+    });
+    document.addEventListener('click', function() { dropdown.style.display = 'none'; });
+    item.addEventListener('click', function() {
+        dropdown.style.display = 'none';
+        const cmsJsPath = local_app.localsite_root() + 'js/cms.js';
+        loadScript(cmsJsPath, function() {
+            // TODO: Will we change config.yml to webroot.yaml
+            //launchCMS({inline:true, target:container, configUrl:'/localsite/edit/config.yml'});
+            launchCMS({inline:true, target:container, configUrl:'/docker/webroot.yaml'});
+        });
+    });
+    ghItem.addEventListener('click', function() {
+        dropdown.style.display = 'none';
+        window.open(ghUrl, '_blank');
+    });
+}
+
+function _openMarkdownEditor(pagePath, divID) {
+    var container = document.getElementById(divID);
+    if (!container || container.querySelector('.md-editor-overlay')) return;
+
+    var prevMinHeight = container.style.minHeight;
+    container.style.minHeight = '360px';
+
+    fetch(pagePath).then(function(r) { return r.text(); }).then(function(originalContent) {
+        var overlay  = document.createElement('div'); overlay.className = 'md-editor-overlay';
+        var header   = document.createElement('div'); header.className = 'md-editor-header';
+        var title    = document.createElement('span'); title.className = 'md-editor-title';
+        title.textContent = '✏ ' + pagePath.split('/').pop();
+        var closeBtn = document.createElement('button'); closeBtn.className = 'md-editor-close';
+        closeBtn.title = 'Close editor'; closeBtn.innerHTML = '&#x2715;';
+        header.appendChild(title); header.appendChild(closeBtn);
+
+        var textarea = document.createElement('textarea'); textarea.className = 'md-editor-textarea';
+        textarea.value = originalContent;
+
+        var confirmBar  = document.createElement('div'); confirmBar.className = 'md-editor-confirm';
+        var confirmMsg  = document.createElement('span'); confirmMsg.style.flex = '1'; confirmMsg.textContent = 'Save changes?';
+        var saveBtn     = document.createElement('button'); saveBtn.className = 'md-save-btn'; saveBtn.textContent = 'Save Changes';
+        var discardBtn  = document.createElement('button'); discardBtn.className = 'md-discard-btn'; discardBtn.textContent = "Don't Save";
+        confirmBar.appendChild(confirmMsg); confirmBar.appendChild(saveBtn); confirmBar.appendChild(discardBtn);
+
+        overlay.appendChild(header); overlay.appendChild(textarea); overlay.appendChild(confirmBar);
+        container.appendChild(overlay);
+        textarea.focus();
+
+        function closeEditor() { overlay.remove(); container.style.minHeight = prevMinHeight; }
+
+        closeBtn.addEventListener('click', function() {
+            if (textarea.value === originalContent) { closeEditor(); }
+            else { confirmBar.classList.add('active'); textarea.focus(); }
+        });
+        discardBtn.addEventListener('click', closeEditor);
+        saveBtn.addEventListener('click', function() {
+            _saveMarkdown(pagePath, textarea.value, function(ok) { if (ok) closeEditor(); });
+        });
+    }).catch(function() { container.style.minHeight = prevMinHeight; });
+}
+
+function _saveMarkdown(pagePath, content, callback) {
+    var isRemote = /^https?:\/\//i.test(pagePath);
+    if (!isRemote) {
+        fetch('/api/save-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: pagePath, content: content })
+        }).then(function(r) {
+            if (r.ok) { callback(true); return; }
+            _mdCopyFallback(content, callback);
+        }).catch(function() { _mdCopyFallback(content, callback); });
+    } else {
+        _mdCopyFallback(content, callback);
+    }
+}
+
+function _mdCopyFallback(content, callback) {
+    navigator.clipboard.writeText(content).then(function() {
+        alert('Copied to clipboard (no local save endpoint available).');
+        callback(true);
+    }).catch(function() {
+        alert('Could not save or copy. Please save manually.');
+        callback(false);
+    });
+}
+
+function defineLaunchCMS() {
+    if (typeof window.launchCMS === 'function') {
+        return window.launchCMS;
+    }
+
+    function getExistingCmsShell() {
+        return document.querySelector('.sui.app-shell');
+    }
+
+    function resolveCmsTarget(target) {
+        if (!target) return null;
+        if (typeof target === 'string') return document.querySelector(target);
+        if (target && target.nodeType === 1) return target;
+        return null;
+    }
+
+    function prepareInlineCmsRoot(target) {
+        var anchor = resolveCmsTarget(target) || document.getElementById('editPageBtn') || document.body;
+        var ncRoot = document.getElementById('nc-root');
+        var appShell = getExistingCmsShell();
+
+        if (!ncRoot) {
+            ncRoot = document.createElement('div');
+            ncRoot.id = 'nc-root';
+        }
+
+        ncRoot.style.display = 'block';
+        ncRoot.style.position = 'relative';
+        ncRoot.style.width = '100%';
+        ncRoot.style.minHeight = ncRoot.style.minHeight || '600px';
+        ncRoot.style.height = '';
+        ncRoot.style.inset = '';
+
+        if (appShell && appShell.parentNode !== ncRoot) {
+            ncRoot.appendChild(appShell);
+        }
+
+        if (anchor === document.body) {
+            document.body.appendChild(ncRoot);
+        } else if (ncRoot.parentNode !== anchor.parentNode || ncRoot.previousElementSibling !== anchor) {
+            anchor.insertAdjacentElement('afterend', ncRoot);
+        }
+
+        window.requestAnimationFrame(function() {
+            var top = ncRoot.getBoundingClientRect().top;
+            ncRoot.style.height = Math.max(400, window.innerHeight - top) + 'px';
+        });
+
+        return ncRoot;
+    }
+
+    function prepareFullPageCmsRoot() {
+        var ncRoot = document.getElementById('nc-root');
+        var appShell = getExistingCmsShell();
+        if (ncRoot && appShell && appShell.parentNode === ncRoot) {
+            document.body.appendChild(appShell);
+        }
+        if (ncRoot && !ncRoot.children.length) {
+            ncRoot.remove();
+        }
+    }
+
+    window.launchCMS = function(options) {
+        options = options || {};
+        var inline = (typeof options.inline === 'boolean') ? options.inline : !!window.cmsInlineEditor;
+        var appShell = getExistingCmsShell();
+
+        if (inline) {
+            prepareInlineCmsRoot(options.target);
+        } else {
+            prepareFullPageCmsRoot();
+        }
+
+        if (window.CMS && appShell) {
+            return Promise.resolve();
+        }
+
+        window.CMS_MANUAL_INIT = true;
+
+        var startCms = function() {
+            if (window.CMS && typeof window.CMS.init === 'function') {
+                window.CMS.init();
+                return;
+            }
+            console.error('launchCMS: window.CMS.init is not available after loading Sveltia CMS.');
+        };
+
+        var cmsScriptPath = '/cms/package/dist/sveltia-cms.js';
+        var ready = (typeof window.loadWebrootYaml === 'function')
+            ? window.loadWebrootYaml().catch(function() {
+                return { path: null, text: null, default: '', sites: {} };
+            })
+            : Promise.resolve();
+
+        return ready.then(function() {
+            loadScript(cmsScriptPath, startCms);
+        });
+    };
+
+    return window.launchCMS;
+}
+
+window.defineLaunchCMS = defineLaunchCMS;
+defineLaunchCMS();
+
+
+function initNcRoot() {
+    var ncRoot = document.getElementById('nc-root');
+    if (ncRoot && !ncRoot.style.height) {
+        ncRoot.style.position = 'relative';
+        ncRoot.style.width = '100%';
+        window.requestAnimationFrame(function() {
+            var top = ncRoot.getBoundingClientRect().top;
+            ncRoot.style.height = Math.max(400, window.innerHeight - top) + 'px';
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { initTopNavOffset(); initNcRoot(); });
+} else {
+  initTopNavOffset();
+  initNcRoot();
+}
+
+// Loads webroot.yaml using a 3-path fallback chain with sessionStorage caching.
+// Parses default: and sites: into window.WEBROOT_CONFIG.
+// Returns a Promise<{ path, text, default, sites }> shared across all callers.
+(function() {
+    var WEBROOT_PATHS = ['/webroot.yaml', '/docker/webroot.yaml', '/cms/webroot.yaml'];
+    var SESSION_KEY = 'webrootYamlPath';
+    var _promise = null;
+
+    function parseWebrootConfig(text) {
+        var config = { default: '', sites: {} };
+        var lines = text.split('\n');
+        var scope = 'root';
+        var currentId = null;
+        for (var i = 0; i < lines.length; i++) {
+            var raw = lines[i];
+            var trimmed = raw.replace(/^\s+/, '');
+            var indent = raw.length - trimmed.length;
+            if (!trimmed || trimmed[0] === '#') continue;
+            var km = trimmed.match(/^([\w._-]+):\s*(.*)/);
+            if (!km) continue;
+            var key = km[1], val = km[2].trim().replace(/^["']|["']$/g, '');
+            if (indent === 0) {
+                scope = 'root'; currentId = null;
+                if (key === 'default') config.default = val;
+                else if (key === 'sites' && !val) scope = 'sites';
+                continue;
+            }
+            if (scope === 'sites' && indent === 2 && !val) { currentId = key; config.sites[currentId] = {}; continue; }
+            if (scope === 'sites' && indent === 4 && currentId) config.sites[currentId][key] = val;
+        }
+        return config;
+    }
+
+    window.loadWebrootYaml = function() {
+        if (_promise) return _promise;
+        _promise = new Promise(function(resolve) {
+            function done(path, text) {
+                sessionStorage.setItem(SESSION_KEY, path);
+                var config = parseWebrootConfig(text);
+                window.WEBROOT_CONFIG = config;
+                resolve({ path: path, text: text, default: config.default, sites: config.sites });
+            }
+            function tryPath(i) {
+                if (i >= WEBROOT_PATHS.length) {
+                    sessionStorage.setItem(SESSION_KEY, 'none');
+                    resolve({ path: null, text: null, default: '', sites: {} });
+                    return;
+                }
+                fetch(WEBROOT_PATHS[i])
+                    .then(function(r) { return r.ok ? r.text() : null; })
+                    .then(function(t) { t !== null ? done(WEBROOT_PATHS[i], t) : tryPath(i + 1); })
+                    .catch(function() { tryPath(i + 1); });
+            }
+            var cached = sessionStorage.getItem(SESSION_KEY);
+            if (cached && cached !== 'none') {
+                fetch(cached)
+                    .then(function(r) { return r.ok ? r.text() : null; })
+                    .then(function(t) {
+                        if (t !== null) done(cached, t);
+                        else { sessionStorage.removeItem(SESSION_KEY); tryPath(0); }
+                    })
+                    .catch(function() { sessionStorage.removeItem(SESSION_KEY); tryPath(0); });
+            } else if (cached !== 'none') {
+                tryPath(0);
+            } else {
+                resolve({ path: null, text: null, default: '', sites: {} });
+            }
+        });
+        return _promise;
+    };
+})();
 
 consoleLog("end localsite");

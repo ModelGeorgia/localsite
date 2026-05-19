@@ -2,7 +2,7 @@
 <a href="https://model.earth/community/start/">View current GitHub page as a web page</a>
 </div>
 
-<h1 style="font-size:32px">Starter Samples</h1>
+<h1>Starter Samples</h1>
 
 ### Localsite Setup and Development
 
@@ -60,6 +60,7 @@ Instead, a static .json version of the API is loaded from files in [model.earth/
 
 ## <span class="num">7</span><span class="txt">JAM Stack Resources</span>
 
+[Our CSS Styles](../../cms/themes/) and [CV Themes](../../cv/bios/template)
 [Using GitHub as a Data Lake](https://dzone.com/articles/using-github-as-a-data-lake)  
 [YAML is cool - Alternative to json for config settings](https://www.educative.io/blog/yaml-tutorial)
 [Publiccode.yaml file for your GitHub repo metatags](https://github.com/publiccodeyml/publiccode.yml)

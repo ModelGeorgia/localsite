@@ -20,9 +20,17 @@
 
       <div id='rightIcons' class='rightIcons'>
 
+        <div id="earthPlayInFilters" class="earthPlay playPauseButton filterTopIconHolder" role="button" tabindex="0" aria-label="Play map playback" title="Play map playback">
+          <i class="material-icons show-on-load play-pause-icon">play_arrow</i>
+        </div>
+
         <div id="filterFieldToggleHolder" class="filterTopIconHolder" title="Filter sections">
-          <i class="material-icons bar-centered-icon">circle</i>
-          <i id="filterFieldToggleIcon" class="material-icons bar-centered-icon filter-field-toggle-icon">arrow_right</i>
+          <i class="material-icons bar-centered-icon filter-toggle-circle">circle</i>
+          <span id="filterFieldToggleIcon" class="bar-centered-icon filter-field-toggle-icon" aria-hidden="true">
+            <span class="filter-toggle-dot"></span>
+            <span class="filter-toggle-dot"></span>
+            <span class="filter-toggle-dot"></span>
+          </span>
         </div>
 
         <div id="filterFieldsDropdownToggle" title="Show or hide filter dropdowns" aria-expanded="false">
@@ -37,6 +45,9 @@
 
       </div>
       <div id="filterFieldMenu" class="menuToggleMenu" style="display:none">
+        <div id="filterFieldMenuCloseEarth" class="menuToggleItem filterFieldMenuClose" style="display:none">Close Earth View</div>
+        <div id="filterFieldMenuClose" class="menuToggleItem filterFieldMenuClose" style="display:none">Close Map View</div>
+        <div class="menuToggleDivider"></div>
         <div class="menuToggleItem" data-action="earth">Earth<span class="material-icons menuToggleCheck">check</span></div>
         <div class="menuToggleItem" data-action="countries">Countries<span class="material-icons menuToggleCheck">check</span></div>
         <div class="menuToggleItem" data-action="state">States<span class="material-icons menuToggleCheck">check</span></div>
@@ -46,7 +57,6 @@
         <div class="menuToggleDivider"></div>
         <div class="menuToggleItem menuToggleLink" data-action="aboutfilters">About Filters</div>
         <div id="filterFieldMenuHide" class="menuToggleItem" data-action="hidefilters">Hide Filter Bar</div>
-        <div id="filterFieldMenuClose" class="menuToggleItem filterFieldMenuClose" style="display:none">Close Map View</div>
         <div id="filterFieldMenuCloseApps" class="menuToggleItem filterFieldMenuClose" style="display:none">Close App View</div>
       </div>
        
@@ -112,12 +122,13 @@
                   <div id="geoview_container" class="geoviewSelectList" style="display:none;">
                     <div id="geoview_select_list" role="listbox">
                       <div class="geoviewSelectOption" role="option" data-value="none">Geoview...</div>
+                      <div class="geoviewSelectOption" role="option" data-value="space">Space</div>
                       <div class="geoviewSelectOption" role="option" data-value="earth">Earth</div>
                       <div class="geoviewSelectOption" role="option" data-value="countries">Countries</div>
                       <div class="geoviewSelectOption" role="option" data-value="country">United States</div>
                       <div class="geoviewSelectOption" role="option" data-value="state">State</div>
                     </div>
-                    <div id="geoview_statelist"></div>
+                    <div id="geoview_statelist" style="padding:12px"><b style="line-height:normal">State</b></div>
 
 
                     <!-- inactive -->

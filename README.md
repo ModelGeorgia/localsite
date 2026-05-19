@@ -1,4 +1,10 @@
-# Localsite Repo
+<div markdown="1" class="local" style="display:none;">
+## Div Content as Markdown
+Include markdown="1" on div tags to process as markdown.
+
+<!-- TEST -->
+</div>
+
 
 ## Localsite Nav
 
@@ -6,9 +12,11 @@ The&nbsp;[localsite&nbsp;repo](https://github.com/modelearth/localsite/) provide
 
 ## Get Involved
 
-[DreamStudio](https://dreamstudio.com) - Collaborative Data Science  
-[Model.Earth](https://model.earth) - Environmental Impacts  
-[Webroot Setup](https://model.earth/localsite/start/) - Starter Samples  
+[DreamStudio](https://dreamstudio.com) - Collaborative Data Science, ML and AI Insights  
+[Webroot Setup](https://model.earth/webroot/) - Localsite Starter Steps, simple push/pull cmds
+[PartnerTools](https://github.com/PartnerTools/webroot) - Base webroot with Rust endpoints and Vercel chat
+[Model.Earth](https://model.earth) - Environmental Impacts, International Trade Flow
+
 
 ## Embed Datascapes
 

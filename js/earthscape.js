@@ -5,6 +5,8 @@
 let timelineChart;
 let lineAreaChart;
 let manualSizingActive = false; // Flag to track if manual sizing is being used
+const api_key = "AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI";
+
 
 function loadEarthScape(my) {
     loadScript(theroot + 'js/d3.v5.min.js', function (results) {
@@ -183,11 +185,19 @@ let allCountriesCache = null;
 //Timelinechart for scopes country, state, and county
 let geoValues = {};
 let MIN_YEAR = 1960; // Minimum year to filter data
+let MAX_YEAR = 9999; // Maximum year to filter data (9999 = no limit)
 function setTimelineMinYear(year) {
     const parsedYear = parseInt(year, 10);
     if (!Number.isNaN(parsedYear)) {
         MIN_YEAR = parsedYear;
         window._timelineMinYear = parsedYear;
+    }
+}
+function setTimelineMaxYear(year) {
+    const parsedYear = parseInt(year, 10);
+    if (!Number.isNaN(parsedYear)) {
+        MAX_YEAR = parsedYear;
+        window._timelineMaxYear = parsedYear;
     }
 }
 function updateTimelineMinYearFromSelect(selectEl) {
@@ -199,9 +209,53 @@ function updateTimelineMinYearFromSelect(selectEl) {
     if (startYear) {
         setTimelineMinYear(startYear);
     }
+    // Reset max year when a new dataset is selected
+    MAX_YEAR = 9999;
+    window._timelineMaxYear = 9999;
 }
 window.setTimelineMinYear = setTimelineMinYear;
+window.setTimelineMaxYear = setTimelineMaxYear;
 window.updateTimelineMinYearFromSelect = updateTimelineMinYearFromSelect;
+
+/**
+ * Fetches time-series data from Google Data Commons and renders
+ * a multi-line timeline chart and stacked area chart using Chart.js.
+ *
+ * This function:
+ *  - Resolves geographic entities based on the selected scope (country, state, county)
+ *  - Fetches observations for a given Statistical Variable (SV / DCID)
+ *  - Optionally converts values to per-capita
+ *  - Filters data by minimum year
+ *  - Determines which locations to display (Top 5, Bottom 5, Selected, All)
+ *  - Builds and renders both the line chart and area chart
+ *
+ * param {string} scope
+ *   Geographic level of analysis. Determines which entities are queried.
+ *   Possible values: "country", "state", "county".
+ *
+ * param {string} chartVariable
+ *   The Data Commons Statistical Variable DCID (SV) to fetch.
+ *   Example: "Count_Person", "Amount_Emissions_CarbonDioxide".
+ *
+ * param {string} entityId
+ *   Parent entity DCID used when scope is "county".
+ *   Used to retrieve all counties contained within this entity.
+ *   (Not used for country/state scope.)
+ *
+ * param {string} showAll
+ *   Controls which locations are displayed on the chart.
+ *   Possible values:
+ *     - "showAll"      → show all valid locations
+ *     - "showTop5"     → show top 5 by latest value
+ *     - "showBottom5"  → show bottom 5 by latest value
+ *     - "showSelected" → show only selected countries from URL hash
+ *
+ * param {string} chartText
+ *   Human-readable title of the selected metric.
+ *   Used for chart titles and axis labels.
+ */
+
+
 async function getTimelineChart(scope, chartVariable, entityId, showAll, chartText) {
     //alert("getTimelineChart chartVariable: " + chartVariable + ", scope: " + scope)
     document.body.classList.add('timeline-loading');
@@ -217,7 +271,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
 
         if (scope === "county") {
             // Fetch county data
-            response = await fetch(`https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&entity.expression=${entityId}%3C-containedInPlace%2B%7BtypeOf%3ACounty%7D&select=date&select=entity&select=value&select=variable&variable.dcids=${chartVariable}`, {
+            response = await fetch(`https://api.datacommons.org/v2/observation?key=${api_key}&entity.expression=${entityId}%3C-containedInPlace%2B%7BtypeOf%3ACounty%7D&select=date&select=entity&select=value&select=variable&variable.dcids=${chartVariable}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -230,7 +284,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             geoIds = Object.keys(data.byVariable[chartVariable].byEntity);
 
             // Fetch county and state names
-            const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+            const response2 = await fetch(`https://api.datacommons.org/v2/node?key=${api_key}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -265,7 +319,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
             'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
           ];
-        response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+        response = await fetch(`https://api.datacommons.org/v2/resolve?key=${api_key}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -276,10 +330,10 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             })
         });
         data = await response.json();
-        geoIds = data.entities.map(entity => entity.candidates[0].dcid);
+        geoIds = data.entities.map(entity => entity?.candidates?.[0]?.dcid).filter(Boolean);
 
         // Fetch state names
-        const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+        const response2 = await fetch(`https://api.datacommons.org/v2/node?key=${api_key}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -328,7 +382,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
         console.log("Selected Countries:", selectedCountries); // Debug log
 
         // Fetch country dcids using ISO codes
-        response = await fetch('https://api.datacommons.org/v2/resolve?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+        response = await fetch(`https://api.datacommons.org/v2/resolve?key=${api_key}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -346,7 +400,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
             .filter(Boolean); // remove undefined/null
 
         // Fetch country names
-        const response2 = await fetch('https://api.datacommons.org/v2/node?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI', {
+        const response2 = await fetch(`https://api.datacommons.org/v2/node?key=${api_key}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -372,7 +426,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
     }
 
     // Fetch observational data using geoIds list
-    const url = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
+    const url = `https://api.datacommons.org/v2/observation?key=${api_key}&variable.dcids=${chartVariable}&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
     console.log("url data:",url)
     const response3 = await fetch(url, {
         method: 'POST',
@@ -388,7 +442,7 @@ async function getTimelineChart(scope, chartVariable, entityId, showAll, chartTe
     console.log("timeline obsevational data for country:",timelineData)
     let populationData = {};
 if (whichPer === 'percapita') {
-  const popUrl = `https://api.datacommons.org/v2/observation?key=AIzaSyCTI4Xz-UW_G2Q2RfknhcfdAnTHq5X5XuI&variable.dcids=Count_Person&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
+  const popUrl = `https://api.datacommons.org/v2/observation?key=${api_key}&variable.dcids=Count_Person&${geoIds.map(id => `entity.dcids=${id}`).join('&')}`;
 
   const popResponse = await fetch(popUrl, {
     method: 'POST',
@@ -409,29 +463,13 @@ for (const geoId in geoValues) {
     //console.log("GeoId:", geoId, "Name:", geoValues[geoId].name);
     if (timelineData.byVariable[chartVariable]?.byEntity?.[geoId]?.orderedFacets?.[0]?.observations) {
         const isPopulationGoal = getHash().goal === "population";
-        // Replace the observation filtering logic with this:
-const filteredObservations = timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0].observations.filter(obs => {
-    // Handle both ISO dates (YYYY-MM-DD) and simple years (YYYY)
-    const yearPart = obs.date.split('-')[0];
-    const year = parseInt(yearPart);
-    return year >= MIN_YEAR;
-    
-    // Special handling for population data
-    if (isPopulationGoal) {
-        return year >= MIN_YEAR;
-    }
-    return true; // Keep all observations for other goals
-}).map(obs => {
-    // Normalize date format to just the year for population data
-    if (isPopulationGoal) {
-        return {
-            date: obs.date.split('-')[0], // Keep only the year part
-            value: obs.value
-            
-        };
-    }
-    return obs; // Return original for other data
-});
+        const filteredObservations = timelineData.byVariable[chartVariable].byEntity[geoId].orderedFacets[0].observations.filter(obs => {
+    const year = parseInt(obs.date.split('-')[0]);
+    return year >= MIN_YEAR && year <= MAX_YEAR;
+}).map(obs => ({
+    date: obs.date.split('-')[0],
+    value: obs.value
+}));
       
         formattedData.push({
             name: geoValues[geoId].name,
@@ -518,15 +556,18 @@ dataCopy.forEach(location => {
         : location.latestValue !== null);
     console.log("validData:",validData)
     if (showAll === 'showSelected') {
-        selectedData = formattedData.filter(location => {
-            const geoId = Object.keys(geoValues).find(id => geoValues[id].name === location.name);
-            if (!geoId) return false;
-            const countryCode = geoId.includes('country/') ? geoId.replace('country/', '') : geoId;
-            //console.log(`Checking ${location.name}, geoId: ${geoId}, code: ${countryCode}`); // Debug
-            console.log("Filtered Countries:", selectedData);
-           return selectedCountries3Char.includes(countryCode);
-           
-        });
+        if (scope !== 'country') {
+            selectedData = validData
+                .sort((a, b) => b.latestValue - a.latestValue)
+                .slice(0, Math.min(5, validData.length));
+        } else {
+            selectedData = formattedData.filter(location => {
+                const geoId = Object.keys(geoValues).find(id => geoValues[id].name === location.name);
+                if (!geoId) return false;
+                const countryCode = geoId.includes('country/') ? geoId.replace('country/', '') : geoId;
+                return selectedCountries3Char.includes(countryCode);
+            });
+        }
     } else if (showAll === 'showTop5') {
        selectedData = validData
         .sort((a, b) => 
@@ -742,11 +783,19 @@ dataCopy.forEach(location => {
     }
 
     window._timelineYears = years;
+    if (typeof window.updateDateRangeLabel === 'function') { try { window.updateDateRangeLabel(); } catch(e) {} }
     window._timelineCountryDataByName = {};
     formattedData.forEach(function(loc){ window._timelineCountryDataByName[loc.name] = loc; });
     window._timelineSelectedLabels = selectedData.map(function(loc){ return loc.name; });
     window.addCountryToCharts = function(name){
         try {
+            // Force legend DOM rebuild so re-enabled hidden items appear immediately.
+            window._forceLegendRebuild = true;
+            if (!window._applyingSavedLegendList) {
+                window._legendListDirty = true;
+                window._legendListJustSaved = false;
+                try { if (typeof window.updateLegendCacheButtonsVisibility === 'function') window.updateLegendCacheButtonsVisibility(); } catch (e) {}
+            }
             var loc = window._timelineCountryDataByName && window._timelineCountryDataByName[name];
             if (!loc) return;
             var yrs = window._timelineYears || [];
@@ -761,6 +810,17 @@ dataCopy.forEach(location => {
                     timelineChart.data.datasets.push({ label: name, data: dataArr, borderColor: border, backgroundColor: 'rgba(0, 0, 0, 0)' });
                     timelineChart.update();
                 } catch (e) {}
+            } else if (timelineChart && existsLine) {
+                // Restore an existing hidden series when selected from More Locations.
+                try {
+                    timelineChart.data.datasets.forEach(function(ds, idx){
+                        if (ds && ds.label === name) {
+                            var meta = timelineChart.getDatasetMeta(idx);
+                            if (meta) meta.hidden = false;
+                        }
+                    });
+                    timelineChart.update();
+                } catch (e) {}
             }
             if (lineAreaChart && !existsArea) {
                 try {
@@ -768,8 +828,22 @@ dataCopy.forEach(location => {
                     lineAreaChart.data.datasets.push({ label: name, data: dataArr, backgroundColor: bg, borderColor: 'rgba(0,0,0,0)', fill: true });
                     lineAreaChart.update();
                 } catch (e) {}
+            } else if (lineAreaChart && existsArea) {
+                // Restore an existing hidden area series when selected from More Locations.
+                try {
+                    lineAreaChart.data.datasets.forEach(function(ds, idx){
+                        if (ds && ds.label === name) {
+                            var meta = lineAreaChart.getDatasetMeta(idx);
+                            if (meta) meta.hidden = false;
+                        }
+                    });
+                    lineAreaChart.update();
+                } catch (e) {}
             }
-            try { if (typeof window.buildFloatingLegendFromChart === 'function') window.buildFloatingLegendFromChart(); } catch (e) {}
+            // Avoid intermediate legend flashes while cached legend list is being applied.
+            if (!window._applyingSavedLegendList) {
+                try { if (typeof window.buildFloatingLegendFromChart === 'function') window.buildFloatingLegendFromChart(); } catch (e) {}
+            }
         } catch (e) {}
     };
 
@@ -793,9 +867,15 @@ dataCopy.forEach(location => {
         const ctx = document.getElementById('timelineChart').getContext('2d');
         timelineChart = new Chart(ctx, config);
 
-        // Trigger floating legend build in the page (if the function exists).
-        // The legend builder lives in the HTML page and may not be defined yet,
-        // so retry a few times with small delays to avoid race conditions.
+        if (lineAreaChart instanceof Chart) {
+            lineAreaChart.destroy();
+        }
+        const ctx1 = document.getElementById('lineAreaChart');
+        lineAreaChart = new Chart(ctx1, config1);
+
+        // Trigger floating legend build only after BOTH charts are rebuilt.
+        // This avoids mixing stale labels from the previous scope during transitions
+        // (for example switching from state -> country).
         (function tryBuildLegend(attempt) {
             attempt = attempt || 0;
             if (typeof window.buildFloatingLegendFromChart === 'function') {
@@ -809,12 +889,6 @@ dataCopy.forEach(location => {
             }
         })();
 
-        if (lineAreaChart instanceof Chart) {
-            lineAreaChart.destroy();
-        }
-        const ctx1 = document.getElementById('lineAreaChart');
-        lineAreaChart = new Chart(ctx1, config1);
-
         // Handle window resize to ensure charts adjust correctly when the window size changes
         // Chart.js automatically handles shrinking, but to handle expansion properly, 
         // we need to manually trigger a resize on each chart instance.
@@ -824,6 +898,9 @@ dataCopy.forEach(location => {
         window.addEventListener('resize', handleChartResize);
         }
     } finally {
+        document.querySelectorAll('.timeline-loading-overlay .loading-text').forEach(el => {
+            el.textContent = 'Timeline Display';
+        });
         document.body.classList.remove('timeline-loading');
     }
 }
@@ -991,11 +1068,25 @@ function refreshTimeline() {
             let showAll = document.querySelector('input[name="whichLines"]:checked').value;
             if(!showAll) {showAll = 'showTop5';}
 
-            let entityIdSelect = document.getElementById('entityId');
-            let entityId = entityIdSelect.options[entityIdSelect.selectedIndex].value;
+            let entityId = '';
+            const entityIdSelect = document.getElementById('entityId');
+            if (entityIdSelect && entityIdSelect.selectedIndex >= 0) {
+            entityId = entityIdSelect.options[entityIdSelect.selectedIndex].value;
+            }
+
+            // Only required for county scope.
+            // Treat placeholder/non-geoId values (like "State...") as empty.
+            if (scope === 'county' && (!entityId || !String(entityId).startsWith('geoId/'))) {
+            entityId = 'geoId/26';
+            if (entityIdSelect) {
+                entityIdSelect.value = entityId;
+            }
+            }
             let chartText = document.getElementById('chartVariable').options[document.getElementById('chartVariable').selectedIndex].text;
 
-            //alert(chartVariable + " " + chartText)
+            if (typeof window.onBeforeRefreshTimeline === 'function') {
+                try { window.onBeforeRefreshTimeline(scope, chartVariable); } catch(e) {}
+            }
             getTimelineChart(scope, chartVariable, entityId, showAll, chartText);
         //},3000);
     //});

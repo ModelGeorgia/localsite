@@ -27,18 +27,18 @@
   <!-- event.stopPropagation() here breaks top icon clicks -->
   <div id="rightTopMenu" onclickX="event.stopPropagation()" class="hideOnBodyClickXX">
     
-    <div id="goatIcons" class="darkDivText" style="background-color:#111; color:#ccc; width:100%; height:64px; padding-right:6px; overflow:hidden">
+    <div id="goatIcons" class="darkDivText" style="background-color:#111; color:#ccc; width:100%; height:55px; padding-right:6px; overflow:hidden; cursor:pointer">
 
       <div style="float:left">
-        <div class="closeSideTabs ">
+        <div class="closeSideTabs" style="cursor:pointer;">
             <!-- show-on-load -->
             <!--
             <div class="showMobile" style="display: none;">
               <i class="material-icons show-on-load" style="font-size:40px;" data="apps">&#xE5E0;</i>
             </div>
             -->
-            <div class="showWideX" style="displayX: none;">
-              <i class="material-icons show-on-load" style="font-size:34px;" data="apps">&#xE5CD;</i>
+            <div class="showWideX" style="displayX:none; padding:10px">
+              <i class="material-icons show-on-load" style="font-size:32px;" data="apps">&#xE5CD;</i>
             </div>
         </div>
 
@@ -47,21 +47,21 @@
       <div style="float:right">
         <div style="float:left">
           <div class="earth" style="display:none">
-          <div class="showSearch ">            
+          <div class="showSearch" style="padding:10px;padding-right:5px">            
             <i class="material-icons show-on-load" style="font-size:34px;opacity:0.7;" data="apps">&#xE8B6;</i>
           </div>
           </div>
         </div>
-        <div class="earth" style="display:none" style="float:left;">
-          <div class="showEarth ">
+        <div class="earth" style="display:none; float:left; padding:10px">
+          <div class="showEarth">
             <i class="material-icons show-on-load" style="font-size:34px;opacity:0.7;" data="apps">&#xE894;</i>
           </div>
         </div>
-        <div class="hideNarrow" style="float:left;">
-            <div class="closeSideTabs expandToFullscreen " style="border:0px;">
+        <div class="hideNarrow" style="float:left">
+            <div class="closeSideTabs expandToFullscreen" style="border:0px; padding:10px; padding-left:5px">
                 <i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D0;</i>
             </div>
-            <div class="closeSideTabs reduceFromFullscreen " style="display:none; border:0px;">
+            <div class="closeSideTabs reduceFromFullscreen" style="display:none; border:0px; padding:10px; padding-left:5px">
                 <i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D1;</i>
             </div>
         </div>
@@ -244,7 +244,7 @@
         <!-- /Sections Panel -->
 
         <!-- Stories Panel -->
-        <div id="seasonsPanel" class="menuExpanded topMenuOffset" style="display:none; font-size: 18.5px;">
+        <div id="seasonsPanel" class="menuExpanded topMenuOffset" style="display:none">
           <div class="menuExpandedScroll always-show-scroll">
               <div id="storiesDiv"></div>
               <br><br><br>
@@ -287,20 +287,11 @@
 
           <div class="menuTitle">Settings</div>
 
-          <div class="hideMobile">
-            <div classX="user-6" style="displayX:none">
-              <div class="sitemodeHolder" style="display:none;">
-                <div class="setLeft">Header</div>
-                    <div class="setOverflow"><div class="setRight">
-                      <select class="sitemode" id="sitemode">
-                        <option value="widget" selected>Section Navigation</option>
-                        <option value="fullnav">Full Navigation</option>
-                        </select>
-                    </div></div>
-                    <div class="setDiv"></div>
-                </div>
-              </div>
-            </div>
+          <div class="setLeft">Style</div>
+            <div class="setOverflow"><div class="setRight">
+                <select id="stylelook"></select>
+            </div></div>
+            <div class="setDiv"></div>
 
           <div class="setLeft">Light/Dark</div>
             <div class="setOverflow"><div class="setRight">
@@ -309,11 +300,11 @@
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
                   <option value="computer">Match my computer</option>
-                </select>
-            </div></div>
-            <div class="setDiv"></div>
+	                </select>
+	            </div></div>
+	            <div class="setDiv"></div>
 
-            <div class="dev local earth" style="display:none">
+	            <div class="dev local earth" style="display:none">
               <div class="setLeft">Dev Mode</div>
               <div class="setOverflow"><div class="setRight">
                   <select id="devmode">
@@ -327,22 +318,7 @@
             <div class="dev" style="display:none">
               <div class="setLeft">Model Site</div>
               <div class="setOverflow"><div class="setRight">
-                  <select id="modelsite">
-                    <option value="planet.live" class="local" style="display:none;">Planet Live</option>
-                    <option value="dreamstudio">DreamStudio</option>
-                    <option value="model.earth" selected>Model Earth</option>
-                    <option value="model.africa">Model Africa</option>
-                    <option value="model.europe">Model Europe</option>
-                    <option value="model.canada">Model Canada</option>
-                    <option value="model.china">Model China</option>
-                    <option value="model.india">Model India</option>
-                    <option value="model.usa">Model USA</option>
-                    <option value="model.georgia">Model Georgia</option>
-                    <option value="model.maine">Model Maine</option>
-                    <option value="neighborhood.org">Neighborhood</option>
-                    <option value="democracylab" class="local" style="display:none;">DemocracyLab</option>
-                    <option value="membercommons">MemberCommons</option>
-                  </select>
+                  <select id="modelsite"></select>
               </div></div>
               <div class="setDiv"></div>
             </div>
@@ -386,6 +362,19 @@
             </div>
             </div>
 
+	          <div id="accesslocalHolder" style="display:none">
+	              <div class="setLeft">Localhost</div>
+	                <div class="setOverflow"><div class="setRight">
+	                    <select id="accesslocal">
+	                      <option value="" selected>Set access...</option>
+	                      <option value="install">Install</option>
+	                      <option value="enabled">Enabled</option>
+	                      <option value="block">Block</option>
+	                    </select>
+	                </div></div>
+	                <div class="setDiv"></div>
+	          </div>
+
             <div class="setLeft"><div>Map Center</div></div>
             <div class="setOverflow"><div class="setRight">
                   <select id="globecenter">
@@ -426,6 +415,7 @@
               </div>
             </div>
             <br />
+            <br><br>
 
           </div>
         </div>
@@ -560,7 +550,9 @@
       <!--
       <div class="nav-reopen-btn headerLeftIcon" style="vertical-align:middle;display:inline-block;margin:0 auto;padding:6px;opacity:.3"><i class="material-icons">&#xE5D2;</i></div>
       -->
+      <div class="noprint">
         <div id="showSideFromHeader" class="showNavColumn headerLeftIcon" style="vertical-align:middle;display:inline-block;margin:0 auto;padding:6px;opacity:.3; min-height: 43px"><i class="material-icons">&#xE5D2;</i></div>
+      </div>
     </div>
 
     <!-- class="contentpadding" style="padding-top:0px; padding-bottom:0px; float:left;" -->
@@ -646,6 +638,8 @@
             <a href="/dreamstudio/earth/" class="navlink-earth"><span style="white-space: nowrap; margin-right:3px">Earth</span></a>
             <a href="/desktop/" class="navlink-desktop"><span style="white-space: nowrap">Desktop</span></a> 
             <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
+            <a href="/montage/" class="navlink-montage"><span style="white-space: nowrap">Montage</span></a> 
+
             <a href="/dreamstudio/swarm/" class="navlink-swarm"><span style="white-space: nowrap">Swarm</span></a>  
             <a href="/community/projects/" class="navlink-moonshots" target="me"><span style="white-space: nowrap">Moonshots</span></a>
           </span>
@@ -662,7 +656,7 @@
         </div>
 
         <div class="georgia" style="display:none">
-          <span id="intranet-nav" class="hideMobile" style="float:left; display:none">
+          <span id="intranet-nav" class="hideMobile local" style="float:left; display:none">
             <a href="/explore/locations/" class="navlink-locations"><span style="white-space: nowrap; margin-right:6px">Locations</span></a>
             <!--
             <a href="/localsite/info/#geoview=state&state=GA" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
@@ -1227,8 +1221,8 @@ Displayed by hashChanged() in navigation.js
   }
   #mainbucket {
     position: absolute;
-    right: 80px;
-    bottom: 20px;
+    right: 100px;
+    bottom: 90px;
     padding: 20px;
     font-size: 18px;
     line-height: 28px;
@@ -1243,14 +1237,9 @@ Displayed by hashChanged() in navigation.js
   }
 </style>
 
-<div id="nullschoolHeader" style="position:relative; display:none">
+<div id="mainEarthDisplay" class="earthDisplay" style="position:relative; display:none">
 
-  <div id="earthClose" style="position:absolute;top:13px;right:15px;color:#ccc;cursor:pointer"><i class="material-icons show-on-load" style="font-size:20px;">&#10005;</i></div>
-
-  <div id="earthZoom" class="earthZoom" style="display:none; position:absolute; z-index:100; right:20px; bottom:20px">
-    
-    <div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="#" title="Zoom in" role="button" aria-label="Zoom in">+</a><a class="leaflet-control-zoom-out" href="#" title="Zoom out" role="button" aria-label="Zoom out">−</a></div>
-  </div>
+  <!-- #earthClose and .earth-zoom-controls created by createEarthZoomControls('mainEarthDisplay') in nouislider.min.js -->
   
 
   <div class="hideMobile">
@@ -1271,7 +1260,7 @@ Displayed by hashChanged() in navigation.js
     <div class="earth georgia" style="display:none">
       <div style="padding-top:5px;overflow:auto" class="hideOnProjectsPage">
         Exploring Earth's systems<br>through collaborative modeling.<br>
-        <a href="https://model.earth/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Projects</a>
+        <a href="/community/projects/" class="btn btn-primary" style="margin-top:10px;">Coding Moonshots</a>
       </div>
       <div style="display:none" class="projectsPage">
         Build your school projects and dissertations<br>
@@ -1739,6 +1728,32 @@ Removed 0 from 01 to 09, not sure why stateID skips 3 and 7 -->
 			<a href="https://buildingtransparency.org" target="_blank" class="btn btn-outline" style="padding:10px 20px; text-decoration:none;">
 				Learn More About EPDs
 			</a>
+		</div>
+	</div>
+
+	<hr style="margin:30px 0 0 0;">
+
+	<!-- Environmental Impact Section -->
+	<div class="contentpadding" style="padding-top:25px;">
+		<h2 style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+			<span style="font-size:24px;">&#127758;</span>
+			<span>Environmental Impact</span>
+		</h2>
+		<div id="industryImpactCharts">
+			<p style="color:#666;">Select a state above to view environmental impact data for this industry.</p>
+		</div>
+	</div>
+
+	<hr style="margin:30px 0 0 0;">
+
+	<!-- Supply Chain Section -->
+	<div class="contentpadding" style="padding-top:25px; padding-bottom:40px;">
+		<h2 style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+			<span style="font-size:24px;">&#128279;</span>
+			<span>Supply Chain</span>
+		</h2>
+		<div id="industrySupplyChain">
+			<p style="color:#666;">Supply chain analysis shows which industries provide inputs and receive outputs from this sector.</p>
 		</div>
 	</div>
 </div>
