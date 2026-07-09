@@ -7811,21 +7811,21 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         }
         showClassInline(".geo");
 
-        if (location.host.indexOf('localhost') < 0) {
-            var hiddenStyle = document.createElement('style');
-            hiddenStyle.id = 'georgia-side-nav-hidden';
-            hiddenStyle.textContent = '#side-nav-content { display: none !important }';
-            document.head.appendChild(hiddenStyle);
-            waitForElm('#side-nav-content').then(function() {
-                window.loadWebrootYaml && window.loadWebrootYaml().then(function(cfg) {
-                    var site = cfg.sites && cfg.sites['model.georgia'];
-                    if (!site || site.sideNavLive !== 'false') {
-                        var s = document.getElementById('georgia-side-nav-hidden');
-                        if (s) s.remove();
-                    }
-                });
+        var isLocalhost = location.host.indexOf('localhost') >= 0;
+        var sideNavKey = isLocalhost ? 'sideNavLocal' : 'sideNavLive';
+        var hiddenStyle = document.createElement('style');
+        hiddenStyle.id = 'georgia-side-nav-hidden';
+        hiddenStyle.textContent = '#side-nav-content { display: none !important } #side-nav.expanded #main-nav { display: block !important } .main-nav-full { width: 189px !important } .listcolumn:not(.listcolumnOnly) { left: 189px !important }';
+        document.head.appendChild(hiddenStyle);
+        waitForElm('#side-nav-content').then(function() {
+            window.loadWebrootYaml && window.loadWebrootYaml().then(function(cfg) {
+                var site = cfg.sites && cfg.sites['model.georgia'];
+                if (!site || site[sideNavKey] !== 'false') {
+                    var s = document.getElementById('georgia-side-nav-hidden');
+                    if (s) s.remove();
+                }
             });
-        }
+        });
 
         if (location.host.indexOf("locations.pages.dev") >= 0 || location.host.indexOf("locations.georgia.org") >= 0) {
             // To activate when filter are ready
@@ -9070,7 +9070,21 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
                 }
                 // Hidden to reduce clutter
                 $("#honeycombPanel").prepend("<div class='hideThumbMenu close-X' style='display:none; position:absolute; right:0px; top:0px;'><i class='material-icons' style='font-size:32px'>&#xE5CD;</i></div>");
-                $(insertInto).append("<div id='bigThumbMenuInner' class='bigThumbMenuInner'>" + sectionMenu + "</div>");
+                var savedThumbLayout = (typeof localStorage !== 'undefined' && localStorage.getItem('bigThumbLayout')) || 'grid';
+                var thumbLayoutClass = savedThumbLayout === 'stack' ? ' layoutStack' : '';
+                var thumbToggleHtml = "<div class='bigThumbLayoutToggle'>" +
+                    "<i class='material-icons bigThumbLayoutBtn" + (savedThumbLayout === 'grid' ? ' active' : '') + "' data-layout='grid' title='Grid'>&#xE8F0;</i>" +
+                    "<i class='material-icons bigThumbLayoutBtn" + (savedThumbLayout === 'stack' ? ' active' : '') + "' data-layout='stack' title='List'>&#xE8EF;</i>" +
+                    "</div>";
+                $(insertInto).append("<div id='bigThumbMenuInner' class='bigThumbMenuInner" + thumbLayoutClass + "'>" + thumbToggleHtml + sectionMenu + "</div>");
+                $("#bigThumbMenuInner .bigThumbLayoutToggle").append($(".hideApps.close-X").first());
+                $(document).off('click.bigThumbLayout').on('click.bigThumbLayout', '.bigThumbLayoutBtn', function() {
+                    var layout = $(this).attr('data-layout');
+                    $('#bigThumbMenuInner').toggleClass('layoutStack', layout === 'stack');
+                    $('.bigThumbLayoutBtn').removeClass('active');
+                    $('.bigThumbLayoutBtn[data-layout="' + layout + '"]').addClass('active');
+                    if (typeof localStorage !== 'undefined') localStorage.setItem('bigThumbLayout', layout);
+                });
 
                 if (stateAbbr == "GA") {
                 // if (hash.state && hash.state.split(",")[0].toUpperCase() == "GA") {
@@ -9536,6 +9550,11 @@ function showApps(menuDiv) {
             }
         } else { // Show Apps, Close Locations (if no geoview)
             updateHash({"appview":"topics"});
+            // Silently remove sidetab from the hash so closeSideTabs() doesn't fire a
+            // hashchange (which would also close #bigThumbPanelHolder), then close the
+            // entire side settings panel via the same function the .showWideX X uses.
+            updateHash({}, true, "sidetab");
+            closeSideTabs();
             console.log("call showThumbMenu from navidation.js");
             if (!hash.geoview) {
 
@@ -9564,10 +9583,12 @@ function showApps(menuDiv) {
             $("#bigThumbMenuInner").appendTo(menuDiv);
             showThumbMenu(hash.show, menuDiv);
             //$('.showApps').addClass("filterClickActive");
-            waitForElm('#bigThumbPanelHolder').then((elm) => { 
+            waitForElm('#bigThumbPanelHolder').then((elm) => {
+                // Scroll so the top of #bigThumbPanelHolder is visible (just below the header).
+                // Previously subtracted #filterFieldsHolder.height() too, which pushed
+                // #bigThumbLayoutToggle above the fold.
                 $('html,body').animate({
-                    //- $("#filterFieldsHolder").height()  
-                    scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
+                    scrollTop: $("#bigThumbPanelHolder").offset().top - $("#headerbar").height()
                 });
             });
         }
@@ -9678,7 +9699,7 @@ function openMapLocationFilter() {
             scrollTop: $("#filterLocations").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
         });
     });
-    if (location.host == 'georgia.org' || location.host == 'www.georgia.org') { 
+    if (location.host == 'georgia.org' || location.host == 'georgia.org') { 
         $("#header.nav-up").show();
     }
 }
@@ -9699,7 +9720,7 @@ function closeLocationFilter() {
     // Close inline state dropdown if open
     $("#inlineStateDropdown").hide();
     
-    if (location.host == 'georgia.org' || location.host == 'www.georgia.org') {
+    if (location.host == 'georgia.org' || location.host == 'georgia.org') {
         $("#header.nav-up").hide();
     }
 

@@ -439,7 +439,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.datastates = ["GA"];
       } else if (show == "360") {
         dp.listTitle = "Birdseye Views";
-        dp.dataset =  local_app.custom_data_root() + "360/GeorgiaPowerSites.csv";
+        dp.dataset =  local_app.custom_data_root() + "/explore/locations/360/GeorgiaPower360.csv";
         dp.search = {"In Location Name": "name", "In City": "CITY", "In Property URL": "property_link"};
         dp.color = "#ff9819"; // orange - Since there is no type column. An item column is filtered.
         dp.markerType = "google";
@@ -738,7 +738,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.valueColumnLabel = "EV Industry";
         dp.markerType = "google";
         dp.search = {"EV Industry": "EV Industry", "In Location Name": "name", "In Address": "address", "In County Name": "county", "In Website URL": "website"};
-      } else if (show == "smart") { // param["data"] for legacy: https://www.georgia.org/smart-mobility
+      } else if (show == "smart") { // param["data"] for legacy: https://georgia.org/smart-mobility
         dp.shortTitle = "Smart Data Projects";
         dp.listTitle = "Data Driven Decision Making";
         //dp.listSubtitle = "Smart & Sustainable Movement of Goods & Services";
@@ -1409,7 +1409,7 @@ function showList(dp,map) {
       } else {
         showIt = false; // Hide others to show profile below map with all.
       }
-    } 
+    }
 
     /*
     if (keyword == allItemsPhrase) { // Use a div argument instead
@@ -2059,7 +2059,10 @@ function showList(dp,map) {
           }
           output += "<div class='detailLinks'>";
             if (element.mapframe) {
-                output += "<a href='#show=360&name=" + name.replace(/'/g,'&#39;') + "&m=" + encodeURIComponent(element.mapframe) + "'>Birdseye View<br>";
+                // stopPropagation so the click doesn't also bubble to the .detail handler,
+                // which would call goHash() and create a duplicate history entry (requiring
+                // two browser-back clicks to return to the list).
+                output += "<a onclick='event.stopPropagation()' href='#show=360&name=" + name.replace(/ & /g," AND ").replace(/ /g,"_").replace(/'/g,'&#39;') + "&m=" + encodeURIComponent(element.mapframe) + "'>Birdseye View<br>";
                 //console.log("encodeURIComponent " + encodeURIComponent(element.mapframe))
             }
             if (element.property_link) {
@@ -2196,12 +2199,15 @@ function showList(dp,map) {
       //alert("a catList " + catList);
       renderCatList(catList,hash.cat);
     }
-    if (hash.name && $("#detaillist > [name=\""+ hash.name.replace(/_/g,' ').replace(/ AND /g,' & ') + "\"]").length) {
+    if (hash.m && $("#detaillist > [m=\"" + hash.m + "\"]").length) {
+      // Isolate the listing tied to the active 360 (Birdseye) view by its m attribute (kuula_XXXX).
+      $("#detaillist > [m=\"" + hash.m + "\"]").show();
+    } else if (hash.name && $("#detaillist > [name=\""+ hash.name.replace(/_/g,' ').replace(/ AND /g,' & ') + "\"]").length) {
       let listingName = hash.name.replace(/_/g,' ').replace(/ AND /g,' & ');
       //$("#detaillist > [name=\""+ listingName.replace(/'/g,'&#39;') +"\"]").show(); // To do: check if this or next line for apostrophe in name.
-      
+
       $("#detaillist > [name=\""+ listingName +"\"]").show();
-      
+
       //alert("show detail for " + hash.name);
       // Clickit
       /*
@@ -2223,7 +2229,14 @@ function showList(dp,map) {
 
     // Show the side columns
     if (!$("#listcolumn").is(":visible")) { // #listcolumn may already be visible if icon clicked while page is loading.
-        $("#showListInBar").show();
+        // filter.html (which contains #showListInBar) loads async, so wait
+        // for the element before showing — otherwise the first call silently
+        // no-ops and the icon only appears after #showSideFromBar is toggled.
+        waitForElm('#showListInBar').then(function() {
+            if (!$("#listcolumn").is(":visible")) {
+                $("#showListInBar").show();
+            }
+        });
     }
     //$("#showSideFromBar").show(); // Added 2024 May 28
     $(".sidelistHolder").show();
@@ -2364,11 +2377,22 @@ function showList(dp,map) {
 } // showList
 
 $(document).on("click", ".showList", function(event) {
+  // .sidebar-hidden sets #side-nav { display:none !important }, which hides
+  // #listcolumn (a child of #side-nav-fixed). Remove it so the list can render
+  // without first requiring a click on #showSideFromBar.
+  $("body").removeClass("sidebar-hidden");
   $("#listcolumn").show();
   if ($("#main-nav").is(":hidden")) {
     // Display showNavColumn in bar
     $("#showNavColumn").hide();
     $("#showSideFromBar").show();
+    // showListBodyMargin's outer condition (#main-container > .datascape)
+    // doesn't match the actual DOM (#main-container > #main-content > .datascape),
+    // so it never adds .listcolumnOnly. Add it here so listcolumn sits at left:0
+    // instead of the main-nav-aligned left:189px override.
+    $("#listcolumn").addClass("listcolumnOnly");
+  } else {
+    $("#listcolumn").removeClass("listcolumnOnly");
   }
   showListBodyMargin();
   $(".showList").hide();
@@ -2570,7 +2594,7 @@ function popMapPoint(dp, map, latitude, longitude, name, color) {
   // Didn't work here
   /*
   if (dp.markerType == "google") {
-      if (location.host == 'georgia.org' || location.host == 'www.georgia.org') {
+      if (location.host == 'georgia.org' || location.host == 'georgia.org') {
         circle = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group);
       } else {
         // If this line returns an error, try setting dp1.latColumn and dp1.latColumn to the names of your latitude and longitude columns.
@@ -2639,7 +2663,7 @@ function zoomMapPoint(dp, map, latitude, longitude, name, color) {
   // Didn't work here
   /*
   if (dp.markerType == "google") {
-      if (location.host == 'georgia.org' || location.host == 'www.georgia.org') {
+      if (location.host == 'georgia.org' || location.host == 'georgia.org') {
         circle = L.marker([element[dp.latColumn], element[dp.lonColumn]]).addTo(dp.group);
       } else {
         // If this line returns an error, try setting dp1.latColumn and dp1.latColumn to the names of your latitude and longitude columns.
@@ -3806,9 +3830,21 @@ function hashChangedMap() {
         $("#changeHublistHeight").hide();
         $("#detaillist .detail").hide(); // Hide all
         let thename = hash.name.replace(/_/g,' ').replace(/ AND /g,' & ');
-        $("#detaillist > [name=\"" + thename + "\"]").show();
+        let listing = $("#detaillist > [name=\"" + thename + "\"]");
+        listing.show();
+        // Center the side map (map2) on the listing's point, like the detail click handler
+        // does. Arriving via hash (e.g. a Birdseye View link) skips that click, so without
+        // this the location's mappoint is missing from #map2.
+        let latitude = listing.attr("latitude");
+        let longitude = listing.attr("longitude");
+        if (latitude && longitude) {
+          centerMap(latitude, longitude, thename, map1, "map1");
+          centerMap(latitude, longitude, thename, map2, "map2");
+        } else {
+          console.log("No lat lon for listing " + thename);
+        }
         //let mapframe = $("#detaillist > [name=\"" + thename + "\"]").attr("m");
-        let mapframe = $("#detaillist > [name=\"" + thename + "\"]").attr("m");
+        let mapframe = listing.attr("m");
         if (mapframe) {
           mapframe = getMapframeUrl(mapframe);
           //alert("Redundent call");
@@ -3878,23 +3914,55 @@ function hashChangedMap() {
     loadMap1(whatChanged, hash.show);
   }
   
+  // .displayOnload (display:block) is no longer set statically in the markup, so the
+  // #map1 container starts hidden. Add it only when there is no 360 iframe (hash.m),
+  // so the birdseye iframe shows alone when hash.m is present. #map1 lives in
+  // template-main.html (loads asynchronously), so wait for it before toggling.
+  onElmReady('#map1', function (mapEl) {
+    let mapHolder = $(mapEl).parent(); // wrapper around #map1
+    if (hash.m) {
+      mapHolder.removeClass("displayOnload");
+    } else {
+      mapHolder.addClass("displayOnload");
+    }
+  });
+
   if (hash.m != priorHash.m) { // For 360 iFrame
     //$(".mapframeClass").hide();
     //$("#mapframe").prop("src", "about:blank");
     if (hash.m) {
       let mapframe = getMapframeUrl(hash.m);
       if (mapframe) {
-        $("#mapframe").prop("src", mapframe);
-        //alert("mapframe changed " + mapframe)
-        $(".mapframeClass").show();
-        window.scrollTo({
-          top: $('#mapframe').offset().top - 95,
-          left: 0
+        // #mapframe lives in template-main.html, which loads asynchronously, so wait
+        // for it before setting the src and scrolling (onElmReady is immediate if present).
+        onElmReady('#mapframe', function (frame) {
+          $(frame).prop("src", mapframe);
+          //alert("mapframe changed " + mapframe)
+          $(".mapframeClass").show();
+          let frameOffset = $(frame).offset();
+          if (frameOffset) {
+            window.scrollTo({
+              top: frameOffset.top - 95,
+              left: 0
+            });
+          }
         });
       }
     } else {
-      $("#mapframe").prop("src", "");
-      $(".mapframeClass").hide();
+      // hash.m was removed, so hide the 360 iframe. Use the same onElmReady process
+      // as the show branch since #mapframe lives in template-main.html (async load).
+      onElmReady('#mapframe', function (frame) {
+        $(frame).prop("src", "");
+        $(".mapframeClass").hide();
+      });
+      // The leaflet map was hidden while the 360 iframe was showing, so its tiles were
+      // sized against a hidden (zero-size) container. Now that #map1 is visible again,
+      // refresh the tiles. Wait for #map1 (async from template-main.html) before calling.
+      onElmReady('#map1', function () {
+        if (map1 && typeof map1.invalidateSize === 'function') {
+          map1.invalidateSize(); // Refresh map tiles.
+        }
+      });
     }
   }
 }
