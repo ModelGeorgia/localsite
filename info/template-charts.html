@@ -154,33 +154,9 @@ function showIndustryList() {
 
 <div id="industryListHolder" style="display:none; padding-top:0; padding-bottom:0">
 
-<div id="industryHeader" class="contentpadding" style="clear:both;padding-bottom:0px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px">
-	<div style="flex:1;min-width:200px">
-		<h1 id="pageTitle" class="h1-home" style="margin-bottom:0px;"></h1><!-- For 6 impact sets -->
-		<h1 class="region_service" style="margin-top:0;padding-top:0;"></h1>
-		<h2 class="location_titles" style="font-size:24px;padding-top:0px;display:none"></h2>
-	</div>
-	<div id="detail_selection" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;line-height:normal">
-		<div class="georgia local" style="display:none"><select id="catyear" class="picklist" onchange="goHash({'catyear':this.value});">
-		  <option value="2016">2016</option>
-		  <option value="2017">2017</option>
-		  <option value="2018">2018</option>
-		  <option value="2019">2019</option>
-		  <option value="2020">2020</option>
-		  <option value="2021">2021</option>
-		  <option value="2022">2022</option>
-		  <option value="2023" selected>2023</option>
-		</select></div>
-		<select id="catsize" class="picklist" onchange="goHash({'catsize':this.value});">
-		  <option value="2">Sectors - 2 digits</option>
-		  <!--option value="2">Subsectors - 3 digits</option-->
-		  <option value="4">Industry Groups - 4 digits</option>
-		  <!--option value="4">NAICS Industry - 5 digits</option-->
-		  <option value="6" selected>Industries - 6 digits</option>
-		</select>
-		<div id="show_industry_settings" style="cursor:pointer;flex-shrink:0;line-height:normal" onclick="$('.industry_filter_settings').toggle();">
-			<span class="material-icons" style="font-size:24px;color:#777">settings</span>
-		</div>
+<!-- #detail_selection floats right, so the titles wrap beside it and extend full width below it, rather than staying in a column -->
+<div id="industryHeader" class="contentpadding" style="clear:both;padding-bottom:0px;display:flow-root">
+	<div id="detail_selection" style="float:right;margin-left:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;line-height:normal">
 		<div id="widgetToggleContainer" style="position:relative; min-height:24px; line-height:normal; flex-shrink:0;">
 		  <div id="widgetToggleHolder" class="menuToggleHolder" title="Widget list" style="position:relative;right:auto;top:auto;">
 		    <i id="widgetToggleIcon" class="material-icons" style="-webkit-text-stroke: 1.5px currentColor; border-radius: 50%; border: 2px solid currentColor; padding: 2px;">more_vert</i>
@@ -196,25 +172,72 @@ function showIndustryList() {
 		  </div>
 		</div>
 	</div>
-	<div class="industry_filter_settings" style="display:none;width:100%;margin-top:6px">
-		<div class="state-view" style="margin:20px 0 20px 30px">
-			To view filter settings, choose a location (county or region) above.
-			<a href="/localsite/info/naics/" class="local" style="display:none">View upcoming industry list</a>
-		</div>
-		<div class="county-view" style="display:none">
-			<select id="catmethod" class="picklist" onchange="goHash({'catmethod':this.value});">
-			  <option value="1" selected>Use average of payrolls not assigned to counties</option>
-			  <option value="2">Use average of all state payrolls (less accurate)</option>
-			  <option value="0">Leave unpublished values blank</option>
-			</select>
-		</div>
+	<!-- href gets the current hash plus appview=topics (navigation.js). Hidden while a set is chosen and the topic link below opens the Topics menu instead. -->
+	<a id="modelTopicsLink" href="#appview=topics">Model Topics</a>
+	<!-- The show topic alone (setShowTopic in navigation.js). With a set: small and linked like #modelTopicsLink, above #pageTitle.
+	Without a set: plain text above #regionService, larger when #regionService is empty. -->
+	<div id="showTopic" style="display:none"></div>
+	<h1 id="pageTitle" class="h1-home" style="margin-bottom:0px;"></h1><!-- For 6 impact sets -->
+	<h1 id="regionService" class="region_service" style="margin-top:0;padding-top:0;"></h1><!-- The US region title while hash.usregion is present (navigation.js) -->
+	<h2 class="location_titles" style="font-size:24px;padding-top:0px;display:none"></h2>
+</div>
+
+<!-- Energy output for set=energy. Styles: STATE ENERGY below. On info/index.html, state-energy.js moves
+#stateEnergyTitle, #stateEnergyIntro and #stateEnergyCards into #heroBottomEnergy at the bottom of the hero. -->
+<section id="stateEnergy" class="contentpadding">
+	<h2 id="stateEnergyTitle">Electricity Generation</h2>
+	<div id="stateEnergyIntro" class="energy-note"></div>
+	<div id="stateEnergyCards" class="energy-cards"></div>
+
+	<div class="energy-heading-row">
+		<h3 id="stateEnergyMixTitle">Resource Mix</h3>
+		<!-- All states: switches the bars between the states and the eGRID subregions -->
+		<button type="button" id="stateEnergyMixToggle" class="btn btn-med" aria-pressed="false" style="display:none">eGRID Subregions</button>
 	</div>
+	<div id="stateEnergyMix"></div>
+
+	<h3 id="stateEnergyRatesTitle">CO<sub>2</sub>e Emission Rate</h3>
+	<div id="stateEnergyRates"></div>
+
+	<h3 id="stateEnergyTableTitle">eGRID Subregions</h3>
+	<div class="energy-table-options">
+		<div id="stateEnergyTableIntro" class="energy-note"></div>
+		<label id="stateEnergyAllSubregionsLabel"><input type="checkbox" id="stateEnergyAllSubregions"> Show all subregions</label>
+	</div>
+	<div id="tabulator-energytable"></div>
+	<div id="stateEnergySource" class="energy-note" style="margin-top:12px"></div>
+</section>
+
+<!-- One button per state when the hash has several (naics.js). Outside #industryTableHolder. -->
+<div class="contentpadding" style="padding-top:0;padding-bottom:0">
+	<div id="chooseLocation" role="group" aria-label="Primary state" style="display:none"></div>
 </div>
 
 <!-- v2 -->
 <section id="industryTableHolder" style="display:none;">
-<div class="contentpadding" style="padding-top:0px">
-	<div id="tabulator-industrytable-intro"><b>Area Industries</b> (Visible on localhost) <!-- FIPS and NAICS case sensitive--></div>
+<div id="AreaIndustries" class="contentpadding" style="padding-top:0px">
+	<div id="tabulator-industrytable-intro" style="padding-bottom:5px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px"><b>Top US Industries by Payroll</b> <!-- Set by updateIndustryTableTitle() in naics.js. FIPS and NAICS case sensitive-->
+		<!-- Year and NAICS digits -->
+		<div id="industryTableControls">
+			<div class="georgia local" style="display:none"><select id="catyear" class="picklist" onchange="goHash({'catyear':this.value});">
+			  <option value="2023" selected>2023</option>
+			  <option value="2022">2022</option>
+			  <option value="2021">2021</option>
+			  <option value="2020">2020</option>
+			  <option value="2019">2019</option>
+			  <option value="2018">2018</option>
+			  <option value="2017">2017</option>
+			  <option value="2016">2016</option>
+			</select></div>
+			<select id="catsize" class="picklist" onchange="goHash({'catsize':this.value});">
+			  <option value="2">Sectors - 2 digits</option>
+			  <!--option value="2">Subsectors - 3 digits</option-->
+			  <option value="4">Industry Groups - 4 digits</option>
+			  <!--option value="4">NAICS Industry - 5 digits</option-->
+			  <option value="6" selected>Industries - 6 digits</option>
+			</select>
+		</div>
+	</div>
 	<div id="tabulator-industrytable-datalink"></div>
 	<div style="clear:both"></div>
 	<div id="tabulator-industrytable"></div><br>
@@ -237,16 +260,6 @@ function showIndustryList() {
 			</div>
 
 			<div id="industryFilters" class="mainColumn mainColumn2 input-output">
-
-				<div style="float:right; font-size: 11px">
-					Data source: U.S. Bureau of Economic Analysis
-				</div>
-
-				<select id="catsort" class="picklist" onchange="goHash({'catsort':this.value});">
-				  <option value="payann" selected>By Annual Payroll</option>
-				  <option value="emp">By Employee Count</option>
-				  <option value="estab">By Establishments</option>
-				</select>
 
 				<div id="topMessage" style="clear:both"></div>
 
@@ -274,7 +287,39 @@ function showIndustryList() {
 				Previously contained:
 				<img src='/localsite/img/icon/loading.gif' style='margin:40px; width:120px'>
 			-->
-			<div id="econ_list"></div><br>
+			<!-- Older state industry list, shown on localhost (localonly in localsite.js). -->
+			<div class="localonly" style="display:none">
+				<!-- href set to the state's folder in loadIndustryData() in naics.js -->
+				<div style="text-align:right; font-size: 11px">
+					Data source: <a id="industryDataSource" href="https://github.com/ModelEarth/community-data/tree/master/us/state" target="_blank">U.S. Bureau of Economic Analysis</a>
+					<!-- Opens .industry_filter_settings below -->
+					<span id="show_industry_settings" class="material-icons" title="Settings" style="font-size:18px;color:#777;cursor:pointer;vertical-align:middle;margin-left:4px" onclick="$('.industry_filter_settings').toggle();">settings</span>
+				</div>
+				<div class="industry_filter_settings" style="display:none;clear:both;width:100%;margin-bottom:10px;font-size:13px">
+					<div class="state-view" style="margin:20px 0 20px 30px">
+						To view filter settings, choose a location (county or region) above.
+						<a href="/localsite/info/naics/" class="local" style="display:none">View upcoming industry list</a>
+					</div>
+					<div class="county-view" style="display:none">
+						<select id="catmethod" class="picklist" onchange="goHash({'catmethod':this.value});">
+						  <option value="1" selected>Use average of payrolls not assigned to counties</option>
+						  <option value="2">Use average of all state payrolls (less accurate)</option>
+						  <option value="0">Leave unpublished values blank</option>
+						</select>
+					</div>
+				</div>
+				<div id="econ_list"></div>
+				<div class="econListInfo" style="font-size:13px; margin-top:16px">
+					<b>About this list</b><br>
+					This data is still used by the live site. With a state chosen, loadIndustryData() fetches nine files: the state's industries_state&hellip; files at three code sizes (2, 4 and 6 digit NAICS) and two kinds (_all with a row per county, and _state_all with statewide totals), a county list, the industry ID list and the state's county file.<br><br>topRatesInFips() builds the state's top industries list above (#econ_list, the NAICS rows with payroll, employee and firm counts) from them.<br>The same function also takes the state's top 21 NAICS codes and:
+					<ul style="margin:6px 0">
+						<li>puts them in the hidden hash as the bubble chart's red highlights for that state,</li>
+						<li>passes them to applyIO(), which draws the Supply Chain inflow-outflow chart.</li>
+					</ul>
+					Skipping those files off localhost would remove the state's red bubbles and the state-specific supply chain.<br><br>
+					Alternative: the state's top codes could come from the same national CSV the Area Industries table already loads. The function would filter it to the state, sort by catsort and take the top 21, the way the no-state case already works. The nine files would then only load on localhost, for this list. The rankings might differ slightly from today's, since the old files use their own county-based estimates.
+				</div>
+			</div><br>
 
 </section><!-- /industries -->
 
@@ -317,14 +362,15 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
         <div id="impactIconsHolder" style="float:right;" class="fullMobile fullNarrow">
             <div class="impactIcons">
                 <!-- to do: check if indicators match USEEIO 2.0 -->
-                <div class="impactIcon_Air" onclick="goHash({'set':'air','indicators':'GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS'});">Air</div>
-                <div class="impactIcon_Water" onclick="goHash({'set':'water','indicators':'WATR,ACID,EUTR,ETOX'});">Water</div>
-                <div class="impactIcon_Land" onclick="goHash({'set':'land','indicators':'LAND,MNRL,PEST,METL,CRHW,CMSW,FMSW,CCDD'});">Land</div>
+                <div class="impactIcon_Air" onclick="iNav('air');">Air</div>
+                <div class="impactIcon_Water" onclick="iNav('water');">Water</div>
+                <div class="impactIcon_Land" onclick="iNav('land');">Land</div>
                 <div class="showMobile showMobileFull" style="clear:both;margin:0px;padding:0px;border:0px;display:none"></div>
-                <div class="impactIcon_Energy" onclick="goHash({'set':'energy','indicators':'ENRG,NNRG,RNRG'});">Energy</div>
-                <div class="impactIcon_Health" onclick="goHash({'set':'health','indicators':'HTOX,HCAN,HNCN,HTOX,HRSP'});">Health</div>
-                <div class="impactIcon_Prosperity" onclick="goHash({'set':'prosperity','indicators':'VADD,JOBS'});">Prosperity</div>
-                <div class="local btn btn-primary" onclick="location.href='/realitystream/#' + window.location.hash.substr(1); return false;" style="display:none;min-width:133px;font-size:15px;border:none;">
+                <div class="impactIcon_Energy" onclick="iNav('energy');">Energy</div>
+                <div class="impactIcon_Health" onclick="iNav('health');">Health</div>
+                <div class="impactIcon_Prosperity" onclick="iNav('prosperity');">Prosperity</div>
+                <div class="impactIcon_All" onclick="iNav('');">All</div><!-- No set: all impacts -->
+                <div class="local btn btn-primary" onclick="location.href='/realitystream/models/#' + window.location.hash.substr(1); return false;" style="display:none;min-width:133px;font-size:15px;border:none;">
 					RealityStream
 				</div>
             </div><br>
@@ -349,6 +395,18 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
             <style>
             	@media (max-width: 1200px) {
             	}
+				/* Explicit text colors, since the text was white on the white background outside dark mode */
+				#indicators {
+					color: #333;
+					background-color: #fff;
+				}
+				.dark #indicators {
+					color: #fff;
+					background-color: #444;
+				}
+				.dark #indicators:hover {
+					background-color: #222;
+				}
 
 				.mobileView .MuiGrid-grid-md-true {
 				    flex-basis: 100% !important;
@@ -360,7 +418,7 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 				
             </style>
 
-            <select id="indicators" class="filterClickX form-selectX picklist" onchange="goHash({'set':'','indicators':this.value});" style="max-width:200px;font-size:18px;">
+            <select id="indicators" class="filterClickX form-selectX picklist" onchange="goHash({'set':'','indicators':this.value});" style="max-width:202px;font-size:18px;">
 
 			<option value="">Specific impact areas...</option>
 
@@ -440,6 +498,288 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 </div>
 </section>
 <!-- /INDICATOR SETS -->
+
+
+<!-- STATE ENERGY
+set=energy shows EPA eGRID electricity data: all states, or the state in the hash. profile/js/state-energy.js fills the
+#stateEnergy section (after #industryHeader) and adds body.energyView. State models have no energy indicators (ENRG, NNRG, RNRG), so with a state it also adds
+body.stateEnergyView, which hides the inflow-outflow grid (Impact Levels stays). Plan: profile/state/PLAN.md -->
+<style>
+#stateEnergy, .stateEnergyView #largeTite, .stateEnergyView #indicators, .stateEnergyView #iogridHolder {
+	display: none !important;
+}
+.energyView #stateEnergy {
+	display: block !important;
+}
+.energyView #regionService {
+	display: none; /* #pageTitle names the states: "Alaska Energy Mix" */
+}
+#stateEnergy {
+	container-type: inline-size;
+	padding-top: 0;
+	padding-bottom: 30px;
+	color: #333;
+}
+#stateEnergy h2, #heroBottomEnergy h2 {
+	margin: 0 0 4px 0;
+	border: 0;
+}
+#stateEnergy h3 {
+	margin: 26px 0 10px 0;
+	font-size: 18px;
+}
+/* A heading with a button after it */
+.energy-heading-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 14px;
+	margin: 26px 0 10px 0;
+}
+#stateEnergy .energy-heading-row h3 {
+	margin: 0;
+}
+.energy-note {
+	font-size: 14px;
+	color: #555;
+}
+.energy-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+	gap: 12px;
+	margin-top: 16px;
+}
+.energy-card {
+	background: #f5f7f9;
+	border: 1px solid #e1e5e9;
+	border-radius: 8px;
+	padding: 12px 14px;
+}
+.energy-card-label {
+	font-size: 13px;
+	color: #555;
+}
+.energy-card-value {
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+.energy-card-sub {
+	font-size: 12px;
+	color: #666;
+}
+.energy-mix-row {
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+/* All states: one compact, clickable row per state */
+.energy-mix-row.energy-mix-compact {
+	grid-template-columns: 44px 1fr;
+	gap: 8px;
+	margin-bottom: 3px;
+	cursor: pointer;
+	border-radius: 4px;
+}
+/* The US row above the states shares their narrow label column, so its bar lines up with theirs */
+.energy-mix-states .energy-mix-row {
+	grid-template-columns: 44px 1fr;
+	gap: 8px;
+	margin-bottom: 3px;
+}
+/* The US (and the states combined) at the same height as the state bars */
+.energy-mix-states .energy-mix-label {
+	font-size: 13px;
+}
+.energy-mix-states .energy-mix-bar {
+	height: 16px;
+	border-radius: 3px;
+}
+/* State and eGRID subregion names: the rows share one label column (subgrid), as wide as the longest name up to half the width */
+div.energy-mix-names {
+	display: grid;
+	grid-template-columns: fit-content(50%) 1fr;
+}
+div.energy-mix-names > * {
+	grid-column: 1 / -1;
+}
+div.energy-mix-names .energy-mix-row {
+	grid-template-columns: 170px 1fr; /* Without subgrid support */
+	grid-template-columns: subgrid;
+}
+.energy-mix-names .energy-mix-label {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+/* Space between the state bars and the US bar */
+.energy-mix-gap {
+	height: 12px;
+}
+.energy-mix-compact .energy-mix-label {
+	font-size: 13px;
+}
+.energy-mix-compact .energy-mix-bar {
+	height: 16px;
+	border-radius: 3px;
+}
+.energy-mix-compact:hover, .energy-mix-compact:focus-visible {
+	background: rgba(0, 0, 0, 0.06);
+	outline: none;
+}
+.energy-mix-label {
+	font-size: 14px;
+	font-weight: 600;
+}
+.energy-mix-bar {
+	display: flex;
+	height: 30px;
+	border-radius: 6px;
+	overflow: hidden;
+	background: #eee;
+}
+.energy-mix-bar span {
+	display: block;
+	height: 100%;
+	min-width: 0;
+}
+.energy-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin-top: 10px;
+	font-size: 13px;
+}
+.energy-legend span {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	white-space: nowrap;
+}
+.energy-legend i {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+}
+.energy-rate-row {
+	display: grid;
+	grid-template-columns: minmax(110px, 220px) 1fr 70px;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 6px;
+	font-size: 14px;
+}
+.energy-rate-track {
+	background: #eee;
+	border-radius: 4px;
+	height: 18px;
+	overflow: hidden;
+}
+.energy-rate-fill {
+	height: 100%;
+	border-radius: 4px;
+	background: #c0504d;
+}
+.energy-rate-row.energy-rate-state .energy-rate-fill {
+	background: #2f7ed8;
+}
+.energy-rate-row.energy-rate-us .energy-rate-fill {
+	background: #888;
+}
+.energy-rate-value {
+	text-align: right;
+	font-weight: 600;
+}
+.energy-table-options {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+	font-size: 14px;
+}
+.energy-change-down {
+	color: #2e7d32;
+}
+.energy-change-up {
+	color: #c62828;
+}
+#tabulator-energytable .energy-own-row {
+	font-weight: 600;
+}
+@container (max-width: 600px) {
+	.energy-cards {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 8px;
+	}
+	.energy-card {
+		padding: 10px;
+	}
+	.energy-card-value {
+		font-size: 19px;
+	}
+	.energy-mix-row {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
+	.energy-mix-row.energy-mix-compact, .energy-mix-states .energy-mix-row {
+		grid-template-columns: 36px 1fr;
+		gap: 6px;
+	}
+	div.energy-mix-names {
+		grid-template-columns: fit-content(40%) 1fr;
+	}
+	div.energy-mix-names .energy-mix-row {
+		grid-template-columns: 120px 1fr;
+		grid-template-columns: subgrid;
+	}
+	.energy-rate-row {
+		grid-template-columns: 1fr 64px;
+	}
+	.energy-rate-row .energy-rate-track {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+}
+.dark #stateEnergy {
+	color: #ddd;
+}
+.dark .energy-note, .dark .energy-card-label, .dark .energy-card-sub {
+	color: #aaa;
+}
+.dark #stateEnergyTitle, .dark #stateEnergyIntro {
+	color: #fff;
+}
+.energyNationalLink {
+	white-space: nowrap;
+}
+/* The hero (class dark) and dark mode. Green matches the #hero-rect links. */
+.dark #stateEnergyIntro a:link, .dark #stateEnergyIntro a:visited {
+	color: #66CF79;
+}
+.dark .energy-card {
+	background: #2a2d31;
+	border-color: #3d4146;
+}
+.dark .energy-mix-compact:hover, .dark .energy-mix-compact:focus-visible {
+	background: rgba(255, 255, 255, 0.08);
+}
+.dark .energy-mix-bar, .dark .energy-rate-track {
+	background: #3a3a3a;
+}
+.dark .energy-change-down {
+	color: #81c784;
+}
+.dark .energy-change-up {
+	color: #ef9a9a;
+}
+</style>
+
+<!-- /STATE ENERGY -->
 
 
 <!-- INPUT OUTPUT -->
@@ -529,16 +869,7 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 <div style="clear:both;"></div>
 <!-- /INPUT OUTPUT -->
 <style>
-.impactIcons div {
-    float: left;
-    font-size: 13px;
-    border: 1px solid #ccc;
-    width: 100px;
-    padding: 10px 20px;
-    margin: 0 15px 15px 0;
-    text-align: center;
-    border-radius: 25px;
-}
+/* .impactIcons div buttons: base.css, since the top nav shows them on every page (template-main.html) */
 #hero-mini .impactIcons div {
 	border: 0px solid #ccc;
 	border-bottom: 1px solid #555;
@@ -551,15 +882,6 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 }
 #impact-widget-vertical #impactIcons div {
 	margin-bottom: 15px;
-}
-.impactIcons div.active {
-    border: 4px solid #aaa;
-    padding: 7px 17px;
-}
-.impactIcons div:hover {
-    cursor: pointer;
-    background-color: rgba(33,33,33,.8);
-    color: #fff;
 }
 
 /*
@@ -634,9 +956,10 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 </style>
 
 
-<div class="contentpadding" style="padding-top:0px; border-bottom:1px solid #ccc;">
+<div id="iogridHolder" class="contentpadding" style="padding-top:0px; border-bottom:1px solid #ccc;">
 
     <hr>
+	<div class="ioModelName" style="color:#888; font-size:14px"></div>
 	<span style="font-size:14px">
 		<b>Input and Output per Dollar Spent</b><span style="display:none" class="showforstates"> - Based on 2017 BEA and EPA data displayed for the top <span class=""></span> industries in 2021.<br></span><br>
 
@@ -664,6 +987,10 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 
 <!-- MOSAIC HEATMAP -->
 <style>
+/* The mosaic view (div inside #sector-list) holds #sectorListTitles, so less top margin than the widget's 100px */
+#sector-list > div > div {
+   margin-top: 50px !important;
+}
 ::-webkit-scrollbar {
    -webkit-appearance: none;
    width: 7px;
@@ -681,6 +1008,7 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 		<div id="sectorListTitles" style="margin-bottom:20px">
 			<h1 style="margin-bottom: 0px">Impact Levels</h1>
 			<span class="region_service"></span>
+			<div class="ioModelName" style="color:#888; font-size:14px"></div>
 		</div>
 		<div id="sector-list" class="sector-list"></div>
 		<!--
@@ -764,14 +1092,14 @@ https://epa.maps.arcgis.com/apps/MapJournal/index.html?appid=0659c53852f4425fb34
 			<a href="https://model.earth/io/charts/">About Bubble Chart</a>
 		</div>
 
-        <h1 style="border-bottom: 0px">Impact Bubble Chart</h1>
+        <h1 id="bubble-graph-title" style="border-bottom: 0px">Impact Bubble Chart</h1><!-- bubble.js adds the state name -->
 
         <div class="popAdvanced detailbutton greenbutton" style="float:right;cursor:pointer;padding-top:5px" alt="Popout"><i class="material-icons" alt="Pop out" style="float:left;font-size:20px;pointer-events:auto;padding-right:5px;">&#xE55B;</i> <div style="float:left;line-height:20px;">Change Location</div></div>
 
 
-        Compares three impact areas for <span class='region_service'></span> (in red). Greatest impacts are toward the upper-right with larger&nbsp;sizes.
+        Compares three impact areas for <span class='region_service'></span> (in red).<br>Greatest impacts are toward the upper-right with larger&nbsp;sizes.
 
-        <div id="bubble-graph-title"></div>
+        <div id="bubble-graph-subtitle"></div>
         <text id="bubble-graph-equation"></text>
 
       <div style="clear:both; border-top:1px solid #999; border-bottom:1px solid #999; padding:10px; margin-bottom:10px; overflow: scroll">

@@ -44,7 +44,7 @@ Contribute to UN goal data visualizations in our <a href="/localsite/timeline/">
 Environmentally Extended Input-Output (EEIO)
 
 [World Trade Profiles](../../profile/trade/)
-[US State Reports](../../profile/footprint/)
+[US State Reports](../../profile/)
 [Inflow-Outflow Widgets](../../io/charts)
 
 <!--
@@ -60,7 +60,7 @@ Instead, a static .json version of the API is loaded from files in [model.earth/
 
 ## <span class="num">7</span><span class="txt">JAM Stack Resources</span>
 
-[Our CSS Styles](../../cms/themes/) and [CV Themes](../../cv/bios/template)
+[Our CSS Styles](../css/themes/) and [CV Themes](../../cv/bios/template)
 [Using GitHub as a Data Lake](https://dzone.com/articles/using-github-as-a-data-lake)  
 [YAML is cool - Alternative to json for config settings](https://www.educative.io/blog/yaml-tutorial)
 [Publiccode.yaml file for your GitHub repo metatags](https://github.com/publiccodeyml/publiccode.yml)

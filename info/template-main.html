@@ -57,6 +57,12 @@
             <i class="material-icons show-on-load" style="font-size:34px;opacity:0.7;" data="apps">&#xE894;</i>
           </div>
         </div>
+        <!-- Reload the page, staying in browser full screen (reloadPage in navigation.js). Always shown. -->
+        <div style="float:left; padding:10px; padding-left:0">
+          <div class="reloadPage" title="Reload page" style="cursor:pointer">
+            <i class="material-icons show-on-load" style="font-size:34px;opacity:0.7;">refresh</i>
+          </div>
+        </div>
         <div class="hideNarrow" style="float:left">
             <div class="closeSideTabs expandToFullscreen" style="border:0px; padding:10px; padding-left:5px">
                 <i class="material-icons menuTopIcon" style="font-size:42px;opacity:0.7;margin-top:-4px">&#xE5D0;</i>
@@ -285,7 +291,26 @@
         <div class="settingsPanel menuExpanded topMenuOffset" style="display:none">
           <div class="menuExpandedScroll">
 
-          <div class="menuTitle">Settings</div>
+          <!-- Link (a popup with the current URL), Back and Forward (browser history, shown only when there's a page
+               to go to) and Close (the side panel). Useful in a kiosk window, which has no address bar or browser
+               buttons. In navigation.js. -->
+          <div class="menuTitleRow">
+            <div class="menuTitle">Settings</div>
+            <div class="menuTitleIcons">
+              <button type="button" class="showPageUrl" title="Page URL" aria-label="Page URL" aria-expanded="false"><i class="material-icons">link</i></button>
+              <button type="button" class="historyBack" title="Back" aria-label="Back" style="display:none"><i class="material-icons">arrow_back</i></button>
+              <button type="button" class="historyForward" title="Forward" aria-label="Forward" style="display:none"><i class="material-icons">arrow_forward</i></button>
+              <button type="button" class="closeSideTabs" title="Close" aria-label="Close"><i class="material-icons">close</i></button>
+            </div>
+            <!-- Current URL with a copy icon, then how to exit a kiosk window -->
+            <div class="pageUrlPopup" hidden>
+              <div class="pageUrlRow">
+                <div class="pageUrlField pageUrlText"></div>
+                <button type="button" class="copyPageField" title="Copy URL" aria-label="Copy URL"><i class="material-icons">content_copy</i></button>
+              </div>
+              <div class="pageUrlLabel">Exit kiosk: Cmd+Q (Mac), Alt+F4 (Windows, Linux)</div>
+            </div>
+          </div>
 
           <div class="setLeft">Style</div>
             <div class="setOverflow"><div class="setRight">
@@ -386,13 +411,13 @@
                     <option value="antarctic" lat="-90" lon="0">Antarctica</option>
                   </select>
             </div></div>
-            <div style="float:left; margin-top:8px; display:flex; align-items:center;">
-                    <label for="globeLatitude" style="margin-right:6px">Lat</label>
-                    <input id="globeLatitude" class="dark mylat filterClick mobileWide textInput" placeholder="Latitude" type="text" style="width:90px; margin-top:0px; margin-right: 10px; background-color:#777; color:#ddd; border:0;" />
+            <div style="float:left; margin-top:16px; margin-right:10px; display:flex; flex-direction:column; align-items:flex-start;">
+                    <label for="globeLatitude" style="margin-bottom:4px">Latitude</label>
+                    <input id="globeLatitude" class="dark mylat mobileWide textInput" placeholder="Latitude" type="text" style="width:90px; margin-top:0px; background-color:#777; color:#ddd; border:0;" />
             </div>
-            <div style="float:left; margin-top:8px; display:flex; align-items:center;">
-                    <label for="globeLongitude" style="margin-right:6px">Lon</label>
-                    <input id="globeLongitude" class="dark mylon filterClick mobileWide textInput" placeholder="Longitude" type="text" style="width:90px; margin-top:0px; background-color:#777; color:#ddd; border:0;" />
+            <div style="float:left; margin-top:16px; display:flex; flex-direction:column; align-items:flex-start;">
+                    <label for="globeLongitude" style="margin-bottom:4px">Longitude</label>
+                    <input id="globeLongitude" class="dark mylon mobileWide textInput" placeholder="Longitude" type="text" style="width:90px; margin-top:0px; background-color:#777; color:#ddd; border:0;" />
             </div>
             <div class="setDiv"></div>
 
@@ -457,7 +482,7 @@
           <div class="menuExpandedScroll">
             <div style="font-size:16pt; margin-bottom:20px">Account</div>
             <!-- Sign-in UI is injected here by the auth modal sourced from the
-                 chat repo (see localsite showAuthModal() + docker/webroot.yaml).
+                 auth repo (see localsite showAuthModal() + support/site/config.yaml).
                  localsite itself contains no auth interface. -->
             <div id="accountPanelInserts"></div>
 
@@ -469,15 +494,16 @@
 
             <div id="gravatarLine" style="display:none">
               <input type="checkbox" id="getGravatar" style="margin-right:4px" checked><span style="font-size:.9em;">Display <a href="https://gravatar.com/" target="gravatar">my gravatar.com image</a></span>
-            </div><br>
+            </div>
 
             <div id="gravatarImg"></div>
 
-            <div class="uIn btn btn-success" style="margin-bottom:20px;float:left">Save</div>
+            <div class="uIn btn btn-success" style="margin-bottom:20px">Save</div>
+            <br><br>
 
             <div class="georgia" style="display:none;margin-bottom:20px">
               <a class="btn btn-success use-5" href="/resources/" style="display:none; width:220px">Staff Resources</a>
-              <a class="btn btn-warning" href="https://partner.exploregeorgia.org/login" style="width:220px">Partner Resources</a>
+              <a id="partnerResources" class="btn btn-warning" href="https://partner.exploregeorgia.org/login">Partner Resources</a>
             </div>
 
             <a class="uOut btn btn-primary" style="margin:0 0 20px 0; width:220px">Clear Email</a>
@@ -628,15 +654,10 @@
         <div id="dreamstudio-nav" class="dreamstudio" style="display:none">
           <span class="hideMobile" style="float:left">
             <a href="/dreamstudio/home/" class="navlink-about"><span style="white-space: nowrap; margin-right:6px">About</span></a> 
-            <!--
-            <a href="/dreamstudio/studio/" class="navlink-studio"><span style="white-space: nowrap; margin-right:3px">Studio</span></a>
-            -->
             <a href="/dreamstudio/earth/" class="navlink-earth"><span style="white-space: nowrap; margin-right:3px">Earth</span></a>
             <a href="/desktop/" class="navlink-desktop"><span style="white-space: nowrap">Desktop</span></a> 
             <a href="/dreamstudio/seasons/" class="navlink-stories"><span style="white-space: nowrap">Seasons</span></a>  
-            <a href="/montage/" class="navlink-montage"><span style="white-space: nowrap">Montage</span></a> 
-
-            <a href="/dreamstudio/swarm/" class="navlink-swarm"><span style="white-space: nowrap">Swarm</span></a>  
+            <a href="/seasons/datahaus/" class="navlink-datahaus"><span style="white-space: nowrap">Datahaus</span></a>  
             <a href="/community/projects/" class="navlink-moonshots" target="me"><span style="white-space: nowrap">Moonshots</span></a>
           </span>
         </div>
@@ -652,13 +673,16 @@
         </div>
 
         <div class="georgia" style="display:none">
-          <span id="intranet-nav" class="hideMobile local" style="float:left; display:none">
-            <a href="/explore/locations/" class="navlink-locations"><span style="white-space: nowrap; margin-right:6px">Locations</span></a>
+          <a href="/explore/locations/" class="navlink-locations"><span style="white-space: nowrap; margin-right:6px">Locations</span></a>
+          <a href="/recycling/georgia/" class="navlink-recyclers"><span style="white-space: nowrap; margin-right:3px">Recyclers</span></a>
+          <a href="/explore/#site-selector" class="navlink-site-selector"><span style="white-space: nowrap; margin-right:3px">Site Selector</span></a>
+
+          <span id="intranet-nav" class="hideMobile local" style="display:none">
             <!--
             <a href="/localsite/info/#geoview=state&state=GA" class="navlink-industries"><span style="white-space: nowrap; margin-right:6px">Industries</span></a>
             -->
             <a href="/display/exporters/" class="navlink-exporters"><span style="white-space: nowrap; margin-right:3px">Exporters</span></a>
-            <a href="/recycling/georgia/" class="navlink-recyclers"><span style="white-space: nowrap; margin-right:3px">Recyclers</span></a>
+            
             <a href="/io/" class="navlink-io"><span style="white-space: nowrap; margin-right:3px">State Models</span></a>
           </span>
         </div>
@@ -770,9 +794,13 @@
 
   <div class="hideApps close-X">✕</div>
 
-  <div id="honeycombPanelHolder" style="overflow:auto;position:relative">
+  <!-- Thumbnails and impact set buttons share this background and padding (#topicsPanel in search-filters.css) -->
+  <div id="topicsPanel" class="lite">
+  <!-- Left column: thumbnails and impact set buttons. navigation.js placeThumbLayoutToggle() adds the layout buttons and close X as the right column. -->
+  <div id="topicsLeftColumn">
+  <div id="honeycombPanelHolder" style="display:flow-root;position:relative"><!-- flow-root contains the floated thumbnails without overflow:auto scrolling -->
   <a name="sections"></a>
-  <div id="honeycombPanel" class="filterFields lite" style="display: block;">
+  <div id="honeycombPanel" class="filterFields" style="display: block;">
     
     <!--
     <div style="float:left;display:flex;justify-content:left;">
@@ -788,10 +816,32 @@
 
   </div>
   </div>
+
+  <!-- IMPACT SETS: shown with the app menu (appview=topics), since they reside in #bigThumbPanelHolder. Styles: .impactIcons in base.css.
+  iNav() (navigation.js) goes to localsite/info on other pages, with the app selected by a .bigThumbStatus radio button. -->
+  <div id="navImpactIcons">
+    <div class="impactIcons">
+      <!-- closeAppsMenu() closes the Topics panel. iNav('') removes the set: all impacts. -->
+      <div class="impactIcon_Air" onclick="closeAppsMenu();iNav('air');">Air</div>
+      <div class="impactIcon_Water" onclick="closeAppsMenu();iNav('water');">Water</div>
+      <div class="impactIcon_Land" onclick="closeAppsMenu();iNav('land');">Land</div>
+      <div class="impactIcon_Energy" onclick="closeAppsMenu();iNav('energy');">Energy</div>
+      <div class="impactIcon_Health" onclick="closeAppsMenu();iNav('health');">Health</div>
+      <div class="impactIcon_Prosperity" onclick="closeAppsMenu();iNav('prosperity');">Prosperity</div>
+      <div class="impactIcon_All" onclick="closeAppsMenu();iNav('');">All</div>
+      <div class="local btn btn-primary" onclick="location.href='/realitystream/models/#' + window.location.hash.substr(1); return false;" style="display:none;min-width:133px;font-size:15px;border:none;">
+        RealityStream
+      </div>
+    </div>
+    <div style="clear:both"></div>
+  </div>
+  </div><!-- /#topicsLeftColumn -->
+  </div><!-- /#topicsPanel -->
 </div>
 </div>
 <div style="clear:both"></div>
 <!-- /APP MENU -->
+
 
 <!-- FLOATING FILTER -->
 <script>
@@ -848,6 +898,15 @@ document.addEventListener('mousedown', function(e) {
     pointer-events:auto;
     padding-left: 16px;
     resize: both; /* no effect - attempt to make all edges resizable */
+  }
+  #draggableSearch {
+    bottom: auto; /* Height and width match the content (#geoview_container from popAdvanced) */
+    max-height: calc(100vh - 120px);
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    left: auto; /* Stays on screen at its content width. Dragging sets left, which then overrides right. */
+    right: 24px;
+    overflow-y: auto;
   }
   .draggable-title {
     position: absolute;
@@ -1079,6 +1138,20 @@ document.addEventListener('mousedown', function(e) {
         <div id="geoPicker" class="content-color" style="display:none;">
           <div id="geomapHolder">
             <div class="hideAdvanced close-X hideinpop">&#10005;</div>
+            <div class="geomapTopRight">
+              <!-- One shows at a time, for the map's view (navigation.js). Unchecked: map and row clicks select one location; table checkboxes add more. -->
+              <div class="multipleToggles local" style="display:none">
+                <label class="multipleToggle" data-kind="states"><input type="checkbox" id="multipleStates"> Multiple States</label>
+                <label class="multipleToggle" data-kind="counties" style="display:none"><input type="checkbox" id="multipleCounties"> Multiple Counties</label>
+                <label class="multipleToggle" data-kind="countries" style="display:none"><input type="checkbox" id="multipleCountries"> Multiple Countries</label>
+              </div>
+              <!-- Shows while the US states map has choropleth colors, see setGeomapChoropleth() in navigation.js -->
+              <select id="geomapPer" aria-label="Map values" style="display:none">
+                <option value="total">Total CO&#8322;</option><!-- Options are plain text, so a subscript character instead of <sub> -->
+                <option value="percapita">Per capita</option>
+                <option value="perarea">Per 1000 sq mi</option>
+              </select>
+            </div>
             <!-- Must be displayed initiallly so tiles are visible -->
               <div id="geomap"></div>
           </div>
@@ -1299,6 +1372,9 @@ Displayed by hashChanged() in navigation.js
 
   <br><textarea id="logText">LogText</textarea></div>
 
+
+<!-- localsite.js moves the page's #hero_holder here, so the map display and #list_main below follow the hero -->
+<div id="heroHolderPlaceholder"></div>
 
 <div class="displayMapForLoad" style="display:none;position:relative;overflow:hidden;">
 

@@ -14,6 +14,15 @@ Define a new object if localsite library does not exist yet.
 //if (window.localsiteLoaded) { // Would need to make sure access to variables is not restricted.
 window.localsiteLoaded = true; // Used by embed.js to avoid double loading localsite.js
 
+// Hides the material-icons names (auto_awesome, bolt...) until markMaterialIconsLoaded() adds .material-icons-loaded.
+// Added inline right away, since base.css (which has the same rule) is added later by includeCSS3 and doesn't hold page rendering.
+if (!document.getElementById('materialIconsHideStyle')) {
+  let iconHideStyle = document.createElement('style');
+  iconHideStyle.id = 'materialIconsHideStyle';
+  iconHideStyle.textContent = "html:not(.material-icons-loaded) .material-icons {display:inline-block; visibility:hidden; overflow:hidden; width:1em; height:1em; line-height:1}";
+  document.head.appendChild(iconHideStyle);
+}
+
 let localsiteTitle = "Localsite";
 var localStart = Date.now(); // A var so waitForVariableNav detects in navigation.js.
 
@@ -31,6 +40,622 @@ if (location.host.indexOf('localhost') >= 0) {
 if (typeof modelsiteUniversal == 'undefined') {
   // Universal modelsite fallback for pages that run before the cookie exists.
   var modelsiteUniversal = "";
+}
+// CARTO basemaps key, used by map.js, navigation.js, explore/js/moduleEmbed.js and team/js/leaflet.js.
+// Since 2026 basemaps.cartocdn.com returns an "API KEY REQUIRED" watermark tile without a key. Maps fall back to Esri Canvas tiles (no key)
+// when this is "" or the key stops working (see cartoKeyCheck below).
+// Free up to 5M requests/month non-commercial, 1M/month commercial. Manage the key by entering an email at https://carto.com/basemaps/apikey (emailed sign-in link).
+// The key is visible in browser JS, so in the CARTO Basemaps dashboard restrict it to the web domains that serve these pages.
+// Domain restriction is optional but recommended. CARTO suggests a separate key for local development listing localhost, 127.0.0.1 and *.localhost.
+// A page can set window.cartoApiKey before loading localsite.js to use a different key.
+// Attribution is required on CARTO maps: © OpenStreetMap contributors, © CARTO
+if (typeof window.cartoApiKey == 'undefined') {
+  window.cartoApiKey = "cb1_43t1_1_7f806b81d5e3c92c7283b797";
+}
+
+// CARTO answers HTTP 200 even when a key fails: a missing or invalid key gets an "API KEY REQUIRED" watermark tile,
+// which lacks the Last-Modified header real tiles have. A key restricted to other domains gets a 403.
+// CARTO doesn't document its over-quota response, so either signal counts as a failed key.
+// cartoKeyCheck() probes one tile per page load (Last-Modified is readable cross-origin) and resolves true when the key works.
+// On failure it clears window.cartoApiKey, so maps built afterwards use Esri.
+function cartoKeyCheck() {
+  if (!window.cartoKeyPromise) {
+    if (!window.cartoApiKey) {
+      window.cartoKeyPromise = Promise.resolve(false);
+    } else {
+      let status = "";
+      window.cartoKeyPromise = fetch('https://a.basemaps.cartocdn.com/light_all/0/0/0.png?key=' + encodeURIComponent(window.cartoApiKey), {cache: 'no-store'})
+        .then(response => { status = response.status; return response.ok && Boolean(response.headers.get('Last-Modified')); })
+        .catch(error => { status = "error (" + error.message + ")"; return false; })
+        .then(works => {
+          if (!works) {
+            console.warn("CARTO basemap tiles not loading (invalid, over quota or domain restricted). Using Esri basemaps. Probe returned HTTP " + status + (status == 200 ? " without Last-Modified, so a watermark tile." : "."));
+            window.cartoApiKey = "";
+          }
+          return works;
+        });
+    }
+  }
+  return window.cartoKeyPromise;
+}
+
+// Returns a Leaflet layer of the CARTO style (e.g. "light_all") that swaps to Esri Canvas tiles when cartoKeyCheck() fails
+// or CARTO tiles stop loading. esriCanvas lists Esri Canvas service names, or other Esri services as "Folder/Name"
+// (e.g. "Reference/World_Boundaries_and_Places"). Esri base tiles have no place names, so where the CARTO style includes
+// names, also pass a Reference (labels) service, e.g. ["World_Light_Gray_Base", "World_Light_Gray_Reference"].
+// Those labels are marked isMapTitles, for the Map Titles checkbox (trackLocalsiteMapTitles).
+// A FeatureGroup, so bringToFront() and bringToBack() still work. options.labels keeps a swapped labels layer on top of the basemap.
+// options.filter is a CSS filter for the CARTO tiles, options.esriFilter for the Esri tiles (e.g. to brighten a dark style).
+function cartoOrEsri(cartoStyle, esriCanvas, options) {
+  options = options || {};
+  const prefix = options.attributionPrefix || '';
+  const withFilter = (layer, filter) => {
+    if (filter) layer.on('add', () => { layer.getContainer().style.filter = filter; });
+    return layer;
+  };
+  const esriLayers = () => esriCanvas.map((name, i) => withFilter(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/' + (name.includes('/') ? name : 'Canvas/' + name) + '/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 18, maxNativeZoom: 16, // Esri Canvas tiles stop at 16, then scale up
+    isMapTitles: /Reference|Boundaries_and_Places/.test(name),
+    zIndex: /Reference|Boundaries_and_Places/.test(name) ? MAP_TITLES_ZINDEX : MAP_BACKGROUND_ZINDEX,
+    attribution: i === 0 ? prefix + 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : ''
+  }), options.esriFilter));
+  if (!window.cartoApiKey) {
+    return L.featureGroup(esriLayers());
+  }
+  const cartoLayer = withFilter(L.tileLayer('https://{s}.basemaps.cartocdn.com/' + cartoStyle + '/{z}/{x}/{y}.png?key=' + window.cartoApiKey, {
+    maxZoom: 18, zIndex: MAP_BACKGROUND_ZINDEX,
+    attribution: prefix + '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }), options.filter);
+  const group = L.featureGroup([cartoLayer]);
+  let swapped = false;
+  const useEsri = (reason) => {
+    if (swapped) return;
+    swapped = true;
+    console.warn("CARTO basemap: " + reason + " Swapped CARTO " + cartoStyle + " to Esri " + esriCanvas.join(" + ") + ". See https://carto.com/basemaps/apikey");
+    group.clearLayers();
+    const layers = esriLayers();
+    layers.forEach(layer => group.addLayer(layer));
+    if (group._map) { // Layers added later stack above the others, so restore the basemap or labels position.
+      if (options.labels) {
+        layers.forEach(layer => layer.bringToFront());
+      } else {
+        // Explicit z-indexes rather than bringToBack, which stacks relative to whatever tiles are on the map now
+        layers.forEach(layer => layer.setZIndex(layer.options.isMapTitles ? MAP_TITLES_ZINDEX : MAP_BACKGROUND_ZINDEX));
+      }
+    }
+  };
+  let tileErrors = 0;
+  cartoLayer.on('tileerror', () => { // Covers a key that fails mid-session
+    if (++tileErrors >= 3) {
+      window.cartoApiKey = "";
+      useEsri("3 CARTO tiles failed to load (key may be over quota or domain restricted).");
+    }
+  });
+  cartoKeyCheck().then(works => { if (!works) useEsri("Key check failed."); });
+  return group;
+}
+
+// Dark Mode brightens CARTO dark_all for near-white roads over black to charcoal greys. Darker Mode is CARTO dark_all as is.
+// With Esri tiles, Darker Mode's titles are World_Boundaries_and_Places (white with dark edges), which suit a dark map
+// but not a light one. Same as Dark Mode and Darker Mode in team/js/leaflet.js. Used by map.js (map1) and navigation.js (#geomap).
+function darkBasemaps(attributionPrefix) {
+  return {
+    'Dark Mode': cartoOrEsri('dark_all', ['World_Dark_Gray_Base', 'World_Dark_Gray_Reference'], {attributionPrefix: attributionPrefix, filter: 'brightness(4.2) contrast(1.25)', esriFilter: 'brightness(1.15) contrast(2.4)'}),
+    'Darker Mode': cartoOrEsri('dark_all', ['World_Dark_Gray_Base', 'Reference/World_Boundaries_and_Places'], {attributionPrefix: attributionPrefix})
+  };
+}
+
+// The basemap a viewer picks in a map's layers control is remembered in localStorage under storageKey.
+// While the site is in dark mode (body.dark, set by setSitelook), a saved Grayscale shows as Dark Mode.
+// In light mode a saved Dark Mode or Darker Mode shows as Grayscale, and returns when the viewer switches back to dark mode in Settings.
+function getSavedBasemap(basemaps, storageKey) {
+  let saved = '';
+  try {
+    saved = localStorage.getItem(storageKey) || '';
+  } catch (e) {}
+  return basemaps[saved] ? saved : 'Grayscale';
+}
+function basemapForSitelook(basemaps, storageKey) {
+  const saved = getSavedBasemap(basemaps, storageKey);
+  const dark = document.body.classList.contains('dark');
+  if (dark && saved == 'Grayscale' && basemaps['Dark Mode']) {
+    return 'Dark Mode';
+  }
+  if (!dark && (saved == 'Dark Mode' || saved == 'Darker Mode')) {
+    return 'Grayscale';
+  }
+  return saved;
+}
+// Call after adding the initial basemap, so that add isn't saved as the viewer's choice.
+function trackBasemap(map, basemaps, storageKey) {
+  map.localsiteBasemaps = basemaps; // Updated if the layers control is rebuilt
+  map.basemapStorageKey = storageKey;
+  if (map.basemapTracked) return;
+  map.basemapTracked = true;
+  window.localsiteBasemapMaps = window.localsiteBasemapMaps || [];
+  window.localsiteBasemapMaps.push(map);
+  map.on('baselayerchange', function(e) {
+    if (map.switchingBasemap) return; // Light/dark swaps don't change the viewer's saved choice
+    try {
+      localStorage.setItem(map.basemapStorageKey, e.name);
+    } catch (err) {}
+  });
+}
+function switchBasemap(map, name) {
+  const basemaps = map.localsiteBasemaps;
+  if (!basemaps || !basemaps[name] || map.hasLayer(basemaps[name])) return;
+  map.switchingBasemap = true;
+  Object.values(basemaps).forEach(layer => {
+    if (map.hasLayer(layer)) map.removeLayer(layer);
+  });
+  basemaps[name].addTo(map);
+  map.switchingBasemap = false;
+}
+document.addEventListener('sitelookchange', function() {
+  (window.localsiteBasemapMaps || []).forEach(map => {
+    if (map.getContainer() && document.body.contains(map.getContainer())) {
+      switchBasemap(map, basemapForSitelook(map.localsiteBasemaps, map.basemapStorageKey));
+    }
+  });
+});
+
+// Tile stacking order. Leaflet's built-in layers control set z-indexes; createLayersControl doesn't, so tiles set their own.
+// Background tiles are below Leaflet's default of 1, so any tile layer, even one without a z-index, draws above them.
+// Titles sit above transit lines. (Within Leaflet's tile pane, so lines, markers and popups in other panes stay on top.)
+const MAP_BACKGROUND_ZINDEX = -1;
+const MAP_OVERLAY_TILES_ZINDEX = 10;
+const MAP_TITLES_ZINDEX = 99;
+
+// MAP HASH - shared by localsite/js/map.js and team/js/leaflet.js
+// tiles (top or main map) and tiles2 (side or detail map) hold the background tiles,
+// layers holds the checked layer checkboxes, and lat, lon and level hold the main map's view.
+// These change without browser history entries, so Back skips each pan, zoom and checkbox change.
+
+// Updates the hash without adding a history entry or firing hashChangeEvent.
+function goHashQuiet(addToHash, removeFromHash) {
+  const wasPopstate = isPopstateNavigation;
+  isPopstateNavigation = true; // updateHash uses replaceState
+  updateHash(addToHash, true, removeFromHash);
+  isPopstateNavigation = wasPopstate;
+  nextPriorHash = getHash(); // So the next hashChangeEvent doesn't treat these values as changed
+}
+function getHashList(key) {
+  return String(getHash()[key] || '').split(',').map(value => value.trim()).filter(Boolean);
+}
+
+// Tiles keys are shared with the team map's style keys, so a link works on both maps.
+const MAP_TILE_KEYS = {'Grayscale': 'light', 'Satellite': 'satellite', 'OpenStreetMap': 'openstreetmap', 'Dark Mode': 'darkgray', 'Darker Mode': 'dark'};
+function mapTileKey(name) {
+  return MAP_TILE_KEYS[name] || String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+// The first value in the tiles hash (a comma-separated series is allowed) that names one of the map's
+// basemaps, by tiles key or by name. Returns the basemaps key, or null.
+function tilesFromHash(hashKey, basemaps) {
+  const names = Object.keys(basemaps || {});
+  for (const value of getHashList(hashKey)) {
+    const match = names.find(name => name === value || mapTileKey(name) === value.toLowerCase());
+    if (match) return match;
+  }
+  return null;
+}
+
+// "layers" lists the checked layer ids. It's left out when only the defaults are checked: the active dataset(s)
+// in "show" and MAP_DEFAULT_LAYER_IDS (Map Titles). It's "none" when nothing is checked.
+// Returns the list, or null for the defaults.
+const MAP_DEFAULT_LAYER_IDS = ['map-titles'];
+function mapLayerDefaults(activeIds) {
+  return activeIds.concat(MAP_DEFAULT_LAYER_IDS);
+}
+function getMapLayersFromHash() {
+  const layers = getHashList('layers');
+  if (!layers.length) return null;
+  return layers.includes('none') ? [] : layers;
+}
+function writeMapLayersHash(checkedIds, activeIds) {
+  const sameAsActive = checkedIds.length === activeIds.length && activeIds.every(id => checkedIds.includes(id));
+  if (sameAsActive) {
+    if (getHash().layers !== undefined) goHashQuiet({}, 'layers');
+  } else {
+    goHashQuiet({'layers': checkedIds.length ? checkedIds.join(',') : 'none'});
+  }
+}
+// Each overlay layer carries its hash id as layer.mapLayerId.
+function checkedMapLayerIds(map, control) {
+  return control.getLayerItems().filter(obj => obj.overlay && obj.layer.mapLayerId && map.hasLayer(obj.layer)).map(obj => obj.layer.mapLayerId);
+}
+// Checked ids, counting default layers without a checkbox right now as they were: an active dataset that's still
+// loading is checked, and Map Titles (while the tiles have none) keeps its state in the layers hash.
+function currentMapLayerIds(map, control, activeIds) {
+  const listed = control.getLayerItems().filter(obj => obj.overlay).map(obj => obj.layer.mapLayerId);
+  const hashLayers = getMapLayersFromHash();
+  const unlisted = mapLayerDefaults(activeIds).filter(id => !listed.includes(id) && (activeIds.includes(id) || !hashLayers || hashLayers.includes(id)));
+  return checkedMapLayerIds(map, control).concat(unlisted);
+}
+function saveMapLayersHash(map, control, activeIds) {
+  writeMapLayersHash(currentMapLayerIds(map, control, activeIds), mapLayerDefaults(activeIds));
+}
+// Writes the layers hash as checkboxes change. getActiveIds returns the active dataset id(s).
+function trackMapLayersHash(map, control, getActiveIds) {
+  map.on('overlayadd overlayremove', function() {
+    if (map.restoringLayers) return;
+    saveMapLayersHash(map, control, getActiveIds());
+  });
+}
+// Checks and unchecks the overlays to match the layers hash (or the defaults: the active dataset and Map Titles).
+// Returns the layers list so a layer added later can be checked against it.
+function applyMapLayersFromHash(map, control, activeIds) {
+  const layers = getMapLayersFromHash();
+  const wanted = layers || mapLayerDefaults(activeIds);
+  map.restoringLayers = true;
+  control.getLayerItems().filter(obj => obj.overlay && obj.layer.mapLayerId).forEach(obj => {
+    const on = wanted.includes(obj.layer.mapLayerId);
+    if (on && !map.hasLayer(obj.layer)) map.addLayer(obj.layer);
+    if (!on && map.hasLayer(obj.layer)) map.removeLayer(obj.layer);
+  });
+  map.restoringLayers = false;
+  return layers;
+}
+
+// Writes the map's center and zoom to lat, lon and level as the viewer pans and zooms.
+function trackMapView(map) {
+  map.on('moveend', function() {
+    const center = map.getCenter();
+    goHashQuiet({'lat': center.lat.toFixed(4), 'lon': center.lng.toFixed(4), 'level': map.getZoom()});
+  });
+}
+// The view in the lat, lon and level hash, or null.
+function mapViewFromHash() {
+  const hash = getHash();
+  const lat = parseFloat(hash.lat), lon = parseFloat(hash.lon), level = parseInt(hash.level);
+  if (isNaN(lat) || isNaN(lon)) return null;
+  return {center: [lat, lon], zoom: isNaN(level) ? null : level};
+}
+
+// LAYERS AND TILES PANEL
+// A "Map style" button that opens a panel of layer checkboxes followed by tiles radio buttons, side by side
+// when there are more than 8 checkboxes (and the map is wide enough). Lists over 11 items split into columns. Used in place of Leaflet's built-in layers control by
+// localsite/js/map.js and the team maps (team/js/leaflet.js, team/js/map.js), so every map looks the same.
+// Styles reside in localsite/css/map.css.
+// Each item is {layer, name, overlay, details}. details ({description, image, video}) is optional richer
+// content shown under the item's name, passed to addOverlay/addBaseLayer or set as layer.mapLayerDetails.
+// Like Leaflet's control, it fires overlayadd, overlayremove and baselayerchange on the map ({layer, name}).
+function createLayersControl(tiles, layers, options) {
+  if (!L.Control.LayersAndTiles) {
+    L.Control.LayersAndTiles = L.Control.extend({
+      options: {position: 'bottomleft', title: 'Map style'},
+
+      initialize: function(tiles, layers, options) {
+        L.Util.setOptions(this, options);
+        this._items = [];
+        Object.entries(tiles || {}).forEach(([name, layer]) => this._addItem(layer, name, false));
+        Object.entries(layers || {}).forEach(([name, layer]) => this._addItem(layer, name, true));
+      },
+
+      onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'layers-tiles-control layers-tiles-' + this.options.position.replace(/(top|bottom)(left|right)/, '$1 layers-tiles-$2'));
+        this._button = L.DomUtil.create('button', 'layers-tiles-button', container);
+        this._button.type = 'button';
+        this._button.title = this.options.title;
+        this._button.setAttribute('aria-label', this.options.title);
+        this._button.setAttribute('aria-haspopup', 'true');
+        this._button.setAttribute('aria-expanded', 'false');
+        this._button.innerHTML = '<span class="material-icons" aria-hidden="true">layers</span>';
+        this._panel = L.DomUtil.create('div', 'layers-tiles-panel', container);
+        this._panel.hidden = true;
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
+        this._button.addEventListener('click', () => this.toggle());
+        this._onDocumentClick = event => { if (!container.contains(event.target)) this.close(); };
+        this._onKeydown = event => { if (event.key === 'Escape') this.close(); };
+        document.addEventListener('click', this._onDocumentClick);
+        document.addEventListener('keydown', this._onKeydown);
+        map.on('layeradd layerremove', this._onLayerChange, this);
+        this._render();
+        return container;
+      },
+
+      onRemove: function(map) {
+        map.off('layeradd layerremove', this._onLayerChange, this);
+        document.removeEventListener('click', this._onDocumentClick);
+        document.removeEventListener('keydown', this._onKeydown);
+      },
+
+      // overlayIndex (optional) places the checkbox before the overlay now at that position
+      addOverlay: function(layer, name, details, overlayIndex) {
+        this._addItem(layer, name, true, details, overlayIndex);
+        this._render();
+        return this;
+      },
+      addBaseLayer: function(layer, name, details) {
+        this._addItem(layer, name, false, details);
+        this._render();
+        return this;
+      },
+      removeLayer: function(layer) {
+        this._items = this._items.filter(item => item.layer !== layer);
+        this._render();
+        return this;
+      },
+      getLayerItems: function() {
+        return this._items.slice();
+      },
+
+      isOpen: function() {
+        return Boolean(this._panel && !this._panel.hidden);
+      },
+      open: function() {
+        if (!this._panel || this.isOpen()) return this;
+        this._panel.hidden = false;
+        this._container.classList.add('is-open');
+        this._button.setAttribute('aria-expanded', 'true');
+        this._fitPanel();
+        this._map.fire('layerstilesopen');
+        return this;
+      },
+      close: function() {
+        if (!this.isOpen()) return this;
+        this._panel.hidden = true;
+        this._container.classList.remove('is-open');
+        this._button.setAttribute('aria-expanded', 'false');
+        return this;
+      },
+      toggle: function() {
+        return this.isOpen() ? this.close() : this.open();
+      },
+
+      // Fits the panel within the map, which clips anything outside it. Layers sit beside tiles only when there's room.
+      _fitPanel: function() {
+        const size = this._map.getSize();
+        this._panel.style.maxHeight = Math.max(120, size.y - 60) + 'px';
+        this._panel.style.maxWidth = Math.max(160, size.x - 20) + 'px';
+        const layerCount = this._items.filter(item => item.overlay).length;
+        this._panel.classList.toggle('layers-side', layerCount > 8);
+        if (this._panel.scrollWidth > this._panel.clientWidth) {
+          this._panel.classList.remove('layers-side');
+        }
+      },
+
+      // Overlays with layer.pinnedLast (Map Titles) stay at the end of the layers list
+      _addItem: function(layer, name, overlay, details, overlayIndex) {
+        const item = {layer: layer, name: name, overlay: overlay, details: details || layer.mapLayerDetails || null};
+        const overlays = this._items.filter(other => other.overlay);
+        let before = overlayIndex === undefined ? null : overlays[overlayIndex];
+        if (!before && overlay && !layer.pinnedLast) before = overlays.find(other => other.layer.pinnedLast) || null;
+        if (before) {
+          this._items.splice(this._items.indexOf(before), 0, item);
+        } else {
+          this._items.push(item);
+        }
+      },
+
+      _render: function() {
+        if (!this._panel) return;
+        const layers = this._items.filter(item => item.overlay);
+        const tiles = this._items.filter(item => !item.overlay);
+        this._panel.innerHTML = '';
+        if (layers.length) this._panel.appendChild(this._renderSection('Layers', layers, 'checkbox'));
+        if (tiles.length) this._panel.appendChild(this._renderSection('Tiles', tiles, 'radio'));
+        if (this.isOpen()) this._fitPanel();
+      },
+
+      // Lists over 11 items split into columns of near-even height, filled top to bottom
+      _renderSection: function(title, items, type) {
+        const section = L.DomUtil.create('div', 'layers-tiles-section');
+        L.DomUtil.create('div', 'layers-tiles-heading', section).textContent = title;
+        const columnsDiv = L.DomUtil.create('div', 'layers-tiles-columns', section);
+        const perColumn = Math.ceil(items.length / Math.ceil(items.length / 11));
+        let column;
+        items.forEach((item, index) => {
+          if (index % perColumn === 0) column = L.DomUtil.create('div', 'layers-tiles-column', columnsDiv);
+          const label = L.DomUtil.create('label', 'layers-tiles-item', column);
+          const input = L.DomUtil.create('input', '', label);
+          input.type = type;
+          if (type === 'radio') input.name = 'layers-tiles-' + L.Util.stamp(this);
+          input.checked = Boolean(this._map && this._map.hasLayer(item.layer));
+          input.addEventListener('change', () => this._onInputChange(item, input));
+          item.input = input;
+          L.DomUtil.create('span', 'layers-tiles-name', label).textContent = item.name;
+          if (item.details) label.appendChild(this._renderDetails(item.details));
+        });
+        return section;
+      },
+
+      // Richer content for an item: an image, a video and a description, in that order
+      _renderDetails: function(details) {
+        const div = L.DomUtil.create('div', 'layers-tiles-details');
+        if (details.image) {
+          const img = L.DomUtil.create('img', '', div);
+          img.src = details.image;
+          img.alt = details.imageAlt || '';
+          img.loading = 'lazy';
+        }
+        if (details.video) {
+          const video = L.DomUtil.create('video', '', div);
+          video.src = details.video;
+          video.muted = true;
+          video.loop = true;
+          video.playsInline = true;
+          video.autoplay = true;
+        }
+        if (details.description) {
+          L.DomUtil.create('p', '', div).textContent = details.description;
+        }
+        return div;
+      },
+
+      _onInputChange: function(item, input) {
+        const map = this._map;
+        if (item.overlay) {
+          if (input.checked) map.addLayer(item.layer); else map.removeLayer(item.layer);
+          return;
+        }
+        this._items.filter(other => !other.overlay && other !== item && map.hasLayer(other.layer)).forEach(other => map.removeLayer(other.layer));
+        map.addLayer(item.layer);
+      },
+
+      // Keeps the inputs in step with layers added or removed elsewhere, and fires Leaflet's control events
+      _onLayerChange: function(e) {
+        const item = this._items.find(candidate => candidate.layer === e.layer);
+        if (!item) return;
+        const added = e.type === 'layeradd';
+        if (item.input) item.input.checked = this._map.hasLayer(item.layer);
+        const type = item.overlay ? (added ? 'overlayadd' : 'overlayremove') : (added ? 'baselayerchange' : null);
+        if (type) this._map.fire(type, item);
+      }
+    });
+  }
+  return new L.Control.LayersAndTiles(tiles, layers, options);
+}
+
+// Route lines from a GeoJSON file (see map/transit/gtfs-to-geojson.py), fetched the first time the layer's checkbox is checked.
+// Each route uses its GTFS route color, with a popup naming the route. Lines with an "offset" property (rail lines
+// sharing track) are drawn side by side using Leaflet.PolylineOffset, which loads only for those files.
+function transitRouteLayer(url, lineWeight, lineOpacity, attribution) {
+  const group = L.layerGroup();
+  let requested = false;
+  const escapeText = text => String(text || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  group.on('add', function() {
+    if (requested) return;
+    requested = true;
+    fetch(url).then(function(response) {
+      if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
+      return response.json();
+    }).then(function(data) {
+      const needsOffset = data.features.some(feature => feature.properties.offset);
+      if (needsOffset && !L.PolylineOffset) {
+        return new Promise(resolve => { // Without the plugin, the lines are drawn centered on the track
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.min.js';
+          script.onload = script.onerror = () => resolve(data);
+          document.head.appendChild(script);
+        });
+      }
+      return data;
+    }).then(function(data) {
+      L.geoJSON(data, {
+        attribution: attribution,
+        style: feature => ({
+          color: feature.properties.color || '#555', weight: lineWeight, opacity: lineOpacity,
+          offset: L.PolylineOffset ? (feature.properties.offset || 0) * (lineWeight + 1) : 0 // Pixels to the side of travel
+        }),
+        onEachFeature: function(feature, layer) {
+          const p = feature.properties;
+          const name = p.route_type === 3 ? 'Route ' + p.name : (p.name === p.long_name ? p.name : p.long_name || p.name);
+          let popup = '<b>' + escapeText(name) + '</b>';
+          if (p.route_type === 3 && p.long_name) popup += '<br>' + escapeText(p.long_name);
+          if (p.url) popup += '<br><a href="' + escapeText(p.url) + '" target="_blank" rel="noopener">Route details</a>';
+          layer.bindPopup(popup);
+        }
+      }).addTo(group);
+    }).catch(function(error) {
+      requested = false; // Retry the next time the checkbox is checked
+      console.warn('transitRouteLayer could not load ' + url + ': ' + error.message);
+    });
+  });
+  return group;
+}
+// MAP TITLES
+// A checkbox (layers id map-titles) for the tiles' separate titles (place names) layer, listed last among the layers.
+// It's present only while the current tiles have a separate titles layer (CARTO tiles have them built in),
+// and checked unless the viewer or the layers hash turns it off.
+function createMapTitlesLayer() {
+  const layer = L.layerGroup();
+  layer.mapLayerId = 'map-titles';
+  layer.pinnedLast = true;
+  layer.on('add remove', function(e) { // Remembers the viewer's choice while the checkbox comes and goes with the tiles
+    const map = e.target._map;
+    if (map && !map.restoringLayers) layer.viewerOff = e.type === 'remove';
+  });
+  return layer;
+}
+// Lists or removes the Map Titles checkbox. useHash is false for maps the layers hash doesn't describe.
+function syncMapTitles(map, control, titlesLayer, hasTitles, useHash = true) {
+  const listed = control.getLayerItems().some(item => item.layer === titlesLayer);
+  if (!hasTitles) {
+    if (listed) {
+      map.restoringLayers = true;
+      if (map.hasLayer(titlesLayer)) map.removeLayer(titlesLayer);
+      map.restoringLayers = false;
+      control.removeLayer(titlesLayer);
+    }
+    return;
+  }
+  if (listed) return;
+  control.addOverlay(titlesLayer, 'Map Titles');
+  const hashLayers = useHash ? getMapLayersFromHash() : null;
+  if (hashLayers ? hashLayers.includes('map-titles') : !titlesLayer.viewerOff) {
+    map.restoringLayers = true;
+    map.addLayer(titlesLayer);
+    map.restoringLayers = false;
+  }
+}
+// localsite basemaps hold their titles within the basemap (cartoOrEsri marks them isMapTitles),
+// so the Map Titles checkbox shows or hides those tiles.
+function trackLocalsiteMapTitles(map, control, useHash = true) {
+  const titlesLayer = createMapTitlesLayer();
+  const titleTiles = () => {
+    const tiles = [];
+    map.eachLayer(layer => { if (layer.options && layer.options.isMapTitles) tiles.push(layer); });
+    return tiles;
+  };
+  const showTitles = () => titleTiles().forEach(tiles => tiles.setOpacity(map.hasLayer(titlesLayer) ? 1 : 0));
+  titlesLayer.on('add remove', showTitles);
+  const sync = () => {
+    syncMapTitles(map, control, titlesLayer, titleTiles().length > 0, useHash);
+    showTitles();
+  };
+  map.on('baselayerchange', sync);
+  map.on('layeradd', e => { if (e.layer.options && e.layer.options.isMapTitles) sync(); }); // Includes a CARTO to Esri swap
+  sync();
+  return titlesLayer;
+}
+
+// Transit checkboxes in display order: MARTA when the state hash includes GA, then public transit and
+// railways everywhere. states limits a layer to those states.
+const MAP_TRANSIT_LAYERS = [
+  {id: 'marta-rail', label: 'MARTA Rail', states: ['GA'], create: () => transitRouteLayer(theroot + 'map/transit/marta-rail.geojson', 4, 0.9, MARTA_ATTRIBUTION)},
+  {id: 'marta-bus', label: 'MARTA Bus', states: ['GA'], create: () => transitRouteLayer(theroot + 'map/transit/marta-bus.geojson', 2, 0.7, MARTA_ATTRIBUTION)},
+  // OpenPTMap: worldwide rail, tram and bus routes from OpenStreetMap, as a transparent overlay
+  {id: 'public-transit', label: 'Public Transit', create: () => L.tileLayer('https://pt.facilmap.org/tile/{z}/{x}/{y}.png', {
+    minZoom: 3, maxZoom: 19, maxNativeZoom: 18, tileSize: 256, opacity: 0.8, zIndex: MAP_OVERLAY_TILES_ZINDEX,
+    attribution: '<a href="https://wiki.openstreetmap.org/wiki/Openptmap">OpenPTMap</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  })},
+  {id: 'freight-rail', label: 'Freight Rail', create: () => L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+    minZoom: 2, maxZoom: 19, tileSize: 256, zIndex: MAP_OVERLAY_TILES_ZINDEX, attribution: '<a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>'
+  })}
+];
+const MARTA_ATTRIBUTION = '<a href="https://itsmarta.com/app-developer-resources.aspx">MARTA GTFS</a>';
+
+// The transit layers for a comma-separated list of states
+function mapTransitLayerDefs(states) {
+  const stateList = String(states || '').toUpperCase().split(',').map(state => state.trim());
+  return MAP_TRANSIT_LAYERS.filter(def => !def.states || def.states.some(state => stateList.includes(state)));
+}
+
+// Keeps a map's transit checkboxes in step with the states, adding and removing MARTA as GA comes and goes.
+// Transit checkboxes stay at the top of the list, above the datasets. A newly added layer is checked
+// when the layers hash lists it.
+// restoreFromHash is false for second maps, since the layers hash belongs to the main map.
+function syncMapTransitLayers(map, control, states, restoreFromHash = true) {
+  const wanted = mapTransitLayerDefs(states);
+  const transitItems = () => control.getLayerItems().filter(item => item.overlay && item.layer.isTransitLayer);
+  transitItems().filter(item => !wanted.some(def => def.id === item.layer.mapLayerId)).forEach(item => {
+    if (map.hasLayer(item.layer)) map.removeLayer(item.layer);
+    control.removeLayer(item.layer);
+  });
+  const hashLayers = restoreFromHash ? (getMapLayersFromHash() || []) : [];
+  wanted.forEach((def, index) => {
+    if (transitItems().some(item => item.layer.mapLayerId === def.id)) return;
+    const layer = def.create();
+    layer.mapLayerId = def.id;
+    layer.isTransitLayer = true;
+    control.addOverlay(layer, def.label, null, index);
+    if (hashLayers.includes(def.id)) {
+      map.restoringLayers = true;
+      map.addLayer(layer);
+      map.restoringLayers = false;
+    }
+  });
 }
 consoleLog("start localsite");
 
@@ -80,6 +705,41 @@ function findScript(scriptName = 'localsite.js') {
 }
 
 // Ensure local_app exists and extend it with all required methods
+// The folder localsite.js was loaded from, e.g. "https://model.earth/localsite/", "http://localhost:8887/folder/localsite/"
+// (localsite within folders) or "https://cdn.jsdelivr.net/gh/ModelEarth/localsite@main/" (no adjacent localsite).
+// Its supporting files (js/, css/, header.html, info/) are always relative to it. Null when the script isn't found.
+function localsiteScriptBase() {
+  const scripts = document.getElementsByTagName('script');
+  for (let i = 0; i < scripts.length; i++) {
+    const match = (scripts[i].src || '').split(/[?#]/)[0].match(/^(.*\/)js\/localsite\.js$/);
+    if (match) return match[1];
+  }
+  return null;
+}
+// The webroot holding localsite (including any folders), when localsite.js is in a folder named localsite. Else null.
+function localsiteWebrootFromScript() {
+  const base = localsiteScriptBase();
+  return base && /\/localsite\/$/.test(base) ? base.replace(/\/localsite\/$/, '') : null;
+}
+// A file in localsite, e.g. localsitePath("img/logo/modelearth/model-earth.png"), wherever localsite.js was loaded from:
+// the site root, within folders, or a CDN. Use instead of "/localsite/...", which assumes localsite is at the site root.
+function localsitePath(path) {
+  return local_app.localsite_root() + String(path).replace(/^\//, '');
+}
+// A file in another repo of the webroot holding localsite, e.g. webrootPath("/team/projects/map/cities.csv").
+// Use instead of root-absolute paths like "/team/...", which assume the webroot is the site root.
+// When localsite.js comes from the page's own site, the path stays on that site (with any folders before localsite),
+// so local servers on any port use their own files. From a CDN or another site, it's under local_app.web_root().
+function webrootPath(path) {
+  path = '/' + String(path).replace(/^\//, '');
+  const base = localsiteScriptBase();
+  if (!base) return path;
+  const sameSite = location.protocol === 'file:' ? base.indexOf('file:') === 0 : base.indexOf(location.origin + '/') === 0;
+  if (!sameSite) return local_app.web_root() + path;
+  const webroot = localsiteWebrootFromScript();
+  return webroot ? webroot + path : path;
+}
+
 window.local_app = window.local_app || {};
 
 // Add localsite methods to local_app (extending existing object if it already has web_root)
@@ -104,6 +764,12 @@ window.local_app = window.local_app || {};
     local_app.localsite_root = local_app.localsite_root || function() {
             if (localsite_repo) { // Use cached value if available
               return(localsite_repo);
+            }
+            // The folder localsite.js came from, at the root, within folders, or on a CDN
+            const scriptBase = localsiteScriptBase();
+            if (scriptBase) {
+              localsite_repo = scriptBase;
+              return scriptBase;
             }
             //alert("get localsite_repo");
 
@@ -209,14 +875,16 @@ window.local_app = window.local_app || {};
             }
             
             let hostnameAndPort = extractHostnameAndPort(myScript.src);
+            // The webroot holding localsite, including any folders (null when localsite.js is on a CDN)
+            const scriptWebroot = localsiteWebrootFromScript();
             if (hostnameAndPort != window.location.hostname + ((window.location.port) ? ':'+window.location.port :'')) {
-              // External webroot
-              modelearth_repo = hostnameAndPort; // Cache result
-              return (hostnameAndPort);
+              // External webroot. A CDN copy of localsite has no sibling repos, so those come from model.earth.
+              modelearth_repo = scriptWebroot || theroot; // Cache result
+              return (modelearth_repo);
             }
             // Currently assuming all other ports don't have localsite folder.
             if ((location.host.indexOf('localhost') >= 0 && location.port == "8887") || location.host.indexOf('127.0.0.1') >= 0) {
-              theroot = location.protocol + '//' + location.host;
+              theroot = scriptWebroot || (location.protocol + '//' + location.host);
             }
             modelearth_repo = theroot; // Cache result
             return (theroot);
@@ -427,7 +1095,10 @@ function mix(incoming, target) { // Combine two objects, priority to incoming. D
    return target2;
 }
 function getHash() {
-  return (mix(getHashOnly(),hiddenhash)); // Includes hiddenhash
+  let hash = mix(getHashOnly(),hiddenhash); // Includes hiddenhash
+  // geoview=us works the same as geoview=country. The URL keeps "us", since updateHash() builds from getHashOnly().
+  if (hash.geoview === 'us') hash.geoview = 'country';
+  return hash;
 }
 function ensureHideWhenGeoviewStyle() {
   if (document.getElementById('hide-when-geoview-style')) return;
@@ -660,6 +1331,12 @@ if(typeof priorHash == 'undefined') {
 }
 //let nextPriorHash = {};
 let nextPriorHash = structuredClone(param); // Param values set in pages and the include URL are passed forward as a hiddenhash.
+// param includes the URL hash, so the first hashChangeEvent saw no change in a geoview from the URL and skipped
+// opening the location filter (#locationFilterHolder) in navigation.js. geoview=us opened it only because getHash()
+// reads it as country. geoview=earth is excluded since navigation.js hashChanged() shows the earth map every time.
+if (nextPriorHash.geoview && nextPriorHash.geoview != "earth" && getHashOnly().geoview) {
+  delete nextPriorHash.geoview;
+}
 var isPopstateNavigation = false; // Flag to track if we're in a back/forward navigation. Temp for testing
 // Triggers custom hashChangeEvent in multiple widgets.
 // Exception, React widgets use a different process.
@@ -830,6 +1507,13 @@ function get_localsite_root() { // Also in two other places
     //alert(localsite_repo);
     return(localsite_repo3);
   }
+  // The folder localsite.js came from: at the root, within folders, or on a CDN such as jsDelivr,
+  // whose path (/gh/ModelEarth/localsite@main/) the host-based fallback below would drop.
+  const scriptBase = localsiteScriptBase();
+  if (scriptBase) {
+    localsite_repo3 = scriptBase;
+    return scriptBase;
+  }
 
   let scripts = document.getElementsByTagName('script'); 
 
@@ -867,6 +1551,9 @@ function get_localsite_root() { // Also in two other places
 function clearHash(toClear) {
   let hash = getHashOnly(); // Include all existing
   let clearArray = toClear.split(/\s*,\s*/);
+  if (!clearArray.some(key => key in hash)) {
+    return; // Nothing to clear, so no history entry (else Back steps through a duplicate)
+  }
   for(var i = 0; i < clearArray.length; i++) {
     delete hash[clearArray[i]];
   }
@@ -943,11 +1630,24 @@ function loadLocalTemplate() {
   waitForElm(datascapeFileDiv).then((elm) => {
 
     $.get(datascapeFile, function(theTemplate) { // Get and append template-main.html to #datascape
+      if (document.getElementById("templateLoaded")) { // Already appended by an earlier call. A second copy duplicates ids like #mainframe.
+        consoleLog("loadLocalTemplate skipped, template-main.html is already on the page");
+        return;
+      }
       $(theTemplate).appendTo(datascapeFileDiv);
 
-      // The account panel (#accountPanelInserts) now exists — load the chat
-      // repo's in-page sign-in UI into it (config-driven via webroot.yaml).
+      // On pages with a hero (localsite/info), #hero_holder moves into #heroHolderPlaceholder (template-main.html),
+      // after the header and filters and before the map display (#map1) and listings (#list_main), which stay in place
+      const heroHolder = document.getElementById("hero_holder");
+      const heroPlaceholder = document.getElementById("heroHolderPlaceholder");
+      if (heroHolder && heroPlaceholder) {
+        heroPlaceholder.appendChild(heroHolder);
+      }
+
+      // The account panel (#accountPanelInserts) now exists — load the auth
+      // repo's in-page sign-in UI into it (config-driven via support/site/config.yaml).
       initAuthPlugin();
+      initAccountButton();
 
       //$("#insertedTextSource").remove(); // For map/index.html. Avoids dup header.
 
@@ -977,7 +1677,9 @@ function loadLocalTemplate() {
             $("#geoviewSelectHolder").show();
             // Only show counties tab if sub-selections exist
             let hash = getHash();
-            let hideCountiesTab = (hash.geoview == "country" && !hash.state) || (hash.geoview == "state" && !hash.geo);
+            // state=all counts as no state
+            let hasState = String(hash.state || "").split(",").some(value => value && value.toLowerCase() !== "all");
+            let hideCountiesTab = (hash.geoview == "country" && !hasState) || (hash.geoview == "state" && !hash.geo);
             if (!hideCountiesTab) {
                 $("#filterClickLocation").show(); // Show counties tab
             }
@@ -1001,13 +1703,6 @@ function loadLocalTemplate() {
 
         // Replace paths in div
 
-        if(location.host.indexOf("desktop") >= 0) {
-          waitForElm('#desktop-nav').then((elm) => {
-            $("#desktop-nav a").each(function() {
-              $(this).attr('href', $(this).attr('href').replace(/\/desktop\//g,"\/"));
-            });
-          });
-        }
         if(location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0 || location.host.indexOf("8888") >= 0) {
           $("#dreamstudio-nav a").each(function() {
             $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
@@ -1068,6 +1763,7 @@ function loadLeafletAndMapFilters() {
   //alert("param.showheader " + param.showheader);
 
   if (param.showheader != "false" || param.showsearch == "true") {
+    loadScript(theroot + 'js/impact-sets.js'); // Impact sets shared by the header icons (iNav), naics.js and dropdowns
     loadScript(theroot + 'js/navigation.js', function(results) {
       //$(document).ready(function () {
       // Apparently this is NOT triggered when backing up and reloading. Reload must be hit a second time.
@@ -1128,6 +1824,18 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         //document.getElementsByTagName('body')[0].innerHTML += divForBodyLoaded;
         
         document.body.appendChild(divForBodyLoaded);
+
+        // Reveal .local elements on localhost (or ?view=local); hide them everywhere else.
+        // Moved here from navigation.js so it also applies to pages that don't load navigation.js.
+        if (location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
+          $("<div />", {
+              html: '<style>.local{display:inline-block !important}.local-block{display:block !important}.localonly{display:block !important}.hidelocal{display:none}</style>'
+            }).appendTo("body");
+        } else {
+          $("<div />", {
+              html: '<style>.local{display:none}.localonly{display:none}</style>'
+            }).appendTo("body");
+        }
 
         let sitelook;
         if (typeof Cookies != 'undefined' && Cookies.get('sitelook')) {
@@ -1223,7 +1931,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
             // Show/hide gravatar image based on checkbox and valid email
             if (gravatarChecked && isValidEmail(email)) {
                 // https://pajhome.org.uk/crypt/md5/md5.js
-              loadScript('/localsite/js/md5.js', function(results) { // For gravatar image display
+              loadScript(localsitePath('js/md5.js'), function(results) { // For gravatar image display
                 let userImg = $.gravatar(email);
                 if (userImg) {
                   localStorage.userImg = userImg;
@@ -1253,7 +1961,7 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
 
                 if ($("#getGravatar").is(":checked")) {
                   // BUGBUG - Redirect above will bypass.
-                  loadScript('/localsite/js/md5.js', function(results) {
+                  loadScript(localsitePath('js/md5.js'), function(results) {
                     let userImg = $.gravatar(email);
                     if (userImg) {
                       localStorage.userImg = userImg;
@@ -1398,7 +2106,9 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       });
       $(document).on("click", ".showSearch", function(event) {
         showSearchFilter();
-        if (typeof goHash === 'function') {
+        if (typeof goHashNoHistory === 'function') {
+            goHashNoHistory({'sidetab':''}); // sidetab changes don't add browser history entries
+        } else if (typeof goHash === 'function') {
             goHash({'sidetab':''});
         } else {
             updateHash({"sidetab":""});
@@ -1504,8 +2214,11 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
         loadScript(theroot + '../io/build/lib/useeio_widgets.js', function(results) {
           loadScript(theroot + 'js/d3.v5.min.js', function(results) {
             waitForVariable('customD3loaded', function() {
-              loadScript(theroot + 'js/naics.js', function(results) {
-                console.log("everything");
+              loadScript(theroot + 'js/impact-sets.js', function() { // Impact set titles and indicators for naics.js
+                loadScript(theroot + 'js/naics.js', function(results) {
+                  console.log("everything");
+                  loadScript(theroot + '../profile/js/state-energy.js'); // eGRID energy view for set=energy
+                });
               });
             });
           });
@@ -1543,6 +2256,13 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
   if (fullsite || param.material_icons == "true") {
     // This was inside FULL SITE above, but it is needed for menus embedded in external sites.
     !function() {
+      // Same process is also implemented in core/js/browserutil.js (used on core/net WebForms
+      // pages) - this flag lets whichever of the two scripts runs first claim the job.
+      if (window.materialIconsFontCheckStarted) {
+        return;
+      }
+      window.materialIconsFontCheckStarted = true;
+
       // Setting up listener for font checking
       var font = "1rem 'Material Symbols Outlined'";
       var canTrackFontLoad = !!(document.fonts && document.fonts.load);
@@ -1596,9 +2316,14 @@ loadScript(theroot + 'js/jquery.min.js', function(results) {
       if (canTrackFontLoad) {
         document.fonts.load(font).then(function() {
           markMaterialIconsLoaded();
-        }).catch(function() {});
+        }).catch(function() {
+          markMaterialIconsLoaded(); // Shows the icon names rather than leaving the base.css rule hiding them
+        });
       }
     }();
+  } else {
+    // localsite.js isn't loading the font, so stop hiding the icons
+    document.documentElement.classList.add('material-icons-loaded');
   }
 
 
@@ -2068,6 +2793,166 @@ function loadTabulator() {
   return _tabulatorReadyPromise;
 }
 
+// Tabulator paging shared by tables (Top US Industries in naics.js, Electricity by State in profile/js/state-energy.js).
+// Spread tabulatorPagingOptions(5) into the Tabulator options, then call addTabulatorPaging(table) right after new Tabulator().
+// Footer: the prev and next buttons with a "Page 1" box between them that opens a page list,
+// and row count links (5, 10, 20, 50, 200 and the total) on the right. Styles: .tabulatorPaging in css/base-tabulator.css
+function tabulatorPagingOptions(pageSize) {
+  return {pagination:true, paginationSize:pageSize || 5, paginationButtonCount:0};
+}
+function addTabulatorPaging(table) {
+  var pageBox, pageMenu, pageSizesWrap;
+  var scrollToTopPending = false; // Set by the row count links, then done by renderComplete
+  table.on("tableBuilt", function() {
+    table.element.classList.add("tabulatorPaging");
+    var footer = table.element.querySelector(".tabulator-footer");
+    if (!footer) return;
+    // "Page 1" between the prev and next buttons. Clicking it opens togglePageMenu().
+    // Uses the buttons' tabulator-page class for the same border, colors, margin and hover, plus their font,
+    // which browsers set smaller for buttons than for a span.
+    var paginator = footer.querySelector(".tabulator-paginator");
+    if (paginator) {
+      var nextBtn = paginator.querySelector(".tabulator-page[data-page='next']");
+      pageBox = document.createElement("span");
+      pageBox.className = "tabulator-page tabulatorPageBox";
+      pageBox.setAttribute("role", "button");
+      pageBox.setAttribute("aria-haspopup", "listbox");
+      pageBox.tabIndex = 0;
+      if (nextBtn) {
+        var buttonStyle = getComputedStyle(nextBtn);
+        ["fontFamily", "fontSize", "fontWeight", "lineHeight"].forEach(function(prop) {
+          pageBox.style[prop] = buttonStyle[prop];
+        });
+      }
+      pageBox.addEventListener("click", togglePageMenu);
+      pageBox.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " ") togglePageMenu(e);
+      });
+      paginator.insertBefore(pageBox, nextBtn || null);
+    }
+    // Row count choices to the right of the paginator (moved left in base-tabulator.css)
+    pageSizesWrap = document.createElement("div");
+    pageSizesWrap.className = "tabulatorPageSizes";
+    pageSizesWrap.addEventListener("click", function(e) {
+      var link = e.target.closest("a[data-size]");
+      if (!link) return;
+      e.preventDefault();
+      scrollToTopPending = true;
+      table.setPageSize(Number(link.dataset.size));
+      updatePageSizes();
+    });
+    (footer.querySelector(".tabulator-footer-contents") || footer).appendChild(pageSizesWrap);
+    updatePageSizes();
+    updatePagination(table.getPage() || 1);
+  });
+
+  function updatePagination(pageno) {
+    var hasLeftButton = false;
+    ["first", "prev", "next", "last"].forEach(function(name) {
+      var btn = table.element.querySelector(".tabulator-page[data-page='" + name + "']");
+      if (btn) btn.style.display = btn.disabled ? "none" : "";
+      if (btn && !btn.disabled && (name == "first" || name == "prev")) hasLeftButton = true;
+    });
+    if (pageBox) pageBox.style.marginLeft = hasLeftButton ? "" : "0"; // No gap when first and prev are hidden
+    if (pageBox) pageBox.textContent = "Page " + (Number(pageno) || 1);
+  }
+  // Every page up to 10 pages. With more, every 5th page plus the first, last and current pages.
+  function pageChoices(current) {
+    var max = table.getPageMax() || 1;
+    var pages = [];
+    if (max <= 10) {
+      for (var n = 1; n <= max; n++) pages.push(n);
+    } else {
+      pages.push(1);
+      for (var m = 5; m < max; m += 5) pages.push(m);
+      pages.push(max);
+      if (!pages.includes(current)) pages.push(current);
+      pages.sort((x, y) => x - y);
+    }
+    return pages;
+  }
+  // Page list under (or above, when there is more room) the "Page 1" box. Added to the body, since .tabulator crops overflow.
+  function togglePageMenu(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Keeps closePageMenu() on the document from closing it right away
+    if (pageMenu) {
+      closePageMenu();
+      return;
+    }
+    var current = table.getPage() || 1;
+    pageMenu = document.createElement("div");
+    pageMenu.className = "tabulatorPageMenu";
+    pageMenu.setAttribute("role", "listbox");
+    pageMenu.innerHTML = pageChoices(current).map(function(page) {
+      return "<div role='option' data-page='" + page + "'" + (page === current ? " class='active' aria-selected='true'" : "") + ">Page " + page + "</div>";
+    }).join("");
+    pageMenu.addEventListener("click", function(ev) {
+      var item = ev.target.closest("[data-page]");
+      if (!item) return;
+      table.setPage(Number(item.dataset.page));
+      closePageMenu();
+    });
+    document.body.appendChild(pageMenu);
+    var box = pageBox.getBoundingClientRect();
+    var menuHeight = pageMenu.offsetHeight;
+    var below = window.innerHeight - box.bottom;
+    var top = (below >= menuHeight + 4 || below >= box.top) ? box.bottom + 2 : box.top - menuHeight - 2;
+    pageMenu.style.left = (box.left + window.scrollX) + "px";
+    pageMenu.style.top = (top + window.scrollY) + "px";
+    pageMenu.style.minWidth = box.width + "px";
+    var active = pageMenu.querySelector(".active");
+    if (active) pageMenu.scrollTop = active.offsetTop - (pageMenu.clientHeight - active.offsetHeight) / 2; // Without scrolling the page
+    document.addEventListener("click", closePageMenu);
+    document.addEventListener("keydown", closePageMenuOnEscape);
+  }
+  function closePageMenu() {
+    if (pageMenu) pageMenu.remove();
+    pageMenu = null;
+    document.removeEventListener("click", closePageMenu);
+    document.removeEventListener("keydown", closePageMenuOnEscape);
+  }
+  function closePageMenuOnEscape(e) {
+    if (e.key === "Escape") closePageMenu();
+  }
+  // 5, 10, 20, 50, 200 and the total, with the current page size unlinked
+  function updatePageSizes() {
+    if (!pageSizesWrap) return;
+    var total = table.getDataCount("active"); // Rows remaining after a filter, such as q in naics.js
+    var current = table.getPageSize();
+    var sizes = [5, 10, 20, 50, 200].filter(n => n < total).concat([total]);
+    pageSizesWrap.innerHTML = sizes.map(function(n) {
+      var label = n.toLocaleString();
+      return n === current ? "<span class='active'>" + label + "</span>" : "<a href='#' data-size='" + n + "'>" + label + "</a>";
+    }).join(", ");
+  }
+  // Hides the paginator when one page holds all the rows. Its space is kept, so the row counts stay on the right.
+  // After page size, page and data changes.
+  table.on("renderComplete", function() {
+    var paginatorEl = table.element.querySelector(".tabulator-paginator");
+    if (paginatorEl) paginatorEl.style.visibility = table.getPageMax() > 1 ? "" : "hidden";
+    if (scrollToTopPending) {
+      scrollToTopPending = false;
+      scrollToTableTop();
+    }
+  });
+  // After a row count link: the first row, and the top of the table when it is above the window (or under the sticky header)
+  function scrollToTableTop() {
+    var holder = table.element.querySelector(".tabulator-tableholder");
+    if (holder) holder.scrollTop = 0; // Tables with a maxHeight scroll inside
+    var header = document.getElementById("main-header");
+    var headerHeight = header && getComputedStyle(header).position === "sticky" ? header.offsetHeight : 0;
+    var tableTop = table.element.getBoundingClientRect().top;
+    if (tableTop < headerHeight) {
+      window.scrollTo({top: tableTop + window.scrollY - headerHeight - 70, behavior: "smooth"}); // 70px above, for the table's title
+    }
+  }
+  table.on("pageLoaded", updatePagination);
+  // Keeps the total current when replaceData() swaps in rows
+  table.on("dataProcessed", updatePageSizes);
+  table.on("dataFiltered", function() { setTimeout(updatePageSizes, 0); }); // After the filter is applied, for the new active count
+  table.on("tableDestroyed", closePageMenu);
+}
+
 // Serialize a key/value object.
 //var params = { width:1680, height:1050 };
 //var str = jQuery.param( params );
@@ -2209,7 +3094,7 @@ function showSearchFilter() {
     // template-main.html may still be loading; once its container arrives, load filter.html into it
     waitForElm('#filterFieldsHolder').then(function() {
       if (!document.getElementById('filterFieldContent')) {
-        $("#filterFieldsHolder").load(local_app.web_root() + "/localsite/map/filter.html");
+        $("#filterFieldsHolder").load(localsitePath("map/filter.html"));
       }
     });
   } else {
@@ -2226,7 +3111,7 @@ function showSearchFilter() {
         
       if (document.getElementById("filterFieldContent") == null) { 
         //alert("load filter.html")
-        let filterFile = local_app.web_root() + "/localsite/map/filter.html";
+        let filterFile = localsitePath("map/filter.html");
         $("#filterFieldsHolder").load(filterFile, function( response, status, xhr ) {
 
         }); // End $("#filters").load
@@ -2313,16 +3198,37 @@ function showGlobalMap(globalMap) { // Used by community/index.html, green-sah
   // Chem Currents NO2 - Since Wind makes NO2 clouds hard to see
   //loadIframe("mainframe","https://earth.nullschool.net/#current/chem/surface/currents/overlay=no2/orthographic=-115.84,31.09,1037");
 }
-function loadIframe(iframeName, url) {  
-  var $iframe = $('#' + iframeName);
-  if ($iframe.length) {
-      //alert("loadIframe" + url)
-      $iframe.attr('src',url);
-      $("#mainEarthDisplay #mainbucket").show();
-      $(".earth-zoom-controls").show();
-      return false;
+// true: a nullschool time or place change only swaps the iframe's #hash (no reload). false: the iframe reloads for each change.
+var earthIframeHashOnly = false;
+function loadIframe(iframeName, url) {
+  // If the id is on the page twice, update the visible iframe. $('#id') would only return the first.
+  var $iframes = $('[id="' + iframeName + '"]');
+  var $iframe = $iframes.filter(':visible').first();
+  if (!$iframe.length) $iframe = $iframes.first();
+  if (!$iframe.length) return true;
+  var priorSrc = $iframe.attr('src') || '';
+  var isEarthChange = url.indexOf('earth.nullschool.net') >= 0 && priorSrc.indexOf('earth.nullschool.net') >= 0;
+  if (isEarthChange && (priorSrc.split('#')[1] || '') === (url.split('#')[1] || '')) return false; // Already showing this time and place
+  var swappedHash = false;
+  if (isEarthChange && earthIframeHashOnly && $iframe[0].contentWindow) {
+    try {
+      // The parent page may navigate a cross-origin iframe. Keeping the iframe's own address before the # makes this a #hash change,
+      // and replace() keeps each step out of the Back history.
+      url = priorSrc.split('#')[0] + '#' + (url.split('#')[1] || '');
+      $iframe[0].contentWindow.location.replace(url);
+      swappedHash = true;
+    } catch (e) {
+      consoleLog("loadIframe #hash swap failed, reloading the map instead: " + e.message);
+    }
   }
-  return true;
+  if (isEarthChange && !swappedHash) {
+    // Reload fallback: a new query value before the # makes the iframe load the url
+    url = url.replace(/^(https?:\/\/earth\.nullschool\.net\/)[^#]*/, '$1?reload=' + Date.now());
+  }
+  $iframe.attr('src', url); // After a #hash swap this matches the iframe's address, so it doesn't navigate again
+  $("#mainEarthDisplay #mainbucket").show();
+  $(".earth-zoom-controls").show();
+  return false;
 }
 
 
@@ -2721,10 +3627,42 @@ function addBrInSpans(html) {
   });
 }
 
+// Markdown files that returned 404 earlier this session, so loadMarkdown skips requesting them again.
+// The browser logs each failed request as an error itself, so skipping is the only way to avoid repeats.
+var MISSING_MARKDOWN_KEY = 'loadMarkdownMissing';
+function missingMarkdownUrl(pagePath) {
+  try {
+    return new URL(pagePath, location.href).href; // Relative paths differ by page, so compare full URLs
+  } catch (e) {
+    return pagePath;
+  }
+}
+function getMissingMarkdown() {
+  try {
+    return JSON.parse(sessionStorage.getItem(MISSING_MARKDOWN_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+function rememberMissingMarkdown(pagePath) {
+  const missing = getMissingMarkdown();
+  const url = missingMarkdownUrl(pagePath);
+  if (missing.indexOf(url) < 0) {
+    missing.push(url);
+    try {
+      sessionStorage.setItem(MISSING_MARKDOWN_KEY, JSON.stringify(missing));
+    } catch (e) {}
+  }
+}
+
 function loadMarkdown(pagePath, divID, target, attempts, callback) {
   // Include markdown="1" on div tags to process <div> content as markdown.
   if (typeof attempts === 'undefined') {
     attempts = 1;
+    if (getMissingMarkdown().indexOf(missingMarkdownUrl(pagePath)) >= 0) {
+      console.warn("loadMarkdown skipped " + pagePath + " (404 earlier this session)");
+      return;
+    }
   }
   // WAIT FOR SCRIPT THAT LOADS README.md Files
   loadScript(theroot + 'js/d3.v5.min.js', function(results) {
@@ -2858,6 +3796,11 @@ function loadMarkdown(pagePath, divID, target, attempts, callback) {
         }
       });
 
+    }).catch(function(error) { // A missing file (404) otherwise surfaces as an uncaught error from d3
+      console.warn("loadMarkdown could not load " + pagePath + " into " + divID + ": " + error.message);
+      if (/^404\b/.test(error.message)) {
+        rememberMissingMarkdown(pagePath);
+      }
     });
   });
   });
@@ -3272,7 +4215,10 @@ function renderModelsiteOptions(selectElm, options) {
 async function loadModelsiteOptions() {
     if (typeof window.loadWebrootYaml === 'function') {
         const config = await window.loadWebrootYaml();
-        const ids = Object.keys(config.sites || {});
+        // Sites with modelsite: false in config.yaml are left out of the #modelsite dropdown
+        const ids = Object.keys(config.sites || {}).filter(function(id) {
+            return String(config.sites[id].modelsite) !== 'false';
+        });
         if (ids.length) {
             return ids.map(function(id) {
                 var site = config.sites[id];
@@ -3307,11 +4253,29 @@ function setupModelsiteSelect() {
             const hasMatch = Array.from(selectElm.options).some(function(optionElm) {
                 return optionElm.value === selectedValue;
             });
-            if (hasMatch) {
-                selectElm.value = selectedValue;
+            if (!hasMatch) {
+                // The modelsite cookie points to a site not listed in this webroot's
+                // options (e.g. a cookie set while browsing a different webroot).
+                // Add it so the dropdown reflects what's actually active instead of
+                // silently falling back to the first listed option.
+                const cookieOptionElm = document.createElement("option");
+                cookieOptionElm.value = selectedValue;
+                cookieOptionElm.textContent = labelFromModelsiteValue(selectedValue);
+                selectElm.appendChild(cookieOptionElm);
             }
+            selectElm.value = selectedValue;
         }
     });
+}
+
+function labelFromModelsiteValue(value) {
+    return String(value)
+        .split(/[.\-_]+/)
+        .filter(Boolean)
+        .map(function(word) {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        })
+        .join(" ");
 }
 
 function isCurrentHostLocalhost() {
@@ -3379,7 +4343,7 @@ function setAccesslocal(accesslocal) {
         }
     }));
     if (accesslocal == "install") {
-        window.location = "/team/setup";
+        window.location = webrootPath("/team/setup");
     }
 }
 
@@ -3496,7 +4460,7 @@ waitForBody(applyColorSchemeClass);
 function setSitemode(sitemode) {
   // Not copied over from settings.js
 }
-const localStylelookThemes = ['notion', 'claude', 'openai', 'codex', 'grok', 'xai', 'georgia'];
+const localStylelookThemes = ['notion', 'claude', 'openai', 'codex', 'grok', 'xai', 'georgia', 'maestro'];
 const cvStylelookThemes = [
   'creative-studio',
   'data-driven',
@@ -3520,7 +4484,7 @@ function getStylelookThemeUrl(styleLook) {
       return "";
     }
     if (localStylelookThemes.includes(styleLook)) {
-      return local_app.web_root() + '/cms/themes/' + encodeURIComponent(styleLook) + '.css';
+      return local_app.localsite_root() + 'css/themes/' + encodeURIComponent(styleLook) + '.css';
     }
     if (cvStylelookThemes.includes(styleLook)) {
       const cvThemeRoot = (location.host.indexOf('localhost') >= 0 || location.host.indexOf('127.0.0.1') >= 0)
@@ -3653,6 +4617,8 @@ function setSitelook(siteLook) {
         //    element.dispatchEvent(new Event('change'));
         //});
     }
+    // Lets maps follow light/dark changes, e.g. map.js swaps Grayscale and Dark Mode
+    document.dispatchEvent(new CustomEvent('sitelookchange', {detail: {dark: document.body.classList.contains("dark")}}));
 }
 function setDevmode(devmode) {
   const devCssUrl = theroot + 'css/dev.css';
@@ -4126,8 +5092,8 @@ function formatCell(input, format) {
     } else if (input >= 1000) {
         return (input / 1000).toFixed(1) + ' K';
     } else if (input >= 1) {
-        // Round to one decimal. Remove .0
-        return input.toFixed(1).replace(/\.0$/, '');
+        // Round to 3 decimals, removing trailing zeros (3.12345 → 3.123)
+        return input.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
     } else if (input > 0) {
         // Small positive values - for very small numbers, use named suffixes
         if (input <= 1e-33) { // decillionth or less
@@ -4151,9 +5117,9 @@ function formatCell(input, format) {
         } else if (input <= 1e-6) { // millionth or less
             return (input / 1e-6).toFixed(3) + ' Millionth';
         }
-        // Show up to 15 decimal places, removing trailing zeros
-        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
-        //console.log('Small positive formatting:', input, '->', formatted);
+        // Below 1: 3 significant digits, removing trailing zeros (0.0023456 → 0.00234, 0.00000345678 → 0.00000346)
+        const decimals = Math.min(2 - Math.floor(Math.log10(input)), 20);
+        let formatted = input.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '');
         return formatted === '' ? '0' : formatted;
     } else if (input === 0) {
         return '0';
@@ -4168,35 +5134,12 @@ function formatCell(input, format) {
     } else if (input <= -1000) {
         return (input / 1e3).toFixed(1) + ' K';
     } else if (input <= -1) {
-        // Round to one decimal. Remove .0
-        return input.toFixed(1).replace(/\.0$/, '');
+        // Round to 3 decimals, removing trailing zeros (-3.12345 → -3.123)
+        return input.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
     } else if (input < 0) {
-        // Small negative values - for very small numbers, use named suffixes
-        if (input <= -1e-33) { // decillionth or less
-            return (input / 1e-33).toFixed(3) + ' Decillionth';
-        } else if (input <= -1e-30) { // nonillionth or less
-            return (input / 1e-30).toFixed(3) + ' Nonillionth';
-        } else if (input <= -1e-27) { // octillionth or less
-            return (input / 1e-27).toFixed(3) + ' Octillionth';
-        } else if (input <= -1e-24) { // septillionth or less
-            return (input / 1e-24).toFixed(3) + ' Septillionth';
-        } else if (input <= -1e-21) { // sextillionth or less
-            return (input / 1e-21).toFixed(3) + ' Sextillionth';
-        } else if (input <= -1e-18) { // quintillionth or less
-            return (input / 1e-18).toFixed(3) + ' Quintillionth';
-        } else if (input <= -1e-15) { // quadrillionth or less
-            return (input / 1e-15).toFixed(3) + ' Quadrillionth';
-        } else if (input <= -1e-12) { // trillionth or less
-            return (input / 1e-12).toFixed(3) + ' Trillionth';
-        } else if (input <= -1e-9) { // billionth or less
-            return (input / 1e-9).toFixed(3) + ' Billionth';
-        } else if (input <= -1e-6) { // millionth or less
-            return (input / 1e-6).toFixed(3) + ' Millionth';
-        }
-        // Show up to 15 decimal places, removing trailing zeros
-        let formatted = input.toFixed(15).replace(/0+$/, '').replace(/\.$/, '');
-        console.log('Small negative formatting:', input, '->', formatted);
-        return formatted === '' || formatted === '-' ? '0' : formatted;
+        // Small negative values: format the positive amount, then add the minus sign
+        const formatted = formatCell(-input, 'easy');
+        return formatted === '0' ? '0' : '-' + formatted;
     } else {
         // Fallback for any edge cases
         return input.toExponential(1);
@@ -4284,13 +5227,13 @@ function adjustAnythingLLMNavigation() {
 // ── Auth Modal Integration ──────────────────────────────────────────────
 // localsite is the universal include on every site, so showAuthModal() is the
 // shared dispatcher. It contains NO auth UI or logic itself — it looks up WHERE
-// the auth modal lives (the adjacent "chat" repo today, configurable in
-// docker/webroot.yaml) and loads it. The team repo and every other site reach
+// the auth modal lives (the auth repo: the local submodule on localhost, CloudRoot's
+// cloud.model.earth elsewhere, configurable in support/site/config.yaml) and loads it. The team repo and every other site reach
 // auth by calling this function.
 var _authConfigCache = null;
 
 // Minimal extractor for the flat keys under the top-level "auth:" block in
-// docker/webroot.yaml. Avoids pulling in a full YAML parser for a few keys.
+// support/site/config.yaml. Avoids pulling in a full YAML parser for a few keys.
 function parseAuthYaml(text, isLocal) {
   var lines = text.split(/\r?\n/);
   var inBlock = false, kv = {};
@@ -4320,34 +5263,54 @@ function resolveAuthConfig(callback) {
   var webRoot = (typeof local_app !== 'undefined' && local_app.web_root) ? local_app.web_root() : '';
   var isLocal = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
 
-  // Built-in fallback: the chat app lives under "/chat" when the webroot is the
-  // deploy root. (If the deploy root IS the chat repo, set the paths without the
-  // "/chat" prefix via webroot.yaml or window.webrootAuth.)
-  var defaults = {
+  // Built-in fallback, from the auth repo. On localhost, the widget comes from the webroot's
+  // own auth submodule and the API from /api on this origin, a local server using the local
+  // .env, so localhost never calls cloud.model.earth. Elsewhere, both come from the CloudRoot
+  // Worker at cloud.model.earth, whose ALLOWED_ORIGINS must include the page's origin.
+  // Override either via support/site/config.yaml's auth: block or window.webrootAuth.
+  var AUTH_HOST = 'https://cloud.model.earth';
+  var defaults = isLocal ? {
     enabled: true,
-    modal_url: webRoot + '/chat/auth/js/auth-modal.js',
-    plugin_url: webRoot + '/chat/auth/js/auth-plugin.js',
-    api_url: location.origin + webRoot + '/chat/api'
+    modal_url: webRoot + '/auth/public/js/auth-modal.js',
+    plugin_url: webRoot + '/auth/public/js/auth-plugin.js',
+    api_url: location.origin + webRoot + '/api'
+  } : {
+    enabled: true,
+    modal_url: AUTH_HOST + '/auth/js/auth-modal.js',
+    plugin_url: AUTH_HOST + '/auth/js/auth-plugin.js',
+    api_url: AUTH_HOST + '/api'
   };
 
-  // Best-effort: read the auth: block from docker/webroot.yaml when served
-  // (Python/unified webroot servers). Falls back to defaults otherwise.
-  fetch(webRoot + '/docker/webroot.yaml', { cache: 'no-store' })
+  function applyYamlText(text) {
+    var cfg = parseAuthYaml(text, isLocal);
+    _authConfigCache = {
+      enabled: cfg.enabled !== false,
+      modal_url: cfg.modal_url || defaults.modal_url,
+      plugin_url: cfg.plugin_url || defaults.plugin_url,
+      api_url: cfg.api_url || defaults.api_url
+    };
+    callback(_authConfigCache);
+  }
+
+  // Read the auth: block from the site config loadWebrootYaml() loaded
+  // (support/site/config.yaml), reusing the same fetch (memoized there)
+  // that branding/site config already goes through.
+  if (typeof window.loadWebrootYaml === 'function') {
+    window.loadWebrootYaml().then(function (result) {
+      if (result && result.text) { applyYamlText(result.text); }
+      else { _authConfigCache = defaults; callback(_authConfigCache); }
+    }).catch(function () { _authConfigCache = defaults; callback(_authConfigCache); });
+    return;
+  }
+
+  // Fallback for the rare page that doesn't have loadWebrootYaml available.
+  fetch(webRoot + '/support/site/config.yaml', { cache: 'no-store' })
     .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
-    .then(function (text) {
-      var cfg = parseAuthYaml(text, isLocal);
-      _authConfigCache = {
-        enabled: cfg.enabled !== false,
-        modal_url: cfg.modal_url || defaults.modal_url,
-        plugin_url: cfg.plugin_url || defaults.plugin_url,
-        api_url: cfg.api_url || defaults.api_url
-      };
-      callback(_authConfigCache);
-    })
+    .then(applyYamlText)
     .catch(function () { _authConfigCache = defaults; callback(_authConfigCache); });
 }
 
-// Loads the chat repo's in-page auth UI (auth-plugin.js), which injects a
+// Loads the auth repo's in-page auth UI (auth-plugin.js), which injects a
 // sign-in button + session state into #accountPanelInserts and opens the
 // 6-provider modal on click. Called when template-main.html (which holds that
 // mount) is inserted, so the launcher only appears where the account panel
@@ -4364,6 +5327,22 @@ function initAuthPlugin() {
   });
 }
 
+// Adds a site's own sign-in button to the account panel when support/site/config.yaml names one at the top level,
+// e.g. accountButton: "Outlook". Each name maps to the script that draws its button.
+var ACCOUNT_BUTTON_SCRIPTS = {
+  Outlook: '/display/team/outlook-button.js' // Microsoft sign-in (display repo)
+};
+function initAccountButton() {
+  if (typeof window.loadWebrootYaml !== 'function') { return; }
+  window.loadWebrootYaml().then(function (result) {
+    var m = result && result.text && result.text.match(/^accountButton:\s*["']?([^"'#\r\n]*?)["']?\s*(?:#.*)?$/m);
+    var script = m && ACCOUNT_BUTTON_SCRIPTS[m[1].trim()];
+    if (!script) { return; }
+    var webRoot = (typeof local_app !== 'undefined' && local_app.web_root) ? local_app.web_root() : '';
+    loadScript(webRoot + script);
+  });
+}
+
 function showAuthModal() {
   if (typeof window.authModal !== 'undefined' && window.authModal) {
     window.authModal.show();
@@ -4371,10 +5350,10 @@ function showAuthModal() {
   }
   resolveAuthConfig(function (cfg) {
     if (cfg.enabled === false) {
-      consoleLog('[Auth] sign-in disabled in webroot.yaml');
+      consoleLog('[Auth] sign-in disabled in support/site/config.yaml');
       return;
     }
-    // The chat modal reads window.AUTH_API_URL for its OAuth + session calls.
+    // The auth modal reads window.AUTH_API_URL for its OAuth + session calls.
     if (cfg.api_url) { window.AUTH_API_URL = cfg.api_url; }
     loadScript(cfg.modal_url, function () {
       if (window.authModal) { window.authModal.show(); }
@@ -4439,7 +5418,7 @@ function buildMenuConfig(panelType, panelId, datasourcePath = '', panelLabel = '
       label: `${panelType} Insights`,
       action: 'link',
       icon: 'insights',
-      href: `/team/projects/#path=${datasourcePath}`,
+      href: webrootPath(`/team/projects/#path=${datasourcePath}`),
       display: 'none',
       class: 'local'
     });
@@ -4457,7 +5436,7 @@ function buildMenuConfig(panelType, panelId, datasourcePath = '', panelLabel = '
       label: 'View Insights',
       action: 'link',
       icon: 'insights',
-      href: `/team/projects/#path=${datasourcePath}`,
+      href: webrootPath(`/team/projects/#path=${datasourcePath}`),
       display: 'none',
       class: 'local'
     });
@@ -4700,6 +5679,80 @@ function updateMenuLabels(menuId, panelId, panelType) {
   }
 }
 
+// Tour speed: a multiple of the original pace (1), from localStorage tourSpeed, chosen in a page's
+// speed menu (e.g. #tourSpeedSelect in requests/engine). Defaults to 0.5, half the original pace.
+// Scales the default stop time here and, in team/js/map.js, the detail map's glide and the gallery's image changes.
+const TOUR_SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2];
+function tourSpeed() {
+  let speed = NaN;
+  try { speed = parseFloat(localStorage.getItem('tourSpeed')); } catch (e) {}
+  return TOUR_SPEEDS.includes(speed) ? speed : 0.5;
+}
+window.tourSpeed = tourSpeed;
+
+// Per Location: how long the tour stays at each location, from localStorage tourPerLocation, chosen in a page's
+// menu (e.g. #tourPerLocationSelect in requests/engine): 12, 20, 30 or 60 seconds, or "images" (the default) to stay
+// while the location's image gallery shows each of its images once (11 seconds at the original pace without images).
+// Never shorter than a page reports the stop needs, e.g. for the detail map's glide (setTourStopInfo).
+const TOUR_PER_LOCATION = ['12', '20', '30', '60', 'images'];
+function tourPerLocation() {
+  let value = null;
+  try { value = localStorage.getItem('tourPerLocation'); } catch (e) {}
+  return TOUR_PER_LOCATION.includes(value) ? value : 'images';
+}
+window.tourPerLocation = tourPerLocation;
+
+// A page reports what it knows of the current stop, which can come after the stop's advance was scheduled:
+// minMs (the least time the stop needs) and imagesMs (the time for its images to each show once).
+// team/js/map.js reports both. The advance is rescheduled to match.
+function setTourStopInfo(info) {
+  const id = typeof getHash === 'function' ? getHash().id : null;
+  if (!tourState.stopInfo || tourState.stopInfo.id !== id) tourState.stopInfo = { id };
+  Object.assign(tourState.stopInfo, info);
+  scheduleTourAdvance();
+}
+window.setTourStopInfo = setTourStopInfo;
+
+// Time at the current stop, from Per Location and the stop's reported needs
+function tourStopMs() {
+  const id = typeof getHash === 'function' ? getHash().id : null;
+  const info = tourState.stopInfo && tourState.stopInfo.id === id ? tourState.stopInfo : {};
+  const per = tourPerLocation();
+  const wanted = per === 'images' ? (info.imagesMs || 11000 / tourSpeed()) : Number(per) * 1000;
+  return Math.max(wanted, info.minMs || 0);
+}
+
+// Advances the tour once the current stop's time has passed since it started
+function scheduleTourAdvance() {
+  const id = typeof getHash === 'function' ? getHash().id : null;
+  if (!tourState.isPlaying || !tourState.stopStartedAt || tourState.stopId !== id) return;
+  if (tourState.timeoutId) clearTimeout(tourState.timeoutId);
+  const remaining = Math.max(0, tourStopMs() - (Date.now() - tourState.stopStartedAt));
+  tourState.timeoutId = setTimeout(() => advanceTour(tourState.panelId), remaining);
+}
+
+// Moves the tour to the next location, looping back to the first
+function advanceTour(panelId) {
+  // Check if detailplay is still in hash (user might have removed it)
+  const currentHash = (typeof getHash === 'function') ? getHash() : {};
+  if (!currentHash.detailplay || currentHash.detailplay !== 'true') {
+    // User removed detailplay, stop the tour
+    stopTour(panelId);
+    return;
+  }
+
+  tourState.currentIndex++;
+
+  if (tourState.currentIndex >= tourState.listingIds.length) {
+    // Tour completed, loop back to start
+    tourState.currentIndex = 0;
+  }
+
+  if (typeof goHash === 'function') {
+    goHash({ id: tourState.listingIds[tourState.currentIndex], detailplay: 'true', view: currentHash.view || '' });
+  }
+}
+
 // Tour state management
 window.tourState = {
   isPlaying: false,
@@ -4713,12 +5766,13 @@ const tourState = window.tourState;
 /**
  * Toggles tour play/pause
  * @param {string} panelId - ID of the panel
+ * @param {Object} startHash - Optional hash values sent with the tour's first stop when starting
  */
-function toggleTour(panelId) {
+function toggleTour(panelId, startHash = {}) {
   if (tourState.isPlaying) {
     stopTour(panelId);
   } else {
-    startTour(panelId);
+    startTour(panelId, false, startHash);
   }
 }
 
@@ -4726,8 +5780,9 @@ function toggleTour(panelId) {
  * Starts the tour
  * @param {string} panelId - ID of the panel
  * @param {boolean} isReload - Whether this is a reload/resume from hash
+ * @param {Object} startHash - Optional hash values sent in the same goHash call as the first stop (e.g. { detailfull: 'true' })
  */
-function startTour(panelId, isReload = false) {
+function startTour(panelId, isReload = false, startHash = {}) {
   const menuOptions = (typeof getPanelMenuOptions === 'function') ? getPanelMenuOptions(panelId) : {};
   let listingIds = [];
 
@@ -4748,6 +5803,15 @@ function startTour(panelId, isReload = false) {
   tourState.listingIds = listingIds;
 
   if (tourState.listingIds.length === 0) {
+    // Play clicked before the listings loaded: start once the first listing card appears
+    if (!isReload && !tourState.waitingForListings && typeof waitForElm === 'function') {
+      tourState.waitingForListings = true;
+      waitForElm('.listing-card[data-listing-id]').then(() => {
+        tourState.waitingForListings = false;
+        if (!tourState.isPlaying) startTour(panelId, false, startHash);
+      });
+      return;
+    }
     console.warn('No listings available for tour');
     return;
   }
@@ -4785,30 +5849,14 @@ function startTour(panelId, isReload = false) {
       tourState.currentIndex = 0;
     }
 
-    // Don't navigate - already on the correct id
-    // Set timeout for 8 seconds to advance to next slide
-    // Each slide sets its own timeout when it loads
-    tourState.timeoutId = setTimeout(() => {
-      // Check if detailplay is still in hash (user might have removed it)
-      const currentHash = (typeof getHash === 'function') ? getHash() : {};
-      if (!currentHash.detailplay || currentHash.detailplay !== 'true') {
-        // User removed detailplay, stop the tour
-        stopTour(panelId);
-        return;
-      }
-
-      tourState.currentIndex++;
-
-      if (tourState.currentIndex >= tourState.listingIds.length) {
-        // Tour completed, loop back to start
-        tourState.currentIndex = 0;
-      }
-
-      if (typeof goHash === 'function') {
-        const currentHash = getHash();
-        goHash({ id: tourState.listingIds[tourState.currentIndex], detailplay: 'true', view: currentHash.view || '' });
-      }
-    }, 8000);
+    // Don't navigate - already on the correct id.
+    // Each slide schedules its own advance when it loads (scheduleTourAdvance). A repeat call for the same
+    // slide keeps the time it started.
+    if (tourState.stopId !== currentId) {
+      tourState.stopId = currentId;
+      tourState.stopStartedAt = Date.now();
+    }
+    scheduleTourAdvance();
   } else {
     // Fresh start from clicking "Start Tour" - continue from current position
     const hash = (typeof getHash === 'function') ? getHash() : {};
@@ -4834,7 +5882,7 @@ function startTour(panelId, isReload = false) {
 
     if (typeof goHash === 'function') {
       const currentHash = getHash();
-      goHash({ id: tourState.listingIds[tourState.currentIndex], detailplay: 'true', view: currentHash.view || '' });
+      goHash({ ...startHash, id: tourState.listingIds[tourState.currentIndex], detailplay: 'true', view: currentHash.view || '' });
     }
 
     // Note: The page reload will trigger startTour(panelId, true) which will set the timeout
@@ -4851,6 +5899,7 @@ window.startTour = startTour;
  */
 function stopTour(panelId) {
   tourState.isPlaying = false;
+  tourState.stopId = null; // resuming starts the stop's time over
 
   if (tourState.timeoutId) {
     clearTimeout(tourState.timeoutId);
@@ -4859,6 +5908,9 @@ function stopTour(panelId) {
 
   // Update icon back to arrow
   updateTourIcon(panelId, 'arrow');
+
+  // Lets the map halt a glide in motion (team/js/map.js)
+  document.dispatchEvent(new CustomEvent('tourStopped', { detail: { panelId } }));
 
   // Remove detailplay from hash
   if (typeof goHash === 'function') {
@@ -4875,6 +5927,8 @@ window.stopTour = stopTour;
  * @param {string} iconType - 'pause' or 'arrow'
  */
 function updateTourIcon(panelId, iconType) {
+  syncTourPlayButtons(panelId, iconType);
+
   const iconElement = document.getElementById(panelId + 'MenuToggleIcon');
   const circleElement = document.querySelector(`#${panelId}MenuControl .material-icons:not([id])`);
 
@@ -4914,6 +5968,36 @@ function updateTourIcon(panelId, iconType) {
       }
     }
   }
+}
+
+/**
+ * Tour play buttons (.tour-play-button, e.g. #tourPlayButton in requests/engine) share the
+ * "Start Tour" menu action (data-action="starttour"). data-tour-panel names the panel (default locationDetails).
+ * Synced by updateTourIcon: a play arrow while stopped, a pause icon (class "playing") while touring.
+ * @param {string} panelId - ID of the panel
+ * @param {string} iconType - 'pause' or 'arrow'
+ */
+function syncTourPlayButtons(panelId, iconType) {
+  const playing = iconType === 'pause';
+  document.querySelectorAll('.tour-play-button').forEach(btn => {
+    if ((btn.dataset.tourPanel || 'locationDetails') !== panelId) return;
+    btn.classList.toggle('playing', playing);
+    btn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    btn.title = playing ? 'Pause Tour' : 'Start Tour';
+    const icon = btn.querySelector('.material-icons');
+    if (icon) icon.textContent = playing ? 'pause' : 'play_arrow';
+  });
+}
+if (!window.tourPlayButtonsBound) {
+  window.tourPlayButtonsBound = true;
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.tour-play-button');
+    if (!btn) return;
+    e.preventDefault();
+    // data-tour-hash (e.g. "detailfull=true") adds hash values when the tour starts
+    const startHash = Object.fromEntries(new URLSearchParams(btn.dataset.tourHash || ''));
+    toggleTour(btn.dataset.tourPanel || 'locationDetails', startHash);
+  });
 }
 
 /**
@@ -5038,6 +6122,11 @@ function handlePanelAction(action, panelId, panelType) {
     const menu = document.getElementById(panelId + 'Menu');
     if (menu) menu.style.display = 'none';
     refreshPanelToggleIcon(panelId + 'MenuControl', panelId);
+
+    // Per-panel follow-up via passed options (e.g. map.js clears #id= when Details is hidden)
+    if (typeof menuOptions.onHide === 'function') {
+      menuOptions.onHide(panelId, panelType);
+    }
   } else if (action === 'inspect') {
     // Toggle inspect mode
     if (!window.listingsApp) return;
@@ -5445,9 +6534,19 @@ function _injectMdEditorStyles() {
     s.textContent = '.md-edit-menu{position:absolute;top:8px;right:8px;z-index:10;font-family:system-ui,sans-serif}'
         + '.md-edit-trigger{background:rgba(255,255,255,.92);border:1px solid #d1d5db;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.1)}'
         + '.md-edit-trigger:hover{background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15)}'
+        + '.md-edit-choice{margin:0 0 12px;padding:10px 14px 10px 0;border-radius:12px;background:#f3f4f6;font:14px/1.5 system-ui,sans-serif;color:#374151}'
+        + '.md-edit-choice button{margin:6px 8px 0 0;padding:5px 14px;border:1px solid #d1d5db;border-radius:16px;background:#fff;cursor:pointer;font-size:13px;color:#374151}'
+        + '.md-edit-choice button:hover{background:#f9fafb}'
+        + '.dark .md-edit-choice{background:#333;color:#eee}'
+        + '.dark .md-edit-choice button{background:#444;border-color:#555;color:#eee}'
         + '.md-edit-dropdown{display:none;position:fixed;background:#fff;border:1px solid #e5e7eb;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);min-width:140px;overflow:hidden;z-index:9999}'
         + '.md-edit-item{padding:9px 16px;cursor:pointer;font-size:13px;color:#374151}'
         + '.md-edit-item:hover{background:#f9fafb}'
+        + '.dark .md-edit-trigger{background:rgba(60,60,60,.92);border-color:#555;color:#eee}'
+        + '.dark .md-edit-trigger:hover{background:#444}'
+        + '.dark .md-edit-dropdown{background:#333;border-color:#444;box-shadow:0 4px 12px rgba(0,0,0,.4)}'
+        + '.dark .md-edit-item{color:#eee}'
+        + '.dark .md-edit-item:hover{background:#444}'
         + '.md-editor-overlay{position:absolute;inset:0;z-index:20;background:#fff;display:flex;flex-direction:column;min-height:300px;font-family:system-ui,sans-serif}'
         + '.md-editor-header{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;flex-shrink:0}'
         + '.md-editor-title{flex:1;font-weight:500;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
@@ -5462,27 +6561,81 @@ function _injectMdEditorStyles() {
     document.head.appendChild(s);
 }
 
+// Title of the current site in support/site/config.yaml sites, matched like navigation.js:
+// modelsite cookie, then domain_contains, then the default site.
+function _getCurrentSiteTitle() {
+    if (typeof window.loadWebrootYaml !== 'function') return Promise.resolve('');
+    return window.loadWebrootYaml().then(function(result) {
+        var sites = result.sites || {};
+        var modelsite = (typeof Cookies !== 'undefined') ? Cookies.get('modelsite') : null;
+        var site = (modelsite && sites[modelsite]) || null;
+        if (!site) {
+            for (var id in sites) {
+                if (!sites[id].domain_contains) continue;
+                var domains = sites[id].domain_contains.split(',').map(function(d) { return d.trim(); }).filter(Boolean);
+                if (domains.some(function(d) { return location.href.indexOf(d) >= 0; })) { site = sites[id]; break; }
+            }
+        }
+        site = site || sites[result.default];
+        return (site && site.title) || '';
+    }).catch(function() { return ''; });
+}
+
+// Sveltia CMS config that edits one Markdown file, e.g. a README, in the visitor's fork of its repo.
+function _markdownFileCmsConfig(file, fork) {
+    var dir = file.path.indexOf('/') >= 0 ? file.path.replace(/\/[^\/]+$/, '') : '';
+    return {
+        load_config_file: false,
+        backend: { name: 'github', repo: fork, branch: file.branch },
+        media_folder: dir ? dir + '/img' : 'img',
+        collections: [{
+            name: 'page',
+            label: 'Page',
+            editor: { preview: false },
+            files: [{
+                name: 'markdown',
+                label: file.path.split('/').pop(),
+                file: file.path,
+                fields: [{ label: 'Body', name: 'body', widget: 'markdown' }]
+            }]
+        }]
+    };
+}
+
 function _attachMarkdownEditMenu(pagePath, divID) {
-    if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+    // A page can show the menu off localhost too by including localsite.js?mdedit=live
+    var mdEditLive = paramIncludeFile.mdedit === 'live';
+    if (!mdEditLive && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
     var container = document.getElementById(divID);
     if (!container || container.querySelector('.md-edit-menu')) return;
     _injectMdEditorStyles();
 
-    var menu     = document.createElement('div');   menu.className = 'md-edit-menu local'; menu.style.display = 'none';
+    var menu     = document.createElement('div');
+    if (mdEditLive) { menu.className = 'md-edit-menu'; } else { menu.className = 'md-edit-menu local'; menu.style.display = 'none'; }
     var trigger  = document.createElement('button'); trigger.className = 'md-edit-trigger'; trigger.title = 'Edit options'; trigger.innerHTML = '<span class="material-icons" style="font-size:16px;line-height:1">edit_note</span>';
     var dropdown = document.createElement('div');   dropdown.className = 'md-edit-dropdown';
     var item     = document.createElement('div');   item.className = 'md-edit-item'; item.textContent = 'Edit Content';
 
+    // Loaded now so "Edit Content" can open the GitHub sign-in popup within the click.
+    const cmsJsPath = local_app.localsite_root() + 'js/cms.js';
+    loadScript(cmsJsPath);
+    loadScript(local_app.localsite_root() + 'js/content-repo.js');
+
     var ghAccounts = {'locations.georgia.org': 'georgiadata', 'locations.pages.dev': 'georgiadata'};
     var ghAccount  = ghAccounts[location.hostname] || 'modelearth';
     var ghUrl = 'https://github.com/modelearth';
+    var ghFile = null; // { repo: 'owner/name', branch, path } of the displayed Markdown file
     if (pagePath) {
         var p = pagePath;
         if (p.indexOf('raw.githubusercontent.com') >= 0) {
-            var raw = p.replace('https://raw.githubusercontent.com/', '').split('/');
-            // raw: [user, repo, branch, ...path]
-            if (raw.length >= 3) {
-                ghUrl = 'https://github.com/' + raw[0] + '/' + raw[1] + '/blob/' + raw.slice(2).join('/');
+            var raw = p.split(/[?#]/)[0].replace('https://raw.githubusercontent.com/', '').split('/');
+            // raw: [user, repo, branch, ...path], or [user, repo, 'refs', 'heads', branch, ...path]
+            var refParts = (raw[2] === 'refs' && raw[3] === 'heads') ? 3 : 1;
+            if (raw.length >= 2 + refParts) {
+                var rawBranch = raw[1 + refParts];
+                var rawPath = raw.slice(2 + refParts).join('/');
+                ghUrl = 'https://github.com/' + raw[0] + '/' + raw[1] + '/blob/' + rawBranch + '/' + rawPath;
+                ghFile = { repo: raw[0] + '/' + raw[1], branch: rawBranch, path: rawPath };
             }
         } else {
             var repoName = location.pathname.replace(/^\//, '').split('/')[0];
@@ -5492,6 +6645,7 @@ function _attachMarkdownEditMenu(pagePath, divID) {
             if (repoName) {
                 ghUrl = 'https://github.com/' + ghAccount + '/' + repoName
                     + (filePath ? '/blob/main/' + filePath : '');
+                ghFile = { repo: ghAccount + '/' + repoName, branch: 'main', path: filePath };
             }
         }
     }
@@ -5511,17 +6665,98 @@ function _attachMarkdownEditMenu(pagePath, divID) {
             var rect = trigger.getBoundingClientRect();
             dropdown.style.top  = (rect.bottom + 2) + 'px';
             dropdown.style.left = (rect.right - 140) + 'px';
+            // While the editor is open below this content, the item closes it instead.
+            item.textContent = (window.isCmsOpen && window.isCmsOpen(container)) ? 'Close Editor' : 'Edit Content';
             dropdown.style.display = 'block';
         }
     });
     document.addEventListener('click', function() { dropdown.style.display = 'none'; });
     item.addEventListener('click', function() {
         dropdown.style.display = 'none';
-        const cmsJsPath = local_app.localsite_root() + 'js/cms.js';
-        loadScript(cmsJsPath, function() {
-            // TODO: Will we change config.yml to webroot.yaml
-            //launchCMS({inline:true, target:container, configUrl:'/localsite/edit/config.yml'});
-            launchCMS({inline:true, target:container, configUrl:'/docker/webroot.yaml'});
+        // Open the GitHub sign-in popup right away (before any async step, so it isn't blocked),
+        // then start Sveltia CMS signed in, editing this Markdown file in the visitor's fork of
+        // its repo. Without a known file, edit the site's collections in the visitor's fork of
+        // DesktopFolders/content (support/site/config.yaml backend).
+        if (!window.ContentRepo) {
+            console.warn('Edit Content: content-repo.js has not loaded yet. Try again.');
+            return;
+        }
+        if (window.isCmsOpen && window.isCmsOpen(container)) {
+            window.closeCMS();
+            var openChoice = container.querySelector('.md-edit-choice');
+            if (openChoice) openChoice.remove();
+            return;
+        }
+        var file = (ghFile && ghFile.path) ? ghFile : null;
+        var repo = window.ContentRepo;
+        var choice = container.querySelector('.md-edit-choice');
+        if (!choice) {
+            choice = document.createElement('div');
+            choice.className = 'md-edit-choice';
+            container.insertBefore(choice, container.firstChild);
+        }
+        choice.textContent = 'Signing in to GitHub…';
+
+        function launch(fork, branch) {
+            loadScript(cmsJsPath, function() {
+                // Offer only GitHub sign-in, and title the CMS with the current site's title.
+                _getCurrentSiteTitle().then(function(siteTitle) {
+                    var config = file ? _markdownFileCmsConfig(file, fork) : { backend: { repo: fork, branch: 'main' } };
+                    if (file) config.backend.branch = branch;
+                    config.backend.auth_methods = ['oauth'];
+                    if (siteTitle) config.app_title = siteTitle + ' CMS';
+                    // Open this file's editor directly rather than the collection list.
+                    launchCMS({inline:true, target:container, configUrl:window.SITE_CONFIG_PATH, config:config,
+                        route: file ? '#/collections/page/entries/markdown' : undefined});
+                });
+            });
+        }
+
+        // "Editing <repo> on <branch> · Open a pull request" once the editor is chosen.
+        function showEditing(fork, branch) {
+            choice.textContent = 'Editing ' + fork + (file ? ' on ' + branch : '');
+            var compare = null;
+            if (file && fork.toLowerCase() !== file.repo.toLowerCase()) {
+                compare = 'https://github.com/' + file.repo + '/compare/' + file.branch + '...' + fork.split('/')[0] + ':' + fork.split('/')[1] + ':' + branch + '?expand=1';
+            } else if (file && branch !== file.branch) {
+                compare = 'https://github.com/' + file.repo + '/compare/' + file.branch + '...' + branch + '?expand=1';
+            }
+            if (compare) {
+                choice.append(' · ');
+                var link = document.createElement('a');
+                link.href = compare; link.target = '_blank'; link.textContent = 'Open a pull request';
+                choice.append(link);
+            }
+        }
+
+        repo.connect('repo', file ? file.repo : null).then(function(fork) {
+            var isOwner = file && fork.toLowerCase() === file.repo.toLowerCase();
+            if (!isOwner) {
+                showEditing(fork, file ? file.branch : 'main');
+                launch(fork, file ? file.branch : 'main');
+                return;
+            }
+            // GitHub doesn't let an account fork its own repo, so owners pick where to edit.
+            var branchName = 'content-edits';
+            choice.textContent = 'You own ' + file.repo + ', so it can\'t be forked. Edit ' + file.path + ' on:';
+            choice.append(document.createElement('br'));
+            var onBase = document.createElement('button');
+            onBase.type = 'button'; onBase.textContent = file.branch;
+            onBase.title = 'Commit edits directly to ' + file.branch;
+            var onBranch = document.createElement('button');
+            onBranch.type = 'button'; onBranch.textContent = branchName + ' branch';
+            onBranch.title = 'Commit edits to a ' + branchName + ' branch, then open a pull request';
+            onBase.onclick = function() { showEditing(fork, file.branch); launch(fork, file.branch); };
+            onBranch.onclick = function() {
+                choice.textContent = 'Preparing the ' + branchName + ' branch…';
+                repo.ensureBranch(file.repo, file.branch, branchName).then(function() {
+                    showEditing(fork, branchName);
+                    launch(fork, branchName);
+                }).catch(function(err) { choice.textContent = 'Edit Content: ' + err.message; });
+            };
+            choice.append(onBase, onBranch);
+        }).catch(function(err) {
+            choice.textContent = 'Edit Content: ' + err.message;
         });
     });
     ghItem.addEventListener('click', function() {
@@ -5614,10 +6849,42 @@ function defineLaunchCMS() {
         return null;
     }
 
+    // Sveltia CMS opens its entry editor (.content-editor) and Asset Editor (.wrapper[role=group])
+    // as full-window fixed overlays at z-index 100, under the localsite #header (z-index 10001)
+    // and #side-nav-content (10150), which hid their toolbar and Save button. While one is open,
+    // lift #nc-root above both.
+    function injectInlineCmsStyles() {
+        if (document.getElementById('inline-cms-styles')) return;
+        var style = document.createElement('style');
+        style.id = 'inline-cms-styles';
+        style.textContent = '#nc-root:has(.content-editor, .wrapper[role="group"]) { z-index: 10200; }'
+            // Entry fields fill their pane up to 1000px (Sveltia caps them at 768px).
+            + ' #nc-root section.field[role="group"] > * { max-width: 1000px; }'
+            // Sveltia reopens the last sidebar panel even when it's disabled for the entry, e.g. Slug
+            // on a single file like a README ("This entry doesn't have a slug."). Hide it then.
+            + ' #nc-root .sidebar:has(.tabs [role="radio"][aria-checked="true"][aria-disabled="true"]) > #entry-sidebar-content { display: none; }'
+            // Sveltia uses class="content" on its own elements, which picked up base.css's page-level
+            // .content rules (max-width 1100px/1500px, auto margins, side padding, font size), e.g.
+            // narrowing the Body field. :where() keeps this at class specificity, so it overrides
+            // base.css (loaded earlier) while Sveltia's scoped .content.svelte-* rules still win.
+            + ' :where(#nc-root) .content { max-width: none; margin: 0; padding-left: 0; padding-right: 0; font-size: inherit; line-height: inherit; }'
+            // Hide the editor pane's "Edit" title row. Its menu repeats the toolbar menu's Revert/Reset
+            // items, plus View on GitHub, which the Markdown edit menu has. Kept when it holds a locale
+            // switcher (i18n) or the preview toggle (smaller screens), which have no h3 title.
+            + ' #nc-root [id$="-pane-header"]:has(h3) { display: none; }'
+            // Hide the sidebar's Validation tab and panel; the editors here have only simple required
+            // fields. Saving still validates: errors show under each field and in a toast. The tab is
+            // found by position, as its label is translated (sidebar.js: Slug, Validation, History, Backlinks).
+            + ' #nc-root .sidebar .tabs > .inner > [role="radio"]:nth-child(2) { display: none; }'
+            + ' #nc-root .sidebar:has(.tabs > .inner > [role="radio"]:nth-child(2)[aria-checked="true"]) > #entry-sidebar-content { display: none; }';
+        document.head.appendChild(style);
+    }
+
     function prepareInlineCmsRoot(target) {
         var anchor = resolveCmsTarget(target) || document.getElementById('editPageBtn') || document.body;
         var ncRoot = document.getElementById('nc-root');
         var appShell = getExistingCmsShell();
+        injectInlineCmsStyles();
 
         if (!ncRoot) {
             ncRoot = document.createElement('div');
@@ -5660,6 +6927,25 @@ function defineLaunchCMS() {
         }
     }
 
+    // Sveltia CMS can't be unloaded once started, so closing hides #nc-root; launchCMS shows it
+    // again, still signed in. Also drops Sveltia's #/... route from the address bar.
+    window.closeCMS = function() {
+        var ncRoot = document.getElementById('nc-root');
+        if (ncRoot) ncRoot.style.display = 'none';
+        if (location.hash.indexOf('#/') === 0) {
+            history.replaceState(null, '', location.pathname + location.search);
+        }
+    };
+
+    // Whether the inline CMS is showing, optionally right after target (the element it was opened below).
+    window.isCmsOpen = function(target) {
+        var ncRoot = document.getElementById('nc-root');
+        if (!ncRoot || ncRoot.style.display === 'none' || !getExistingCmsShell()) return false;
+        if (!target) return true;
+        var anchor = resolveCmsTarget(target);
+        return !!anchor && ncRoot.previousElementSibling === anchor;
+    };
+
     window.launchCMS = function(options) {
         options = options || {};
         var inline = (typeof options.inline === 'boolean') ? options.inline : !!window.cmsInlineEditor;
@@ -5671,29 +6957,51 @@ function defineLaunchCMS() {
             prepareFullPageCmsRoot();
         }
 
+        // options.route, e.g. '#/collections/page/entries/markdown', opens that view of the CMS.
         if (window.CMS && appShell) {
+            if (options.route) location.hash = options.route; // Sveltia follows hash changes
             return Promise.resolve();
         }
+        if (options.route) history.replaceState(null, '', options.route);
 
         window.CMS_MANUAL_INIT = true;
 
+        // options.config is passed to CMS.init(). Include load_config_file: false to skip
+        // support/site/config.yaml. Sveltia CMS ignores init calls after the first one.
         var startCms = function() {
             if (window.CMS && typeof window.CMS.init === 'function') {
-                window.CMS.init();
+                // The top-level i18n block in support/site/config.yaml is the site's hosting setting,
+                // not Sveltia CMS i18n, so it's cleared unless options.config sets its own.
+                var config = Object.assign({ i18n: undefined }, options.config);
+                // GitHub sign-in relay from the cms: block (CloudRoot Worker's /api/cms/auth).
+                // Without it, Sveltia CMS signs in through Netlify's default service.
+                var siteCms = window.CMS_SITE_CONFIG || {};
+                if (siteCms.auth_base_url) {
+                    config.backend = Object.assign({
+                        base_url: siteCms.auth_base_url,
+                        auth_endpoint: siteCms.auth_endpoint || 'api/cms/auth'
+                    }, config.backend);
+                }
+                window.CMS.init({ config: config });
                 return;
             }
             console.error('launchCMS: window.CMS.init is not available after loading Sveltia CMS.');
         };
 
-        var cmsScriptPath = '/cms/package/dist/sveltia-cms.js';
+        // Use a local build of the git-ignored sveltia-cms reference clone when present, otherwise the npm release.
+        var localCmsScript = webrootPath('/sveltia-cms/package/dist/sveltia-cms.js');
+        var cdnCmsScript = 'https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js';
+        var cmsScriptPath = fetch(localCmsScript, { method: 'HEAD' })
+            .then(function(r) { return r.ok ? localCmsScript : cdnCmsScript; })
+            .catch(function() { return cdnCmsScript; });
         var ready = (typeof window.loadWebrootYaml === 'function')
             ? window.loadWebrootYaml().catch(function() {
                 return { path: null, text: null, default: '', sites: {} };
             })
             : Promise.resolve();
 
-        return ready.then(function() {
-            loadScript(cmsScriptPath, startCms);
+        return Promise.all([cmsScriptPath, ready]).then(function(results) {
+            loadScript(results[0], startCms);
         });
     };
 
@@ -5723,11 +7031,21 @@ if (document.readyState === 'loading') {
   initNcRoot();
 }
 
-// Loads webroot.yaml using a 3-path fallback chain with sessionStorage caching.
+// Loads the webroot's site config (support/site/config.yaml), remembering in sessionStorage when there isn't one.
 // Parses default: and sites: into window.WEBROOT_CONFIG.
 // Returns a Promise<{ path, text, default, sites }> shared across all callers.
+window.SITE_CONFIG_PATH = siteConfigPath(); // Within the webroot holding localsite, which may be in folders
+function siteConfigPath() {
+    var path = webrootPath('/support/site/config.yaml');
+    // model.earth serves the webroot repo's files from model.earth/webroot/
+    var url = new URL(path, location.href);
+    if ((url.hostname === 'model.earth' || url.hostname === 'www.model.earth') && url.pathname.indexOf('/webroot/') !== 0) {
+        url.pathname = '/webroot' + url.pathname;
+        return url.origin === location.origin ? url.pathname : url.href;
+    }
+    return path;
+}
 (function() {
-    var WEBROOT_PATHS = ['/webroot.yaml', '/docker/webroot.yaml', '/cms/webroot.yaml'];
     var SESSION_KEY = 'webrootYamlPath';
     var _promise = null;
 
@@ -5765,31 +7083,24 @@ if (document.readyState === 'loading') {
                 window.WEBROOT_CONFIG = config;
                 resolve({ path: path, text: text, default: config.default, sites: config.sites });
             }
-            function tryPath(i) {
-                if (i >= WEBROOT_PATHS.length) {
-                    sessionStorage.setItem(SESSION_KEY, 'none');
-                    resolve({ path: null, text: null, default: '', sites: {} });
-                    return;
-                }
-                fetch(WEBROOT_PATHS[i])
-                    .then(function(r) { return r.ok ? r.text() : null; })
-                    .then(function(t) { t !== null ? done(WEBROOT_PATHS[i], t) : tryPath(i + 1); })
-                    .catch(function() { tryPath(i + 1); });
-            }
-            var cached = sessionStorage.getItem(SESSION_KEY);
-            if (cached && cached !== 'none') {
-                fetch(cached)
-                    .then(function(r) { return r.ok ? r.text() : null; })
-                    .then(function(t) {
-                        if (t !== null) done(cached, t);
-                        else { sessionStorage.removeItem(SESSION_KEY); tryPath(0); }
-                    })
-                    .catch(function() { sessionStorage.removeItem(SESSION_KEY); tryPath(0); });
-            } else if (cached !== 'none') {
-                tryPath(0);
-            } else {
+            function none(remember) {
+                if (remember) sessionStorage.setItem(SESSION_KEY, 'none');
                 resolve({ path: null, text: null, default: '', sites: {} });
             }
+            // 'none' means this session already found no config, so skip the request
+            // TEMPORARY: model.earth ignores 'none', since it was saved before the config moved to /webroot/. Remove this exemption after Nov 1, 2026.
+            var ignoreNone = location.hostname === 'model.earth' || location.hostname === 'www.model.earth';
+            if (!ignoreNone && sessionStorage.getItem(SESSION_KEY) === 'none') {
+                resolve({ path: null, text: null, default: '', sites: {} });
+                return;
+            }
+            // Only a 404 is remembered. Other failures, such as a fetch cut off by a reload, retry on the next page.
+            fetch(window.SITE_CONFIG_PATH)
+                .then(function(r) {
+                    if (r.ok) return r.text().then(function(t) { done(window.SITE_CONFIG_PATH, t); });
+                    none(r.status === 404);
+                })
+                .catch(function() { none(false); });
         });
         return _promise;
     };

@@ -28,10 +28,11 @@ localObject.us_stateIDs = {AL:1,AK:2,AZ:4,AR:5,CA:6,CO:8,CT:9,DE:10,FL:12,GA:13,
 window.localsiteStylelookMenu = [
     { type: "option", settingsValue: "base", settingsLabel: "Base", typographyValue: "base", typographyLabel: "Base Style" },
     { type: "option", settingsValue: "notion", settingsLabel: "Notion", typographyValue: "notion", typographyLabel: "Notion Style" },
-    { type: "option", settingsValue: "georgia", settingsLabel: "Georgia", typographyValue: "georgia", typographyLabel: "Georgia Style" },
     { type: "option", settingsValue: "claude", settingsLabel: "Claude", typographyValue: "claude", typographyLabel: "Claude Style" },
+    { type: "option", settingsValue: "xai", settingsLabel: "SpaceXSI", typographyValue: "xai", typographyLabel: "SpaceXSI Style" },
     { type: "option", settingsValue: "openai", settingsLabel: "OpenAI", typographyValue: "openai", typographyLabel: "OpenAI Style" },
-    { type: "option", settingsValue: "xai", settingsLabel: "XAI", typographyValue: "xai", typographyLabel: "XAI Style" },
+    { type: "option", settingsValue: "georgia", settingsLabel: "Georgia", typographyValue: "georgia", typographyLabel: "Georgia Style" },
+    { type: "option", settingsValue: "maestro", settingsLabel: "Maestro", typographyValue: "maestro", typographyLabel: "Maestro Style" },
     { type: "divider", settingsLabel: "── CV Themes ──", typographyLabel: "──────── CV Themes ────────" },
     { type: "option", settingsValue: "elegant", settingsLabel: "Elegant", typographyValue: "elegant", typographyLabel: "Surfer Style" },
     { type: "option", settingsValue: "macchiato", settingsLabel: "Macchiato", typographyValue: "macchiato", typographyLabel: "Macchiato Style" }
@@ -90,6 +91,7 @@ window.populateStylelookSelect = function(selectElement, mode) {
 /* Allows map to remove selected shapes when backing up. */
 document.addEventListener('hashChangeEvent', function (elem) {
     console.log("navigation.js detects URL hashChangeEvent");
+    syncMultipleStates();
     hashChanged();
 }, false);
 if(typeof hiddenhash == 'undefined') {
@@ -97,25 +99,104 @@ if(typeof hiddenhash == 'undefined') {
 }
 function updateCountiesTabText() {
     let hash = getHash();
+    if (hash.geoview == "countries" || hash.geoview == "earth") { // Not a state's counties, even when a state remains in hiddenhash
+        $(".countiesTabText").text("States");
+        return;
+    }
     if (!hash.geo) {
         $(".countiesTabText").text(hash.state ? "Counties" : "States");
         return;
     }
     let geoIds = hash.geo.split(",").filter(Boolean);
     if (geoIds.length === 1) {
+        // One county shows its name, e.g. "Fulton County". localObject.geo names include the state ("Fulton County, GA").
+        // Until the county data loads, the tab shows "1 County", then the name once the data arrives (below).
         let match = localObject.geo && localObject.geo.find(function(row) { return row.id === geoIds[0]; });
-        $(".countiesTabText").text(match && match.name ? match.name : "1 County");
+        let countyName = match && match.name ? match.name.split(",")[0].trim() : "";
+        if (countyName && !/ County$/i.test(countyName)) countyName += " County";
+        $(".countiesTabText").text(countyName || "1 County");
     } else if (geoIds.length > 1) {
         $(".countiesTabText").text(geoIds.length + " Counties");
     } else {
         $(".countiesTabText").text("Counties");
     }
 }
+waitForElm('.countiesTabText').then(updateCountiesTabText); // filter.html can load after the first hashChanged()
+// The states in hash.state, without "all" (as in state=all on profile/), so clicking a state gives state=NC rather than state=NC,all
+function hashStateList(hash) {
+    return String((hash && hash.state) || "").split(",").filter(value => value && value.toLowerCase() !== "all");
+}
+// True when hash.state names a state. state=all is treated as no state.
+function hashHasSpecificState(hash) {
+    return hashStateList(hash).length > 0;
+}
+// "Multiple States", "Multiple Counties" and "Multiple Countries" checkboxes in #geomapHolder (local only for now).
+// Unchecked: a map click or table row click selects only that location. Checked: map clicks add and remove locations.
+// The table checkboxes always add locations, and check the box once there are two.
+const multipleToggleIds = {states: "multipleStates", counties: "multipleCounties", countries: "multipleCountries"};
+function multipleChecked(kind) {
+    const checkbox = document.getElementById(multipleToggleIds[kind]);
+    return !!(checkbox && checkbox.checked);
+}
+function setMultiple(kind, checked) {
+    const checkbox = document.getElementById(multipleToggleIds[kind]);
+    if (checkbox) checkbox.checked = checked;
+}
+function multipleStatesChecked() { return multipleChecked("states"); }
+function setMultipleStates(checked) { setMultiple("states", checked); }
+// The hash's locations of each kind: state=, geo= (counties) and country=
+function hashLocationList(hash, kind) {
+    if (kind === "states") return hashStateList(hash);
+    const value = kind === "counties" ? hash.geo : hash.country;
+    return String(value || "").split(",").filter(Boolean);
+}
+// Several locations in the hash (from a link, the table checkboxes or Back) check the box.
+// Only the toggle for the map's view shows: countries, a state's counties, or states.
+function syncMultipleStates() {
+    const hash = getHash();
+    Object.keys(multipleToggleIds).forEach(function(kind) {
+        if (hashLocationList(hash, kind).length > 1) setMultiple(kind, true);
+    });
+    const view = hash.geoview == "countries" ? "countries"
+        : (hashHasSpecificState(hash) && hash.geoview != "country") ? "counties" : "states";
+    document.querySelectorAll("#geomapHolder .multipleToggle").forEach(function(label) {
+        label.style.display = label.dataset.kind === view ? "" : "none";
+    });
+}
+document.addEventListener("change", function(e) {
+    const kind = e.target && Object.keys(multipleToggleIds).find(k => multipleToggleIds[k] === e.target.id);
+    if (kind && !e.target.checked) {
+        // Unchecking keeps only the first location of that kind in the hash
+        const list = hashLocationList(getHash(), kind);
+        if (list.length > 1) {
+            const key = kind === "states" ? "state" : kind === "counties" ? "geo" : "country";
+            goHash({[key]: list[0]});
+        }
+    }
+});
+waitForElm('#multipleStates').then(syncMultipleStates);
+// True when the location filter is narrow: the map is stacked above the state list (search-filters.css),
+// or the div containing #locationFilterHolder is under 800px.
+function locationFilterIsNarrow() {
+    const mapHolder = document.getElementById("geomapHolder");
+    if (mapHolder && mapHolder.offsetWidth > 0 && getComputedStyle(mapHolder).float === "none") {
+        return true;
+    }
+    const holder = document.getElementById("locationFilterHolder");
+    const container = holder && holder.parentElement;
+    return !!(container && container.clientWidth > 0 && container.clientWidth < 800);
+}
+// When narrow, choosing a single state drops geoview=country from the hash, which closes the location filter.
+function geoviewAfterStateChoice(geoview) {
+    return (geoview == "country" && locationFilterIsNarrow()) ? "" : geoview;
+}
 function updateGeoviewSelectText() {
     let hash = getHash();
     let updated = false;
+    // "all" (as in state=all on profile/) isn't a place name, so the menu keeps its default label
+    const notAll = value => value && value.toLowerCase() !== "all";
     if ((hash.geoview == "country" || hash.geoview == "state" || !hash.geoview) && hash.state) {
-        let states = hash.state.split(",").filter(Boolean);
+        let states = hash.state.split(",").filter(notAll);
         if (states.length === 1 && typeof getState === 'function') {
             $("#geoview_select_text").text(getState(states[0]) || states[0]);
             updated = true;
@@ -124,7 +205,7 @@ function updateGeoviewSelectText() {
             updated = true;
         }
     } else if (hash.geoview == "countries" && hash.country) {
-        let countries = hash.country.split(",").filter(Boolean);
+        let countries = hash.country.split(",").filter(notAll);
         if (countries.length === 1 && localObject["countries"]) {
             let match = localObject["countries"][countries[0]];
             $("#geoview_select_text").text(match ? match.CountryName : countries[0]);
@@ -138,6 +219,44 @@ function updateGeoviewSelectText() {
         $("#geoview_select_text").show();
         $("#geoview_select_open").hide();
     }
+}
+// The map hover box (.info) shows the selected location while the mouse isn't over a shape.
+// Countries on the countries map, otherwise the counties in hash.geo, otherwise the states.
+var mapInfoControl = null;
+var mapInfoListenerBound = false;
+var mapInfoHovering = false; // A shape's details are showing
+function selectedLocationText(hash) {
+    let names = [];
+    const listOf = value => String(value || "").split(",").filter(v => v && v.toLowerCase() !== "all");
+    if (hash.geoview == "countries") {
+        const countries = localObject["countries"];
+        names = listOf(hash.country).map(function(code) {
+            let match = null;
+            if (Array.isArray(countries)) {
+                match = countries.find(row => row.Country === code);
+            } else if (countries) {
+                match = countries[code];
+            }
+            return match && match.CountryName ? match.CountryName : code;
+        });
+    } else if (listOf(hash.geo).length) {
+        const geoIds = listOf(hash.geo);
+        names = geoIds.map(function(id) {
+            const match = localObject.geo && localObject.geo.find(row => row.id === id);
+            let name = match && match.name ? match.name.split(",")[0].trim() : "";
+            if (name && !/ County$/i.test(name)) name += " County";
+            return name;
+        }).filter(Boolean);
+        if (!names.length) { // County names load with the state's county data
+            return geoIds.length === 1 ? "1 County" : geoIds.length + " Counties";
+        }
+    } else {
+        names = hashStateList(hash).map(st => (typeof getState === 'function' && getState(st)) || st);
+    }
+    if (names.length > 3) {
+        return names.slice(0, 3).join(", ") + " and " + (names.length - 3) + " more";
+    }
+    return names.join(", ");
 }
 function hashChanged() {
 
@@ -178,7 +297,7 @@ function hashChanged() {
         }
     }
     if (hash.geoview == "state" && !hash.state) { // When deleting state in URL
-        $(".region_service").text("");
+        setRegionServiceText("");
         // TO DO - Send states to tabulator somewhere. Might be intermitant.
         goHash({"geoview":"country"});
 
@@ -490,7 +609,7 @@ function hashChanged() {
             //element.datasource = local_app.web_root() + "/localsite/info/data/map-filters/us-states.json";
             //element.datasource = local_app.web_root() + "/localsite/info/data/map-filters/us-states-edited.csv";
             // https://github.com/ModelEarth/localsite/blob/main/info/data/map-filters/us-states.csv
-            element.datasource = local_app.web_root() + "/localsite/info/data/map-filters/us-states-full.csv";
+            element.datasource = localsitePath("info/data/map-filters/us-states-full.csv");
             let formatType = "simple";
 
             
@@ -553,7 +672,7 @@ function hashChanged() {
         } else if (hash.geoview == "countries") {
             // COUNTRIES
             // TO DO: Remove countries.csv and other non-full.csv files from python file generation.
-            const csvFilePath = local_app.web_root() + "/localsite/info/data/map-filters/countries-full.csv"; // Or use the full version
+            const csvFilePath = localsitePath("info/data/map-filters/countries-full.csv"); // Or use the full version
             
             const element = {};
             element.scope = "countries";
@@ -702,7 +821,10 @@ function hashChanged() {
     }
     if (hash.geoview == "earth" || hash.geoview == "countries") {
         onElmReady('#state_select', function() {
-            $("#state_select").hide();
+            // Not in the hero (#relocatedStateMenu in #hero-rect), where the state and region menus stay available
+            if (!$("#state_select").closest("#relocatedStateMenu").length) {
+                $("#state_select").hide();
+            }
         });
     } else if (hash.geoview == "country") {
         if (hash.geoview != priorHash.geoview) {
@@ -719,9 +841,10 @@ function hashChanged() {
         closeLocationFilter();
     }
 
-    // Hide Counties tab until sub-selections exist
-    let showCountiesTab = hash.geo || hash.state || hash.geoview == "countries" || hash.geoview == "earth";
-    let hideForNoSelection = (hash.geoview == "country" && !hash.state) || (hash.geoview == "state" && !hash.geo);
+    // Hide Counties tab until sub-selections exist (state=all isn't one)
+    let hasState = hashHasSpecificState(hash);
+    let showCountiesTab = hash.geo || hasState || hash.geoview == "countries" || hash.geoview == "earth";
+    let hideForNoSelection = (hash.geoview == "country" && !hasState) || (hash.geoview == "state" && !hash.geo);
     if (hideForNoSelection) {
         $("#filterClickLocation").hide();
     } else if (showCountiesTab) {
@@ -777,22 +900,22 @@ function hashChanged() {
                 if (appTitle) {
                     $("#pageTitle").text(appTitle); // Ex: Parts Manufacturing
                 } else {
-                    ////$(".region_service").text(hash.show.toTitleCaseFormat());
-                    $("#pageTitle").text(hash.show.toTitleCaseFormat());
+                    ////$(".region_service").text(showTopicTitle(hash.show));
+                    $("#pageTitle").text(showTopicTitle(hash.show));
                 }
                 */
-                showTitle = hash.show.toTitleCaseFormat();
+                showTitle = showTopicTitle(hash.show);
             }
 
             if (hash.show && local_app.loctitle) {
                 waitForElm('.region_service').then((elm) => {
-                    $(".region_service").text(local_app.loctitle + " - " + hash.show.toTitleCaseFormat());
+                    setRegionServiceText(local_app.loctitle + " - " + showTopicTitle(hash.show), showTopicTitle(hash.show));
                 });
 
             } else if (hash.state) {
 
                 onElmReady('.region_service', function() {
-                    $(".region_service").text(hash.state); // While waiting for full state name
+                    setRegionServiceText(hash.state); // While waiting for full state name
                 });
                 onElmReady('#state_select', function() {
                     //$("#state_select").val(stateAbbrev);
@@ -803,9 +926,9 @@ function hashChanged() {
                         theStateName = $("#state_select").find(":selected").text();
                         console.log("fetched " + theStateName);
                         onElmReady('.region_service', function() {
-                            $(".region_service").text(theStateName + " Industries");
+                            setRegionServiceText(theStateName + " Industries");
                             if (showTitle) {
-                                $(".region_service").text(theStateName + " - " + hash.show.toTitleCaseFormat());
+                                setRegionServiceText(theStateName + " - " + showTopicTitle(hash.show), showTopicTitle(hash.show));
                             }
                         });
                     }
@@ -830,15 +953,15 @@ function hashChanged() {
 
                 /*
                 if (theStateName) {
-                    $(".region_service").text(theStateName);
+                    setRegionServiceText(theStateName);
                 } else {
-                    $(".region_service").text(hash.state);
+                    setRegionServiceText(hash.state);
                 }
                 */
             } else {
                 ////$(".region_service").text("Top " + $(".locationTabText").text() + " Industries");
                 waitForElm('.region_service').then((elm) => {
-                    $(".region_service").text(""); // Clear prior state
+                    setRegionServiceText("", hash.show ? showTopicTitle(hash.show) : ""); // Clear prior state. The topic shows large.
                     consoleLog("Clear prior state")
                 });
             }
@@ -860,9 +983,9 @@ function hashChanged() {
             $(".regiontitle").text(hash.regiontitle.replace(/\+/g," "));
             waitForElm('.region_service').then((elm) => {
                 if (hash.show) {
-                    $(".region_service").text(hash.regiontitle.replace(/\+/g," ") + " - " + hash.show.toTitleCaseFormat());
+                    setRegionServiceText(hash.regiontitle.replace(/\+/g," ") + " - " + showTopicTitle(hash.show), showTopicTitle(hash.show));
                 } else {
-                    $(".region_service").text(hash.regiontitle.replace(/\+/g," "));
+                    setRegionServiceText(hash.regiontitle.replace(/\+/g," "));
                 }
             });
             $(".locationTabText").text(hash.regiontitle.replace(/\+/g," "));
@@ -966,9 +1089,6 @@ function hashChanged() {
     if (hash.cat != priorHash.cat) {
         changeCat(hash.cat)
     }
-    if (hash.catsort) {
-        $("#catsort").val(hash.catsort);
-    }
     if (hash.catyear) {
         $("#catyear").val(hash.catyear);
     }
@@ -1023,17 +1143,17 @@ function hashChanged() {
                     theStateNameLowercase = theStateName.toLowerCase();
                     imageUrl = "https://model.earth/us-states/images/backgrounds/1280x720/landscape/" + theStateNameLowercase.replace(/\s+/g, '-') + ".jpg";
                     if (theStateNameLowercase == "georgia") {
-                        imageUrl = "/apps/img/hero/state/GA/GA-hero.jpg";
+                        imageUrl = webrootPath("/apps/img/hero/state/GA/GA-hero.jpg");
                     }
                     if (theStateNameLowercase == "district of columbia") {
                         // DC doesn't have a hero image, use default stars image
                         imageUrl = "../localsite/img/hero/stars.jpg";
                     }
                     if (theStateName.length == 0) {
-                        imageUrl = "/apps/img/hero/state/GA/GA-hero.jpg";
+                        imageUrl = webrootPath("/apps/img/hero/state/GA/GA-hero.jpg");
                     }
                 } else {
-                    imageUrl = "/apps/img/hero/state/GA/GA-hero.jpg";
+                    imageUrl = webrootPath("/apps/img/hero/state/GA/GA-hero.jpg");
                 }
                 let imageUrl_scr = "url(" + imageUrl + ")";
                 //alert("imageUrl_scr  " + imageUrl_scr)
@@ -1055,7 +1175,7 @@ function hashChanged() {
     }
     if (hash.imgview != priorHash.imgview) {
         if (hash.imgview == "state") {
-            loadScript('/apps/js/apps-menus.js', function(results) {
+            loadScript(webrootPath('/apps/js/apps-menus.js'), function(results) {
                 showHeroMenu("feature", {}, "my_site");
             });
         }
@@ -1622,7 +1742,7 @@ var StandaloneNavigation = window.StandaloneNavigation || class StandaloneNaviga
                                             <i class="subnav-icon" data-feather="check-square"></i>
                                             <span>Assigned Tasks</span>
                                         </a>
-                                        <a href="/localsite/timeline/" class="subnav-link">
+                                        <a href="${localsitePath('timeline/')}" class="subnav-link">
                                             <i class="subnav-icon" data-feather="calendar"></i>
                                             <span>UN Timelines</span>
                                         </a>
@@ -1836,7 +1956,7 @@ var StandaloneNavigation = window.StandaloneNavigation || class StandaloneNaviga
         });
     }
     
-    // Update logo and favicon from webroot.yaml site.favicon, with JS global fallbacks
+    // Update logo and favicon from support/site/config.yaml site.favicon, with JS global fallbacks
     async updateLogoFromConfig() {
         let siteFavicon = null;
 
@@ -2888,6 +3008,29 @@ window.refreshFavicon = function() {
     }
 };
 
+// Hides the side nav for a site in support/site/config.yaml that has sideNavLive: false (sideNavLocal on localhost,
+// which falls back to sideNavLive when not set). The style is added right away so the nav doesn't flash,
+// then removed if the site's config doesn't hide it. Called again with another site key, it re-checks.
+window.hideSideNavForSite = function(siteKey) {
+    var isLocalhost = location.host.indexOf('localhost') >= 0;
+    if (!document.getElementById('site-side-nav-hidden')) {
+        var hiddenStyle = document.createElement('style');
+        hiddenStyle.id = 'site-side-nav-hidden';
+        hiddenStyle.textContent = '#side-nav-content { display: none !important } #side-nav.expanded #main-nav { display: block !important } .main-nav-full { width: 189px !important } .listcolumn:not(.listcolumnOnly) { left: 189px !important }';
+        document.head.appendChild(hiddenStyle);
+    }
+    waitForElm('#side-nav-content').then(function() {
+        window.loadWebrootYaml && window.loadWebrootYaml().then(function(cfg) {
+            var site = cfg.sites && cfg.sites[siteKey];
+            var sideNavValue = site && ((isLocalhost && site.sideNavLocal !== undefined) ? site.sideNavLocal : site.sideNavLive);
+            if (sideNavValue !== 'false') {
+                var s = document.getElementById('site-side-nav-hidden');
+                if (s) s.remove();
+            }
+        });
+    });
+};
+
 
 /// Navigation.js
 
@@ -2961,13 +3104,28 @@ function hideSide(which) {
 
 }
 function popAdvanced() {
-    waitForElm('#filterLocations').then((elm) => {        
+    waitForElm('#geoview_container').then((elm) => {
         console.log("popAdvanced");
         closeSideTabs();
         $("#filterClickLocation").removeClass("filterClickActive");
-        $("#filterLocations").appendTo($("#locationFilterPop"));
+        // Move #geoview_container into the popup. The marker holds its origin for returnGeoviewContainer().
+        if (!$("#geoview_container_origin").length) {
+            $("<div id='geoview_container_origin' style='display:none'></div>").insertBefore($("#geoview_container"));
+        }
+        $("#geoview_container").appendTo($("#locationFilterPop")).show();
         $("#draggableSearch").show();
     });
+}
+// Returns #geoview_container from the #draggableSearch popup to its origin
+function returnGeoviewContainer() {
+    if (!$("#geoview_container_origin").length) {
+        return;
+    }
+    $("#geoview_container").insertAfter($("#geoview_container_origin")).hide();
+    $("#geoview_container_origin").remove();
+    if (typeof closeGeoviewList === 'function') {
+        closeGeoviewList(); // Resets the geoview menu arrows and aria-expanded
+    }
 }
 function showSideTabs() {
     consoleLog("showSideTabs() in navigation.js");
@@ -3019,7 +3177,7 @@ function showSideTabs() {
 function populateFieldsFromHash() {
     let hash = getHash();
     waitForElm('#keywordsTB').then((elm) => {
-        $("#keywordsTB").val(hash.q);
+        $("#keywordsTB").val(String(hash.q || "").replace(/\+/g, " ")); // updateHash (URLSearchParams) writes spaces as +
     });
     if (hash.cat) {
         var catString = hash.cat.replace(/_/g, ' ');
@@ -3053,7 +3211,7 @@ function populateFieldsFromHash() {
     $("#productCodes").val(hash.hs);
     if (hash.region) {
         if (hash.show) {
-            $(".regiontitle").val(hash.region + " - " + hash.show.toTitleCaseFormat());
+            $(".regiontitle").val(hash.region + " - " + showTopicTitle(hash.show));
         } else {
             $(".regiontitle").val(hash.region);
         }
@@ -3161,7 +3319,7 @@ if (typeof $ !== 'undefined') {
         } else {
             console.log("State needed")
         }
-        d3.csv("/community/start/maps/counties/topo/GA_county_regions.csv").then(function(detail_data) {
+        d3.csv(webrootPath("/community/start/maps/counties/topo/GA_county_regions.csv")).then(function(detail_data) {
             // Similar to aside
             let dp = {
               numColumns: ["county_num","economic_region","wia_region","io_region"], // Omit "name" since not number.
@@ -3414,14 +3572,22 @@ if (typeof $ !== 'undefined') {
     }
     function applyGeoviewSelection(value) {
         if (value == "space") {
-            window.location.href = "/space/";
+            window.location.href = webrootPath("/space/");
             return;
         }
         if (value == "earth" && $("#mainEarthDisplay").is(":visible")) {
             goHash({"geoview":""});
             return;
         }
-        if (value == "countries" || value == "earth") {
+        if (value == "earth" || value == "country" || value == "state") {
+            window.scrollTo({top: 0, behavior: "instant"}); // Jump up to the map rather than animating the scroll
+        }
+        if (value == "country" && getHash().geoview == "country") { // "United States" already selected, so unselect its states
+            hiddenhash.state = "";
+            goHash({"geoview":"us","state":""});
+        } else if (value == "country") { // "United States". getHash() reads geoview=us as country.
+            goHash({"geoview":"us"});
+        } else if (value == "countries" || value == "earth") {
             hiddenhash.state = "";
             goHash({"geoview":value,"state":"",});
         } else if (value == "state" && !getHash().state) {
@@ -3453,7 +3619,9 @@ if (typeof $ !== 'undefined') {
         refreshFilterToggleIcon();
     }
     function closeGeoviewList() {
-        $("#geoview_container").hide();
+        if (!$("#geoview_container").closest("#locationFilterPop").length) { // Stays open within the popup
+            $("#geoview_container").hide();
+        }
         $("#geoview_select").attr("aria-expanded", "false");
         $("#showLocations").hide();
         $("#hideLocations").show();
@@ -3569,7 +3737,7 @@ if (typeof $ !== 'undefined') {
         const activeSection = getActiveFilterSection();
         $("#filterFieldMenu").hide();
         if (action === "aboutfilters") {
-            window.location = "/localsite/info/data/map-filters/";
+            window.location = localsitePath("info/data/map-filters/");
             refreshFilterToggleIcon();
             event.stopPropagation();
             return;
@@ -3777,8 +3945,9 @@ if (typeof $ !== 'undefined') {
                 const style = document.createElement('style');
                 style.id = 'state-quick-list-css';
                 style.textContent = [
-                    '#state_select_holder select { display: none; }',
+                    '#state_select_holder #state_select { display: none; }',
                     '#state_quick_list {',
+                    '  clear: both;', // Below the floated #state_select_holder (#usregion_holder and #state_select)
                     '  margin-top: 4px;',
                     '  max-height: 350px;',
                     '  overflow-y: scroll;',
@@ -3792,6 +3961,7 @@ if (typeof $ !== 'undefined') {
                     '  transition: background 0.12s;',
                     '  font-size: 14px;',
                     '  line-height: 1.4;',
+                    '  margin-right: 10px;',
                     '}',
                     '#state_quick_list .state-list-item:first-child {',
                     '  border-top: 1px solid var(--border-light, #E5E7EB);',
@@ -3814,6 +3984,31 @@ if (typeof $ !== 'undefined') {
                     '}',
                     '.dark #state_quick_list .state-list-item:hover {',
                     '  background: rgba(255,255,255,0.1);',
+                    '}',
+                    // About twice the usual scroll bar thickness (Chrome, Safari, Edge)
+                    '#state_quick_list::-webkit-scrollbar {',
+                    '  width: 20px;',
+                    '}',
+                    '#state_quick_list::-webkit-scrollbar-track {',
+                    '  background: #f1f1f1;',
+                    '}',
+                    '#state_quick_list::-webkit-scrollbar-thumb {',
+                    '  background: #bbb;',
+                    '  border-radius: 7px; /* 3px on the visible handle, inside the 4px border */',
+                    '  border: 4px solid #f1f1f1;',
+                    '}',
+                    '#state_quick_list::-webkit-scrollbar-thumb:hover {',
+                    '  background: #999;',
+                    '}',
+                    '.dark #state_quick_list::-webkit-scrollbar-track {',
+                    '  background: #2a2a2a;',
+                    '}',
+                    '.dark #state_quick_list::-webkit-scrollbar-thumb {',
+                    '  background: #666;',
+                    '  border-color: #2a2a2a;',
+                    '}',
+                    '.dark #state_quick_list::-webkit-scrollbar-thumb:hover {',
+                    '  background: #888;',
                     '}'
                 ].join('\n');
                 document.head.appendChild(style);
@@ -3828,13 +4023,16 @@ if (typeof $ !== 'undefined') {
                 const item = document.createElement('div');
                 item.className = 'state-list-item';
                 item.dataset.value = opt.value;
+                item.dataset.usregion = (opt.getAttribute('usregion') || '').replace(/\s/g, ''); // For filterStateQuickList
                 item.textContent = opt.text;
                 item.setAttribute('role', 'option');
                 item.setAttribute('tabindex', '0');
                 item.addEventListener('click', function() {
                     const sel = document.getElementById('state_select');
                     sel.value = this.dataset.value;
+                    stateQuickListClick = true; // #state_select may reside in the hero
                     $(sel).trigger('change');
+                    stateQuickListClick = false;
                 });
                 item.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
@@ -3843,6 +4041,7 @@ if (typeof $ !== 'undefined') {
             });
 
             elm.appendChild(list);
+            filterStateQuickList();
 
             function syncActiveState() {
                 const val = (document.getElementById('state_select') || {}).value || '';
@@ -3853,6 +4052,7 @@ if (typeof $ !== 'undefined') {
 
             $(document).on('change', '#state_select', syncActiveState);
             document.addEventListener('hashChangeEvent', syncActiveState);
+            document.addEventListener('hashChangeEvent', function() { filterStateQuickList(); });
         });
     });
 
@@ -3860,6 +4060,7 @@ if (typeof $ !== 'undefined') {
     if ($("#relocatedStateMenu").length) {
         waitForElm('#state_select').then((elm) => {
             $("#state_select").appendTo("#relocatedStateMenu").show();
+            placeUsRegionSelect();
             $("#relocatedStateMenu").parent().show();
         });
     }
@@ -3873,12 +4074,14 @@ if (typeof $ !== 'undefined') {
             if (holderVisible && stateSelectParent !== 'state_select_holder') {
                 // Move to holder and hide relocatedStateMenu parent
                 $("#state_select").appendTo("#state_select_holder");
+                placeUsRegionSelect();
                 if ($("#relocatedStateMenu").length) {
                     $("#relocatedStateMenu").parent().hide();
                 }
             } else if (!holderVisible && $("#relocatedStateMenu").length && stateSelectParent !== 'relocatedStateMenu') {
                 // Move to relocatedStateMenu and show its parent
                 $("#state_select").appendTo("#relocatedStateMenu").show();
+                placeUsRegionSelect();
                 $("#relocatedStateMenu").parent().show();
             }
         }
@@ -4020,8 +4223,8 @@ if (typeof $ !== 'undefined') {
         let search = $('.selected_col:checked').map(function() {return this.id;}).get().join(',');
         // TODO: set search to empty array if all search boxes are checked.
         if(!hash.show && location.href.indexOf('/localsite/info/') < 0) {
-            updateHash({"geoview":""});
-            window.location = "/localsite/info/" + location.hash;
+            updateHash({"q":searchQuery,"geoview":""}); // Keeps the search term for the info page
+            window.location = localsitePath("info/") + location.hash;
             return;
         }
         goHash({"q":searchQuery,"search":search,"geoview":""}); // triggers hash change event.
@@ -4417,7 +4620,7 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
           topoObjName = "topoob.objects.data";
         }  else if (hash.geoview == "country") { // USA  && stateAbbr.length != 2
           layerName = "States";
-          url = local_app.web_root() + "/localsite/map/topo/states-10m.json"; // name parameter is full state name
+          url = localsitePath("map/topo/states-10m.json"); // name parameter is full state name
           topoObjName = "topoob.objects.states";
         } else if (stateAbbr && stateAbbr.length <= 2 && hash.geoview != "countries") { // COUNTIES
           layerName = stateAbbr + " Counties";
@@ -4578,20 +4781,16 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
               }
               var mapCenter = [lat,lon];
 
-              var mbAttr = '<a href="https://neighborhood.org">Neighborhood.org</a> | <a href="https://www.openstreetmap.org/">OpenStreetMap</a> | ' +
-                  '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-                  'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>';
-              const mapboxToken = (typeof window !== "undefined" && typeof window.mapboxAccessToken === "string") ? window.mapboxAccessToken : "";
-              const mbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png' + (mapboxToken ? ('?access_token=' + mapboxToken) : '');
+              // Mapbox tiles need window.mapboxAccessToken, which isn't set, so Esri tiles (no key) are used for satellite and streets.
+              var esriImageryAttr = '<a href="https://neighborhood.org">Neighborhood.org</a> | Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+              var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom: 19, attribution: esriImageryAttr}),
+                  streets = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                      maxZoom: 19, attribution: '<a href="https://neighborhood.org">Neighborhood.org</a> | Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  });
 
-              var grayscale = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
-                  satellite = L.tileLayer(mbUrl, {id: 'mapbox.satellite',   attribution: mbAttr}),
-                  streets = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
-
-              var OpenStreetMap_BlackAndWhite = L.tileLayer('//{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-                  maxZoom: 18,
-                  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              });
+              // Despite its name, OpenStreetMap_BlackAndWhite is CARTO's light_all (Positron) style built from OpenStreetMap data, not an openstreetmap.org tile.
+              // CARTO when window.cartoApiKey works, otherwise Esri Light Gray Canvas plus its labels. See cartoOrEsri in localsite.js.
+              var OpenStreetMap_BlackAndWhite = cartoOrEsri('light_all', ['World_Light_Gray_Base', 'World_Light_Gray_Reference']);
 
               //let dataParameters = {}; // Temp
 
@@ -4614,15 +4813,16 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                     // Line above does not work, so we remove map:
 
                     var basemaps1 = {
-                  'Satellite' : L.tileLayer(mbUrl, {maxZoom: 25, id: 'mapbox.satellite', attribution: mbAttr}),
+                  // OpenStreetMap_BlackAndWhite:
+                  // CARTO light_all (place names built in) when window.cartoApiKey works, otherwise Esri Light Gray Canvas plus its labels.
+                  'Grayscale' : cartoOrEsri('light_all', ['World_Light_Gray_Base', 'World_Light_Gray_Reference'], {attributionPrefix: '<a href="https://neighborhood.org">Neighborhood.org</a> | '}),
                   // OpenStreetMap
                   'Street Map' : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                      zIndex: MAP_BACKGROUND_ZINDEX,
                       maxZoom: 19, attribution: '<a href="https://neighborhood.org">Neighborhood.org</a> | <a href="http://openstreetmap.org">OpenStreetMap</a> | <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
                   }),
-                  // OpenStreetMap_BlackAndWhite:
-                  'Grey' : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-                      maxZoom: 18, attribution: '<a href="https://neighborhood.org">Neighborhood.org</a> | <a href="http://openstreetmap.org">OpenStreetMap</a> | <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-                  }),
+                  'Satellite' : L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom: 19, zIndex: MAP_BACKGROUND_ZINDEX, attribution: esriImageryAttr}),
+                  ...darkBasemaps('<a href="https://neighborhood.org">Neighborhood.org</a> | '), // Dark Mode and Darker Mode, see localsite.js
                 }
 
 
@@ -4659,10 +4859,13 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                 // Add
                 geoOverlays[layerName] = L.geoJson(topodata, {style:styleShape, onEachFeature: onEachFeature}).addTo(map); // Called within addTo(map)
             
-                layerControls[whichmap] = L.control.layers(basemaps1, geoOverlays, {position: 'bottomleft'}).addTo(map); // Push multple layers
+                layerControls[whichmap] = createLayersControl(basemaps1, geoOverlays, {position: 'bottomleft'}).addTo(map); // Push multple layers. Map style button (localsite.js)
                 if (onlineApp) {
-                    basemaps1["Grey"].addTo(map);
+                    // Grayscale unless the viewer chose another. Remembered per map, and follows light/dark mode like map1 (see trackBasemap in localsite.js).
+                    basemaps1[basemapForSitelook(basemaps1, 'localsiteBasemap_' + whichmap)].addTo(map);
+                    trackBasemap(map, basemaps1, 'localsiteBasemap_' + whichmap);
                 }
+                trackLocalsiteMapTitles(map, layerControls[whichmap], false); // Map Titles checkbox (localsite.js)
 
             //} else if (geojsonLayer) { // INDICATES TOPO WAS ALREADY LOADED
             } else if (map.hasLayer(geoOverlays[layerName])) {
@@ -4732,7 +4935,10 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
 
                 map.setView(mapCenter,zoom);
             }
-            
+            if (geomapChoropleth && layerName == "States") {
+                showGeomapChoroplethLegend(whichmap); // Data sent before the state shapes loaded
+            }
+
             console.log("zoom: " + zoom + " mapCenter: ");
             console.log(mapCenter);
 
@@ -4741,10 +4947,9 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
             }
 
             var baseLayers = {
-              "Open Street Map": OpenStreetMap_BlackAndWhite,
-              "Grayscale Mapbox": grayscale,
-              "Streets Mapbox": streets,
-              "Satellite Mapbox": satellite
+              "Grayscale": OpenStreetMap_BlackAndWhite,
+              "Streets": streets,
+              "Satellite": satellite
             };
             
               //dataParameters.forEach(function(ele) {
@@ -4797,7 +5002,7 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
 
 
                       //layerControls[whichmap] = L.control.layers(basemaps1, geoOverlays).addTo(map); // Push multple layers
-                      //basemaps1["Grey"].addTo(map);
+                      //basemaps1["Grayscale"].addTo(map);
 
 
 
@@ -4886,7 +5091,7 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
               // Avoiding toggling fillOpacity. Using just border so choropleth opacity is not modified.
               layer.setStyle({
                 weight: 3,
-                color: '#665',
+                color: document.body.classList.contains('dark') ? '#fff' : '#665',
                 dashArray: '',
                 fillOpacityX: .7}
               )
@@ -4896,7 +5101,7 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
               }
               
               // Send text to side box
-              info.update(layer.feature.properties);
+              info.update(layer.feature.properties, layer.feature.id);
 
             }
             // Rollout map shape (county)
@@ -4932,8 +5137,9 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
             }
 
             function newPrimaryState(stateList, stateAbbr) {
-                // Split the string into an array
-                let states = stateList.split(',');
+                // Split the string into an array, without "all" (state=all becomes the clicked county's state)
+                let states = hashStateList({state: stateList});
+                if (!states.length) return stateAbbr;
 
                 // Find the index of the stateAbbr in the array
                 let index = states.indexOf(stateAbbr);
@@ -4966,7 +5172,9 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                 
                 //alert("mapFeatureClick fips: " + fips)
                 //var fipsString = fips;
-                if (param.geo && param.geo.split(",").includes(fips)) {
+                if (!multipleChecked("counties")) {
+                  param.geo = fips; // Only the latest county clicked
+                } else if (param.geo && param.geo.split(",").includes(fips)) {
                   // Remove clicked fips from array, then convert back to string
                   param.geo = jQuery.grep(param.geo.split(","), function(value) {return value != fips;}).toString();
                   //fipsString = param.geo;
@@ -4987,7 +5195,9 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                   let latestHash = getHash();
                   let countryCode = layer.feature.properties["Alpha-2"];
                   let countryList = latestHash.country ? latestHash.country.split(",").filter(Boolean) : [];
-                  if (countryList.includes(countryCode)) {
+                  if (!multipleChecked("countries")) {
+                      countryList = [countryCode]; // Only the latest country clicked
+                  } else if (countryList.includes(countryCode)) {
                       countryList = countryList.filter(function(code){ return code !== countryCode; });
                   } else {
                       countryList.push(countryCode);
@@ -5004,7 +5214,11 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                     goHash({'geoview':'country','geo':'','regiontitle':''});
                   } else {
 
-                      if (hash.state) {
+                      hash.state = hashStateList(hash).join(","); // Drop "all"
+                      const singleStateClick = !multipleStatesChecked();
+                      if (singleStateClick) {
+                        hash.state = theStateID; // Only the latest state clicked
+                      } else if (hash.state) {
                         if (hash.state.includes(theStateID)) {
                             //if (hash.state.includes(",")) { // Assuming user is removing state.
                             //    hash.state = hash.state.replace(/&/g, '%26');
@@ -5031,6 +5245,9 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                       }
                       var currentGeoview = getHash().geoview;
                       var nextGeoview = (currentGeoview == "country") ? "country" : "state";
+                      if (singleStateClick) {
+                        nextGeoview = geoviewAfterStateChoice(nextGeoview);
+                      }
                       goHash({'state':hash.state,'geoview':nextGeoview});
                 }
               }
@@ -5044,7 +5261,7 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
               })
             }
 
-            var info = L.control();
+            var info = L.control({position: 'bottomright'}); // Hover details for a county, state or country
 
             info.onAdd = function(map) {
               //alert("attempt")
@@ -5056,18 +5273,30 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
               return this._div;
             }
 
-            info.update = function(props){
+            info.update = function(props, featureID){
 
-                if (props) {
-                  $(".info.leaflet-control").show();
-                } else {
-                  $(".info.leaflet-control").hide();
+                mapInfoHovering = !!props;
+                if (!props) {
+                  // Not hovering: show the selected location and the meaning of the choropleth colors, otherwise hide
+                  const selected = selectedLocationText(getHash());
+                  const colorsShown = getHash().geoview == "country" && geomapChoropleth;
+                  if (selected || colorsShown) {
+                    this._div.innerHTML = (selected ? "<b>" + selected + "</b>" : "")
+                      + (selected && colorsShown ? "<br>" : "")
+                      + (colorsShown ? "<span class='info-description'>" + geomapChoropleth.legendTitle
+                        + (geomapChoropleth.description ? ": " + geomapChoropleth.description : "") + "</span>" : "");
+                    $(this._div).show();
+                  } else {
+                    $(this._div).hide();
+                  }
+                  return;
                 }
+                $(this._div).show();
                 // National
                 // Hover over map
                 //this._div.innerHTML = "<h4>Zip code</h4>" + (props ? props.zip + '<br>' + props.name + ' ' + props.state + '<br>' : "Select Locations")
                 
-                // CSS resides in map.css at .leaflet-top > .info
+                // CSS resides in map.css at .leaflet-control.info
 
                 // Occurs when rolling over, otherwise "props" is not available.
                 if (props && props.COUNTYFP) {
@@ -5087,8 +5316,12 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
 
                     this._div.innerHTML = this._div.innerHTML + "CO<sub>2</sub> " + formatCell(value);
 
+                } else if (getHash().geoview == "country" && geomapChoropleth) { // State colored by setGeomapChoropleth()
+                  const value = geomapChoropleth.values[Number(featureID)];
+                  this._div.innerHTML = "<b>" + props.name + "</b><br>"
+                    + geomapChoropleth.legendTitle + " " + (value === undefined ? "No data" : formatCell(value));
                 } else { // US
-                  this._div.innerHTML = "" 
+                  this._div.innerHTML = ""
                   + (props ? "<b>" + props.name + "</b><br>" : "Select Locations")
 
                   if (props) {
@@ -5114,6 +5347,15 @@ function renderMapShapeAfterPromise(whichmap, hash, geoview, attempts) {
                 // To fix if using state - id is not defined
                 // Also, other state files may need to have primary node renamed to "data"
                 //this._div.innerHTML = "<h4>Zip code</h4>" + (1==1 ? id + '<br>' : "Hover over map")
+            }
+            mapInfoControl = info;
+            if (!mapInfoListenerBound) { // The map can be rebuilt, so bind once
+              mapInfoListenerBound = true;
+              document.addEventListener('hashChangeEvent', function() {
+                if (mapInfoControl && mapInfoControl._div && !mapInfoHovering) {
+                  mapInfoControl.update(); // A newly selected location
+                }
+              });
             }
             if (map) {
               info.addTo(map);
@@ -5371,11 +5613,11 @@ function loadStateCounties(attempts) { // To avoid broken tiles, this won't be e
                 //let csvFilePath = local_app.community_data_root() + "us/state/" + theState + "/" + theState + "counties.csv";
                 
                 // All states in one file
-                let csvFilePath = "/localsite/info/data/map-filters/us-counties-full.csv";
+                let csvFilePath = localsitePath("info/data/map-filters/us-counties-full.csv");
                 if (hash.geoview == "zip") {
                     csvFilePath = local_app.community_data_root() + "us/zipcodes/zipcodes6.csv";
                 } else if (hash.show == "cameraready" && hash.state == "GA") {
-                    csvFilePath = "/localsite/info/data/map-filters/state-county-sections-ga.csv";
+                    csvFilePath = localsitePath("info/data/map-filters/state-county-sections-ga.csv");
                 }
                 //alert("csvFilePath " + csvFilePath)
                 let allowedStates = [];
@@ -5515,6 +5757,10 @@ function loadStateCounties(attempts) { // To avoid broken tiles, this won't be e
                                     localObject.stateCountiesLoaded.push(stateGeo);
                                 }
                             });
+                            updateCountiesTabText(); // A single county's name is available now
+                            if (mapInfoControl && mapInfoControl._div && !mapInfoHovering) {
+                                mapInfoControl.update(); // County names for the map hover box
+                            }
                             //console.log("geoCountyTable");
                             //console.log(geoCountyTable);
                         }
@@ -5586,6 +5832,9 @@ function loadObjectData(element, attempts) {
                         });
                     } else {
                         localObject[element.scope] = makeRowValuesNumeric(data, element.numColumns, element.valueColumn);
+                    }
+                    if (element.scope == "country-us" && geomapChoropleth) {
+                        refreshGeomapChoropleth(geomapChoropleth.whichmap); // Per capita and per 1000 sq mi use Population and SqMiles
                     }
                     //alert("showTabulatorList from initial load off loadObjectData element.scope: " + element.scope)
                     console.log("initial loadObjectData for element.scope: " + element.scope)
@@ -5778,7 +6027,6 @@ function showTabulatorList(element) {
                         data:dataForTabulator,    //load row data from array of objects
                         layout:"fitColumns",      //fit columns to width of table
                         responsiveLayout:"hide",  //hide columns that dont fit on the table
-                        tooltips:true,            //show tool tips on cells
                         addRowPos:"top",          //when adding a new row, add it to the top of the table
                         history:true,             //allow undo and redo actions on the table
                         movableColumns:true,      //allow column order to be changed
@@ -5787,7 +6035,6 @@ function showTabulatorList(element) {
                         paginationSize:10000,
                         index:statetableIndex,
                         columns:element.columns,
-                        selectable:true,
                         autoResize:false,         //disable auto resize to prevent infinite loop
                     });
 
@@ -5822,9 +6069,12 @@ function showTabulatorList(element) {
                         console.log("statetable rowSelected " + stateId + " (programmatic: " + programmaticSelection + ")");
                         testAlert("statetable rowSelected " + stateId);
                         if (!programmaticSelection && hash.geoview == "country" && stateId && stateId.length === 2) {
-                            let stateList = hash.state ? hash.state.split(",").filter(Boolean) : [];
+                            let stateList = hashStateList(getHash()); // Without "all"
                             if (!stateList.includes(stateId)) {
-                                stateList.push(stateId);
+                                stateList.unshift(stateId); // Newly checked state goes first
+                            }
+                            if (stateList.length > 1) {
+                                setMultipleStates(true); // Second checkbox checked
                             }
                             goHash({'state':stateList.join(",")});
                             return;
@@ -5859,6 +6109,9 @@ function showTabulatorList(element) {
                                     if (!countryList.includes(countryCode)) {
                                         countryList.push(countryCode);
                                     }
+                                    if (countryList.length > 1) {
+                                        setMultiple("countries", true); // Second checkbox checked
+                                    }
                                     goHash({'country':countryList.join(",")});
                                 }
                             }
@@ -5869,6 +6122,7 @@ function showTabulatorList(element) {
                             if (row._row.data["CountryName"] == "United States") {
                                 goHash({'geoview':'country'});
                             } else if(row._row.data.id) {
+                                hash.state = hashStateList(hash).join(","); // Drop "all"
                                 if (hash.state) {
                                     // Prepend new state to existing hash.state.
                                     let statesArray = hash.state.split(',');
@@ -5881,6 +6135,9 @@ function showTabulatorList(element) {
                                     }
                                 } else {
                                     hash.state = row._row.data.id;
+                                }
+                                if (hash.state.includes(",")) {
+                                    setMultipleStates(true); // Second checkbox checked
                                 }
                                 //goHash({'state':hash.state});
 
@@ -5919,7 +6176,7 @@ function showTabulatorList(element) {
                         console.log("statetable rowDeselected " + stateId + " (programmatic: " + programmaticSelection + ")");
                         testAlert("statetable rowDeselected " + stateId);
                         if (!programmaticSelection && hash.geoview == "country" && stateId && stateId.length === 2) {
-                            let stateList = hash.state ? hash.state.split(",").filter(Boolean) : [];
+                            let stateList = hashStateList(getHash()); // Without "all"
                             stateList = stateList.filter(function(stateAbbr){ return stateAbbr !== stateId; });
                             goHash({'state':stateList.join(",")});
                             return;
@@ -5983,6 +6240,33 @@ function showTabulatorList(element) {
                                 e.stopPropagation();
                                 return;
                             }
+                            const countryCell = e.target.closest ? e.target.closest('.tabulator-cell') : null;
+                            if (countryCell && countryCell.querySelector("input[type='checkbox']")) {
+                                row.toggleSelect(); // Beside the checkbox: adds or removes, like the checkbox
+                                checkStateTableCheckbox(row, row.isSelected());
+                                return;
+                            }
+                            // Clicking the row selects only that country, as for states. The checkboxes add more.
+                            const countryCode = row.getData()["Country"];
+                            if (countryCode) {
+                                setMultiple("countries", false);
+                                const priorRows = statetable.getSelectedRows();
+                                programmaticSelection = true;
+                                statetable.deselectRow();
+                                row.select();
+                                programmaticSelection = false;
+                                priorRows.concat([row]).forEach(r => checkStateTableCheckbox(r, r.isSelected())); // Only rows that changed
+                                goHash({'country':countryCode});
+                            }
+                            return;
+                        }
+                        // The checkbox column adds states (rowSelected above), so clicks there are not row clicks.
+                        // A click in that cell beside the checkbox toggles the checkbox.
+                        if (e.target.type === 'checkbox') {
+                            return;
+                        }
+                        const clickedCell = e.target.closest ? e.target.closest('.tabulator-cell') : null;
+                        if (clickedCell && clickedCell.querySelector("input[type='checkbox']")) {
                             row.toggleSelect();
                             checkStateTableCheckbox(row, row.isSelected());
                             return;
@@ -5991,13 +6275,13 @@ function showTabulatorList(element) {
                         const stateId = rowData.id || rowData.State || rowData.state;
                         testAlert("statetable row clicked " + stateId);
                         if (stateId && stateId.length === 2) {
-                            let stateList = hash.state ? hash.state.split(",").filter(Boolean) : [];
-                            if (stateList.includes(stateId)) {
-                                stateList = stateList.filter(function(stateAbbr){ return stateAbbr !== stateId; });
-                            } else {
-                                stateList.push(stateId);
+                            // Clicking the row selects only that state. The checkboxes add multiple states (rowSelected above).
+                            setMultipleStates(false);
+                            let rowHash = {'state':stateId};
+                            if (geoviewAfterStateChoice(hash.geoview) !== hash.geoview) {
+                                rowHash.geoview = ""; // Narrow: drop geoview=country
                             }
-                            goHash({'state':stateList.join(",")});
+                            goHash(rowHash);
                         }
                     });
                     if (hash.geoview != "countries") {
@@ -6134,7 +6418,6 @@ function showTabulatorList(element) {
                     maxHeight:"500px", // For frozenRows
                     paginationSize:10000,
                     columns:columnArray,
-                    selectable:true,
                     movableRows:true,
                     autoResize:false,         //disable auto resize to prevent infinite loop
                 });
@@ -6232,11 +6515,25 @@ function showTabulatorList(element) {
                         e.stopPropagation();
                         //toggleCheckbox(row);
                     } else {
-                        //alert("row click")
-                        // Gets called for both row and checkbox click.
-                        row.toggleSelect();
-                        checkFirstColumnCheckbox(row, row.isSelected());
-                        //toggleCheckbox(row);
+                        const countyCell = e.target.closest ? e.target.closest('.tabulator-cell') : null;
+                        const countyId = row.getData().id;
+                        if ((countyCell && countyCell.querySelector("input[type='checkbox']")) || !countyId) {
+                            // Beside the checkbox: adds or removes, like the checkbox
+                            row.toggleSelect();
+                            checkFirstColumnCheckbox(row, row.isSelected());
+                        } else {
+                            // Clicking the row selects only that county, as for states. The checkboxes add more.
+                            setMultiple("counties", false);
+                            const priorRows = geotableInstance.getSelectedRows();
+                            programmaticSelection = true;
+                            geotableInstance.deselectRow();
+                            row.select();
+                            programmaticSelection = false;
+                            priorRows.concat([row]).forEach(r => checkFirstColumnCheckbox(r, r.isSelected())); // Only rows that changed
+                            currentRowIDs = [countyId];
+                            hash.geo = countyId;
+                            goHash({'geo':countyId});
+                        }
                     }
 
                     // rowClick is called at end of sequence, so triggering updateMapColors
@@ -6266,6 +6563,9 @@ function showTabulatorList(element) {
                         currentRowIDs.push(row._row.data.id);
                     }
                     
+                    if (!programmaticSelection && currentRowIDs.length > 1) {
+                        setMultiple("counties", true); // Second checkbox checked
+                    }
                     // Only trigger goHash if this is a user-initiated selection, not programmatic
                     if (!programmaticSelection && hash.geo != currentRowIDs.toString()) {
                         hash.geo = currentRowIDs.toString();
@@ -6617,13 +6917,7 @@ function refreshSelectedGeoStyles(whichmap) {
     if (geoOverlays[layerName]) {
         geoOverlays[layerName].setStyle(styleShape);
     }
-    const mapContainer = document.querySelector(`#${whichmap}`);
-    if (mapContainer) {
-        const existingLegend = mapContainer.querySelector('.info.legend');
-        if (existingLegend) {
-            existingLegend.remove();
-        }
-    }
+    showGeomapChoroplethLegend(whichmap); // Removes the legend unless a choropleth was sent
 }
 function addLegendToMap(minCO2, maxCO2, whichmap, legendTitle) {
     // Get the map container
@@ -6638,6 +6932,7 @@ function addLegendToMap(minCO2, maxCO2, whichmap, legendTitle) {
 
     // Create a new legend
     const legend = document.createElement('div');
+    legend.id = whichmap + 'Legend'; // e.g. geomapLegend
     legend.className = 'info legend';
 
     const grades = 8; // Number of legend segments
@@ -6661,6 +6956,140 @@ function addLegendToMap(minCO2, maxCO2, whichmap, legendTitle) {
 
     // Append the legend to the map container
     mapContainer.appendChild(legend);
+    makeLegendDraggable(legend, whichmap);
+}
+
+// Dragged legend positions reside in localStorage by map (localsiteLegend_geomap), so the legend returns
+// to where it was moved after redraws and page loads. It can be dragged partly below the map's bottom edge,
+// with legendVisibleHeight left in sight to drag it back.
+const legendVisibleHeight = 30;
+function legendPosition(whichmap) {
+    try {
+        return JSON.parse(localStorage.getItem('localsiteLegend_' + whichmap));
+    } catch (e) {
+        return null;
+    }
+}
+function makeLegendDraggable(legend, whichmap) {
+    const mapContainer = legend.parentNode;
+    // Kept within the map, apart from the bottom
+    function placeLegend(left, top) {
+        left = Math.max(0, Math.min(left, mapContainer.clientWidth - legend.offsetWidth));
+        top = Math.max(0, Math.min(top, mapContainer.clientHeight - legendVisibleHeight));
+        legend.style.left = left + "px";
+        legend.style.top = top + "px";
+        return {left: left, top: top};
+    }
+    const saved = legendPosition(whichmap);
+    if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
+        placeLegend(saved.left, saved.top);
+    }
+    if (typeof L !== "undefined") {
+        L.DomEvent.disableClickPropagation(legend); // Dragging the legend doesn't pan the map
+        L.DomEvent.disableScrollPropagation(legend);
+    }
+    legend.addEventListener("pointerdown", function(event) {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const offsetX = event.clientX - legend.offsetLeft;
+        const offsetY = event.clientY - legend.offsetTop;
+        legend.setPointerCapture(event.pointerId);
+        let position = null;
+        function onMove(event) {
+            position = placeLegend(event.clientX - offsetX, event.clientY - offsetY);
+        }
+        function onUp(event) {
+            legend.releasePointerCapture(event.pointerId);
+            if (position) {
+                try {
+                    localStorage.setItem('localsiteLegend_' + whichmap, JSON.stringify(position));
+                } catch (e) {}
+            }
+            legend.removeEventListener("pointermove", onMove);
+            legend.removeEventListener("pointerup", onUp);
+            legend.removeEventListener("pointercancel", onUp);
+        }
+        legend.addEventListener("pointermove", onMove);
+        legend.addEventListener("pointerup", onUp);
+        legend.addEventListener("pointercancel", onUp);
+    });
+}
+
+// Choropleth on the US states map (geoview=country) sent from another script, e.g. CO2e Mt from the
+// #tabulator-energytable in profile/js/state-energy.js. styleShape() reads it, so the colors also apply
+// when the state shapes load after the data. valuesByState: {GA: 42.0, ...}, or null to remove.
+// The info box shows the description (the meaning of legendTitle) when not hovering, and a state's value when hovering over it.
+// The #geomapPer dropdown shows the Total, Per capita or Per 1000 sq mi, from the Population and SqMiles columns of
+// #tabulator-statetable (localObject["country-us"]). measures (optional) sets the title, description and scale of each:
+// {percapita: {title: "CO2e tons per person", description: "...", scale: 1e6}, perarea: {...}}
+var geomapChoropleth = null;
+function setGeomapChoropleth(whichmap, valuesByState, legendTitle, description, measures) {
+    geomapChoropleth = null;
+    if (valuesByState) {
+        const totals = {}; // By state FIPS number, the id of each shape in map/topo/states-10m.json
+        Object.keys(valuesByState).forEach(function(state) {
+            const value = Number(valuesByState[state]);
+            const stateID = localObject.us_stateIDs[state.toUpperCase()];
+            if (stateID && valuesByState[state] !== null && !isNaN(value)) totals[stateID] = value;
+        });
+        if (Object.keys(totals).length) {
+            measures = measures || {};
+            geomapChoropleth = {whichmap: whichmap, totals: totals, measures: {
+                total: {title: legendTitle, description: description, scale: 1},
+                percapita: Object.assign({title: legendTitle + " per person", description: description, scale: 1}, measures.percapita),
+                perarea: Object.assign({title: legendTitle + " per 1000 sq mi", description: description, scale: 1000}, measures.perarea)
+            }};
+        }
+    }
+    refreshGeomapChoropleth(whichmap);
+}
+// Sets the values shown (values, min, max, legendTitle and description) for the #geomapPer choice, then restyles the map
+function refreshGeomapChoropleth(whichmap) {
+    const choropleth = geomapChoropleth;
+    if (choropleth) {
+        const per = $("#geomapPer").val() || "total";
+        const measure = choropleth.measures[per] || choropleth.measures.total;
+        let values = choropleth.totals;
+        if (per != "total") {
+            values = {};
+            (Array.isArray(localObject["country-us"]) ? localObject["country-us"] : []).forEach(function(row) {
+                const stateID = localObject.us_stateIDs[row.State];
+                const divisor = Number(per == "percapita" ? row.Population : row.SqMiles);
+                if (choropleth.totals[stateID] !== undefined && divisor > 0) {
+                    values[stateID] = choropleth.totals[stateID] * measure.scale / divisor;
+                }
+            });
+        }
+        const list = Object.values(values);
+        Object.assign(choropleth, {values: values, legendTitle: measure.title, description: measure.description,
+            min: list.length ? Math.min(...list) : 0, max: list.length ? Math.max(...list) : 0});
+    }
+    if (geoOverlays["States"]) {
+        geoOverlays["States"].setStyle(styleShape);
+    }
+    showGeomapChoroplethLegend(whichmap);
+    if (mapInfoControl && mapInfoControl._div && !mapInfoHovering) {
+        mapInfoControl.update(); // The meaning of the colors, shown when not hovering
+    }
+}
+$(document).on("change", "#geomapPer", function() {
+    if (geomapChoropleth) refreshGeomapChoropleth(geomapChoropleth.whichmap);
+});
+function showGeomapChoroplethLegend(whichmap) {
+    const mapContainer = document.querySelector(`#${whichmap}`);
+    const shown = geomapChoropleth && geomapChoropleth.whichmap == whichmap && getHash().geoview == "country" && geoOverlays["States"];
+    $("#geomapPer").toggle(!!shown);
+    if (shown) {
+        addLegendToMap(geomapChoropleth.min, geomapChoropleth.max, whichmap, geomapChoropleth.legendTitle);
+    } else if (mapContainer && mapContainer.querySelector('.info.legend')) {
+        mapContainer.querySelector('.info.legend').remove();
+    }
+}
+// Blue from light (min) to dark (max), as in addLegendToMap()
+function choroplethColor(value, min, max) {
+    const intensity = max > min ? (value - min) / (max - min) : 1;
+    return `hsl(210, 100%, ${95 - (intensity * 75)}%)`;
 }
 
 // To remove, or use as fallback
@@ -6758,7 +7187,7 @@ function populateCityList(callback) {
         return;
     }
     console.log("cityList");
-    var file = "/team/projects/map/cities.csv";
+    var file = webrootPath("/team/projects/map/cities.csv");
     $.get(file, function(data) {
         var cityList;
         var lines = data.split('\n');
@@ -6802,14 +7231,11 @@ function SearchFormTextCheck(t, dirn) {
 }
 
 function SearchEnter(event1) {
-    var kCode = String.fromCharCode(event1.keyCode);
-    ////if (kCode == "\n" || kCode == "\r") {
-
-        // Reactivate on pages where auto-update appropriate.
-        //$("#goSearch").click();
-
-    ////    return false;
-    ////}
+    // Enter in #keywordsTB (map/filter.html) runs the search, as the GO button does
+    if (event1.key === "Enter" && event1.target && event1.target.id === "keywordsTB") {
+        $('.autocomplete-results[data-autocomplete-owner="keywordsTB"]').empty(); // Close the suggestions
+        $("#goSearch").trigger("click");
+    }
 }
 function isInt(value) {
   var x;
@@ -7105,9 +7531,9 @@ function updateRegionService(section) {
         }
     }
     if (theLocation) {
-        $(".region_service").text(theLocation + " - " + section);
+        setRegionServiceText(theLocation + " - " + section, section);
     } else {
-        $(".region_service").text(section);
+        setRegionServiceText(section, section);
     }
 }
 
@@ -7153,6 +7579,15 @@ function styleShape(feature) { // Called FOR EACH topojson row
       fillColor = '#3a74d6';
       fillOpacity = 0.6;
 
+    } else if (hash.geoview == "country" && geomapChoropleth) { // Sent by setGeomapChoropleth()
+      const value = geomapChoropleth.values[Number(feature.id)];
+      return {
+        weight: 1,
+        opacity: .4,
+        color: '#77a',
+        fillOpacity: value === undefined ? 0.5 : 0.7,
+        fillColor: value === undefined ? '#ccc' : choroplethColor(value, geomapChoropleth.min, geomapChoropleth.max)
+      };
     } else if (hash.geoview == "countries") {
       const selectedCountries = hash.country ? hash.country.split(",") : [];
       const countryAlpha2 = feature.properties["Alpha-2"];
@@ -7318,10 +7753,108 @@ function displayHexagonMenu(layerName, localObject) {
   //$("#iconMenu").append(iconMenu);
     $("#honeyMenuHolder").show();
 }
+// The radio button beside each app menu thumbnail (.bigThumbStatus) only selects the app, keeping the menu open,
+// while the impact set buttons (#navImpactIcons, template-main.html) are on the page. Clicking an impact button
+// then submits both (iNav). Clicking the thumbnail image still goes to the app right away (thumbClick).
+var pendingThumb = null; // {show, path} or {href} of the selected thumbnail
+document.addEventListener('click', function(e) {
+    const radio = e.target.closest ? e.target.closest('#bigThumbMenu .bigThumbStatus') : null;
+    if (!radio) return;
+    const content = radio.closest('.bigThumbMenuContent');
+    const show = content ? content.getAttribute('show') : "";
+    if (content && content.classList.contains('bigThumbActive')) { // Clicked again: unselect
+        // Capture phase: runs before the link's thumbClick onclick and the .bigThumbHolder handler that closes the menu
+        e.preventDefault();
+        e.stopPropagation();
+        pendingThumb = null;
+        $(content).removeClass("bigThumbActive");
+        const impactButtons = document.getElementById('navImpactIcons');
+        if (impactButtons) impactButtons.classList.remove('impactAttention');
+        if (getHashOnly().show == show) {
+            // As in submitThumb when show changes
+            delete hiddenhash.show;
+            delete hiddenhash.naics;
+            delete param.show;
+            if (typeof params != 'undefined') {
+                delete params.show;
+            }
+            goHash({show: ""}); // "" removes show from the hash
+        } else { // Only selected, not yet submitted: the hash's show is selected again
+            $(".bigThumbMenuContent[show='" + getHashOnly().show + "']").addClass("bigThumbActive");
+        }
+        return;
+    }
+    if (!document.getElementById('navImpactIcons')) return;
+    // Capture phase: runs before the link's thumbClick onclick and the .bigThumbHolder handler that closes the menu
+    e.preventDefault();
+    e.stopPropagation();
+    const link = radio.closest('a');
+    const onclickMatch = link && String(link.getAttribute('onclick') || "").match(/thumbClick\('([^']*)','([^']*)'\)/);
+    if (onclickMatch) {
+        pendingThumb = {show: onclickMatch[1], path: onclickMatch[2]};
+    } else if (link && link.getAttribute('href')) {
+        pendingThumb = {href: link.getAttribute('href')}; // A direct link without thumbClick
+    } else {
+        return;
+    }
+    $(".bigThumbMenuContent").removeClass("bigThumbActive");
+    $(content).addClass("bigThumbActive");
+    // A wave across the impact buttons (.impactAttention in base.css) draws attention to the next step
+    const impactButtons = document.getElementById('navImpactIcons');
+    impactButtons.classList.remove('impactAttention');
+    void impactButtons.offsetWidth; // Restarts the animation on repeat clicks
+    impactButtons.classList.add('impactAttention');
+}, true);
+document.addEventListener('animationend', function(e) {
+    // Last button's animation done
+    if (e.animationName === 'impactAttention' && e.target.matches('#navImpactIcons .impactIcon_All')) {
+        document.getElementById('navImpactIcons').classList.remove('impactAttention');
+    }
+});
 function thumbClick(show,path) {
+    pendingThumb = null;
+    submitThumb(show, path);
+}
+// Thumbnail images that are plain links (no thumbClick) carry the page's hash (usregion and the rest),
+// as thumbClick does. Their href holds only the state from when the menu was built (getDirectLink).
+// Returns the link's URL with the page's hash, or null for another site's link (which keeps its own).
+// set: the impact set from iNav. "" ("All") removes the set.
+function directLinkWithHash(href, set) {
+    const url = new URL(href, location.href);
+    if (url.origin !== location.origin) return null;
+    let hash = getHashOnly();
+    ['cat','naics','name','details','m','appview'].forEach(key => delete hash[key]); // As in submitThumb
+    delete hash.show; // The prior topic. A link's own show (below) is kept. "All Industries" has none, so it clears show.
+    const linkHash = Object.fromEntries(new URLSearchParams(url.hash.slice(1)));
+    delete linkHash.state; // The current state wins over the one from when the menu was built
+    hash = Object.assign(hash, linkHash); // The link's own values, such as show, win
+    if (set !== undefined) {
+        delete hash.set;
+        delete hash.indicators; // The set's indicators load in the page from hash.set
+        delete hash.geoview;
+        if (set) hash.set = set;
+    }
+    url.hash = decodeURIComponent($.param(hash));
+    return url.href;
+}
+$(document).on('click', '#bigThumbMenu .bigThumbHolder a[href]:not([onclick*="thumbClick"])', function(event) {
+    if (event.target.closest('.bigThumbStatus')) return; // The radio button only selects
+    const href = directLinkWithHash(this.getAttribute('href'));
+    if (!href) return;
+    event.preventDefault();
+    location.href = href;
+});
+// set: the impact set from iNav, when an impact button submits the selected thumbnail. "" ("All") removes the set.
+function submitThumb(show, path, set) {
     let hash = getHashOnly(); // Not hiddenhash
     let priorShow = hash.show;
-    hash.show = show;
+    // "All Industries" (item industries) is the page without a topic, so it clears show. "" removes it (goHash).
+    hash.show = (show == "industries") ? "" : show;
+    if (set !== undefined) {
+        hash.set = set; // "" removes set from the hash (goHash), or is dropped below when leaving the page
+        delete hash.indicators; // The set's indicators load in the page from hash.set
+        delete hash.geoview;
+    }
     if (!hash.state && param.state) {
         hash.state = param.state; // At least until states are pulled from geo values.
     }
@@ -7337,10 +7870,12 @@ function thumbClick(show,path) {
     // !pageContainsInfoWidgets && // Prevented bioeconomy from leaving map page.
     if (path && !window.location.pathname.includes(path)) {
         // Leave current page
+        if (!hash.set) delete hash.set; // "All"
+        if (!hash.show) delete hash.show; // "All Industries"
         var hashString = decodeURIComponent($.param(hash));
-        window.location = "/localsite/" + path + "#" + hashString;
+        window.location = localsitePath(path) + "#" + hashString;
     } else { // Remain in current page
-        if (show != priorShow) {
+        if (hash.show != priorShow) {
             delete hiddenhash.show;
             delete hiddenhash.naics;
             delete param.show;
@@ -7530,28 +8065,30 @@ function toggleDiv(theClass) {
     */
 }
 function iNav(set) {
+    if (pendingThumb) { // An app menu thumbnail is selected: go to it with this impact set
+        const thumb = pendingThumb;
+        pendingThumb = null;
+        $("#bigThumbPanelHolder").hide();
+        $(".showApps").removeClass("filterClickActive");
+        if (thumb.href) { // Carries the page's hash (usregion and the rest), as a thumbnail image click does
+            location.href = directLinkWithHash(thumb.href, set) || thumb.href + (set ? (thumb.href.indexOf('#') >= 0 ? "&" : "#") + "set=" + set : "");
+        } else {
+            submitThumb(thumb.show, thumb.path, set);
+        }
+        return;
+    }
     let hash = getHashOnly();
     hash.set = set;
-    if (set=="air") {
-        hash.indicators = "GHG,GCC,MGHG,OGHG,HRSP,OZON,SMOG,HAPS";
-    } else if (set=="water") {
-        hash.indicators = "WATR,ACID,EUTR,ETOX";
-    } else if (set=="land") {
-        hash.indicators = "LAND,MNRL,PEST,METL,CRHW,CMSW,FMSW,CCDD";
-    } else if (set=="energy") {
-        hash.indicators = "ENRG,NNRG,RNRG";
-    } else if (set=="health") {
-        hash.indicators = "HTOX,HCAN,HNCN,HTOX,HRSP";
-    } else if (set=="prosperity") {
-        hash.indicators = "VADD,JOBS";
-    }
+    if (!set) delete hash.set; // "All": no set, so all impacts
+    // The set's indicators load in the page from hash.set (impact-sets.js), so they stay out of the hash
+    delete hash.indicators;
     delete hash.geoview;
     let hashString = decodeURIComponent($.param(hash)); // decode to display commas in URL
     if (location.href.indexOf('/info') == -1) {
         //updateHash({"geoview":""}); // Close location filter before redirect.
-        location.href = local_app.web_root() + "/localsite/info/#" + hashString;
+        location.href = localsitePath("info/#") + hashString;
     } else {
-        goHash({"set":set,"indicators":hash.indicators});
+        goHash({"set":set}, ['indicators']);
     }
 }
 
@@ -7696,12 +8233,15 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         return local_app.web_root() + assetPath;
     }
     
-    // Site detection and attribute application from webroot.yaml
-    (async function() {
-        if (typeof window.loadWebrootYaml !== 'function') return;
-        try {
-            const { sites, default: defaultId } = await window.loadWebrootYaml();
-            if (!sites) return;
+    // Site detection and attribute application from support/site/config.yaml. Resolves the site
+    // (matching the modelsite cookie, then domain_contains, then support/site/config.yaml's default),
+    // corrects a stale/foreign modelsite cookie against it, and updates the favicon.
+    // Returns the (possibly corrected) modelsite so the caller can use it for branding.
+    function resolveSiteFromWebroot() {
+        if (typeof window.loadWebrootYaml !== 'function') return Promise.resolve(modelsite);
+        return window.loadWebrootYaml().then(function(result) {
+            const sites = result.sites, defaultId = result.default;
+            if (!sites) return modelsite;
             let matchedId = null, matchedSite = null, matchMethod = null;
             if (modelsite && sites[modelsite]) {
                 matchedId = modelsite; matchedSite = sites[modelsite]; matchMethod = 'modelsite cookie';
@@ -7720,7 +8260,16 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
             if (!matchedSite && defaultId && sites[defaultId]) {
                 matchedId = defaultId; matchedSite = sites[defaultId]; matchMethod = 'default';
             }
-            console.log('domain_contains filter from webroot.yaml  - ' + (matchedSite && matchedSite.domain_contains || 'none'));
+            // The modelsite cookie is host-only, so it's shared across every localhost port -
+            // a leftover cookie from a different local project can point at a site this
+            // support/site/config.yaml doesn't define. When that happens, reset it to this webroot's
+            // resolved site so branding, later page loads, and the #modelsite dropdown are correct.
+            if (modelsite && matchMethod !== 'modelsite cookie' && !sites[modelsite] && matchedId) {
+                modelsite = matchedId;
+                Cookies.set('modelsite', matchedId);
+                setModelsite(matchedId);
+            }
+            console.log('domain_contains filter from support/site/config.yaml  - ' + (matchedSite && matchedSite.domain_contains || 'none'));
             console.log('domain_contains - ' + location.host + (matchMethod === 'default'
                 ? ' no domain match, using default "' + matchedId + '"'
                 : ' matched "' + matchedId + '" via ' + matchMethod));
@@ -7730,8 +8279,32 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                 const favicon = (matchedSite && matchedSite.favicon) || (defaultId && sites[defaultId] && sites[defaultId].favicon);
                 if (favicon) changeFavicon(resolveConfigAssetUrl(favicon));
             }
-        } catch(e) {}
-    })();
+            return modelsite;
+        }).catch(function() { return modelsite; });
+    }
+
+    // dreamstudio.com's own domain root is unambiguous - brand it immediately without
+    // waiting on support/site/config.yaml (there may not even be one for that domain).
+    const isDreamstudioDomainRoot = /(^|\.)dreamstudio\.com$/.test(location.hostname);
+
+    if (isDreamstudioDomainRoot) {
+        runBranding(modelsite || "dreamstudio");
+        resolveSiteFromWebroot(); // Background-only: still corrects cookie/favicon, doesn't gate branding.
+    } else {
+        // Defer the whole branding chain (header, logo, title, footer, side nav, etc.) until
+        // support/site/config.yaml resolves, so a stale/foreign modelsite cookie is corrected *before*
+        // branding renders instead of after. This trades a small delay for correctness on
+        // first load; see the NOTE below for a way to avoid the delay being felt at all.
+        resolveSiteFromWebroot().then(function(resolvedModelsite) {
+            runBranding(resolvedModelsite);
+        });
+    }
+    // NOTE: if this deferral ever becomes a noticeable delay (slow/offline support/site/config.yaml
+    // fetch), a generic/neutral placeholder header could be rendered immediately here and
+    // then swapped out once runBranding() applies the resolved site's real branding - that
+    // would let markup/other page setup proceed without waiting on this fetch at all.
+
+    function runBranding(modelsite) {
 
     if (modelsite=="dreamstudio" || modelsite=="planet.live" || location.href.indexOf("dreamstudio.com") >= 0 || param.startTitle == "DreamStudio" || location.href.indexOf("/swarm/") >= 0 || location.href.toLowerCase().indexOf("lineara") >= 0 || location.href.indexOf("planet.live") >= 0) {
         param.titleArray = [];
@@ -7739,20 +8312,20 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         localsiteTitle = "DreamStudio";
         $(".siteTitleShort").text("DreamStudio");
         
-        param.headerLogoNoText = "<img src='/localsite/img/logo/dreamstudio/favicon.png' style='float:left;width:38px;margin-right:7px'>";
+        param.headerLogoNoText = "<img src='" + localsitePath("img/logo/dreamstudio/favicon.png") + "' style='float:left;width:38px;margin-right:7px'>";
         if (modelsite=="planet.live" || location.href.indexOf("planet.live") >= 0) {
             localsiteTitle = "Planet.Live"
             $(".siteTitleShort").text("Planet.Live")
             param.titleArray = ["planet","live"]
-            param.headerLogoSmall = "<img src='/localsite/img/logo/planetlive/faveye.png' style='width:40px;opacity:0.85'>"
-            param.headerLogoNoText = "<img src='/localsite/img/logo/planetlive/faveye.png' style='float:left;width:38px;margin-right:7px'>";
-            param.headerLogo = "<a href='" + siteRoot + "/'><img src='/localsite/img/logo/planetlive/faveye.png' style='float:left;width:38px;margin-right:10px;margin-top:-0.5px'><img src='/localsite/img/logo/planetlive/planet.live.png' alt='planet.live' style='height:24px; margin-top:8px' class='headerLogoDesktop'></a>";
+            param.headerLogoSmall = "<img src='" + localsitePath("img/logo/planetlive/faveye.png") + "' style='width:40px;opacity:0.85'>"
+            param.headerLogoNoText = "<img src='" + localsitePath("img/logo/planetlive/faveye.png") + "' style='float:left;width:38px;margin-right:7px'>";
+            param.headerLogo = "<a href='" + siteRoot + "/'><img src='" + localsitePath("img/logo/planetlive/faveye.png") + "' style='float:left;width:38px;margin-right:10px;margin-top:-0.5px'><img src='" + localsitePath("img/logo/planetlive/planet.live.png") + "' alt='planet.live' style='height:24px; margin-top:8px' class='headerLogoDesktop'></a>";
             
             // Quick fix, need to adjust for period in class name on datah page.
             showClassInline(".planetlive");
         } else {
             if (!param.headerLogo) {
-                param.headerLogo = "<a href='" + siteRoot + "/'><img src='/localsite/img/logo/dreamstudio/favicon.png' style='float:left;width:38px;margin-right:7px'><img src='/localsite/img/logo/dreamstudio/text.png' alt='DreamStudio' style='height:22px; margin-top:9px' class='headerLogoDesktop'></a>";
+                param.headerLogo = "<a href='" + siteRoot + "/'><img src='" + localsitePath("img/logo/dreamstudio/favicon.png") + "' style='float:left;width:38px;margin-right:7px'><img src='" + localsitePath("img/logo/dreamstudio/text.png") + "' alt='DreamStudio' style='height:22px; margin-top:9px' class='headerLogoDesktop'></a>";
             }
             showClassInline(".dreamstudio");
         }
@@ -7794,8 +8367,8 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         $(".siteTitleShort").text("Model Georgia");
         param.titleArray = [];
         console.log("local_app.localsite_root() " + local_app.localsite_root()); // https://model.earth was in here: https://map.georgia.org/localsite/map/#show=recyclers
-        param.headerLogo = "<a href='https://georgia.org'><img src='" + local_app.web_root() + "/localsite/img/logo/states/GA.png' style='width:160px;margin-top:0px'></a>";
-        param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + local_app.web_root() + "/localsite/img/logo/states/GA-icon.png' style='width:52px;padding:0px;margin-top:-2px'></a>";
+        param.headerLogo = "<a href='https://georgia.org'><img src='" + localsitePath("img/logo/states/GA.png") + "' style='width:160px;margin-top:0px'></a>";
+        param.headerLogoNoText = "<a href='https://georgia.org'><img src='" + localsitePath("img/logo/states/GA-icon.png") + "' style='width:52px;padding:0px;margin-top:-2px'></a>";
         localsiteTitle = "Georgia.org";
 ////////        changeFavicon(local_app.web_root() + "/localsite/img/logo/states/GA-favicon.png");
         if (location.host.indexOf('localhost') >= 0) {
@@ -7811,21 +8384,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         }
         showClassInline(".geo");
 
-        var isLocalhost = location.host.indexOf('localhost') >= 0;
-        var sideNavKey = isLocalhost ? 'sideNavLocal' : 'sideNavLive';
-        var hiddenStyle = document.createElement('style');
-        hiddenStyle.id = 'georgia-side-nav-hidden';
-        hiddenStyle.textContent = '#side-nav-content { display: none !important } #side-nav.expanded #main-nav { display: block !important } .main-nav-full { width: 189px !important } .listcolumn:not(.listcolumnOnly) { left: 189px !important }';
-        document.head.appendChild(hiddenStyle);
-        waitForElm('#side-nav-content').then(function() {
-            window.loadWebrootYaml && window.loadWebrootYaml().then(function(cfg) {
-                var site = cfg.sites && cfg.sites['model.georgia'];
-                if (!site || site[sideNavKey] !== 'false') {
-                    var s = document.getElementById('georgia-side-nav-hidden');
-                    if (s) s.remove();
-                }
-            });
-        });
+        hideSideNavForSite('model.georgia');
 
         if (location.host.indexOf("locations.pages.dev") >= 0 || location.host.indexOf("locations.georgia.org") >= 0) {
             // To activate when filter are ready
@@ -7839,7 +8398,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
     } else if ((modelsite=="neighborhood.org" || param.startTitle == "Neighborhood.org" || location.host.indexOf('neighborhood.org') >= 0)) {
         showLeftIcon = true;
         param.titleArray = ["neighbor","hood"]
-        param.headerLogoSmall = "<img src='" + local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png' style='width:40px;opacity:0.7'>"
+        param.headerLogoSmall = "<img src='" + localsitePath("img/logo/neighborhood/favicon.png") + "' style='width:40px;opacity:0.7'>"
         localsiteTitle = "Neighborhood.org";
 ////////        changeFavicon(local_app.web_root() + "/localsite/img/logo/neighborhood/favicon.png")
         showClassInline(".neighborhood");
@@ -7870,7 +8429,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         $(".siteTitleShort").text("Model Earth");
         param.titleArray = ["model","earth"];
         localsiteTitle = "Model Earth";
-        param.headerLogoSmall = "<img src='" + local_app.web_root() + "/localsite/img/logo/modelearth/model-earth.png' style='width:34px; margin-right:2px' class='logoTopPadding'>";
+        param.headerLogoSmall = "<img src='" + localsitePath("img/logo/modelearth/model-earth.png") + "' style='width:34px; margin-right:2px' class='logoTopPadding'>";
         
         // Works correctly for model.earth sitemodel, but not reached by geo.
         //alert("changeFavicon")
@@ -8029,8 +8588,19 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                     modelpath = ""; // Use the current repo when custom headerFile provided. Allows for site to reside within repo.
                     headerFile = param.headerFile;
                 } else {
-                    headerFile = local_app.web_root() + "/localsite/header.html";
+                    headerFile = localsitePath("header.html");
                 }
+
+                // Generic helper so a repo's own header.html (custom param.headerFile) can rewrite its
+                // nav links from an absolute "/prefix/..." form to a relative "/..." form.
+                window.stripNavPrefix = window.stripNavPrefix || function(prefix) {
+                    if (!prefix) return;
+                    var re = new RegExp("\\/" + prefix + "\\/", "g");
+                    $("#sidecolumnContent a").each(function() {
+                        var href = $(this).attr('href');
+                        if (href) $(this).attr('href', href.replace(re, "/"));
+                    });
+                };
 
                 //if (earthFooter && param.showSideTabs != "false") { // Sites including modelearth and neighborhood
                 //  $(".showSideTabs").show(); // Before load headerFile for faster display.
@@ -8046,7 +8616,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
 
                             waitForElm('#main-nav').then((elm) => { // #main-nav is appended by this navigation.js script, so typically not needed.
                                 $("#showNavColumn").show();
-                                if(location.host.indexOf("localsite/seasons/") >= 0 || location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0) {
+                                if(modelsite == "dreamstudio" || location.host.indexOf("localsite/seasons/") >= 0 || location.host.indexOf("dreamstudio") >= 0 || location.host.indexOf("planet.live") >= 0) {
                                     $("#sidecolumnContent a").each(function() {
                                       $(this).attr('href', $(this).attr('href').replace(/\/dreamstudio\//g,"\/"));
                                     });
@@ -8065,7 +8635,8 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
 
                                     if (location.href.indexOf('desktop') >= 0 || modelsite=="dreamstudio" || location.host.indexOf('dreamstudio') >= 0 || location.href.indexOf('dreamstudio') >= 0 || location.href.indexOf('/swarm/') >= 0 || location.href.indexOf('/LinearA/') >= 0 || location.href.indexOf("planet.live") >= 0 || modelsite=="planet.live") {
                                         let prependFolder = "";
-                                        let storiesFile = "https://dreamstudio.com/seasons/episodes.md";
+                                        //let storiesFile = "https://dreamstudio.com/seasons/episodes.md";
+                                        let storiesFile = "/seasons/episodes.md";
                                         //console.log("location.href index: " + location.href.indexOf("/dreamstudio/"));
                                         if(location.host.indexOf('localhost') >= 0 && location.pathname.toLowerCase().indexOf('/dreamstudio') === 0) {
                                             prependFolder = "/dreamstudio"
@@ -8075,10 +8646,10 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                                         }
                                         waitForElm('#resourcesPanel').then((elm) => {
                                             // TO DO - Lazy load elsewhere, and avoid if already loaded
-                                            loadMarkdown(storiesFile, "storiesDiv", "_parent");
+                                            loadMarkdown(webrootPath(storiesFile), "storiesDiv", "_parent");
                                             //let resourcesFile = prependFolder + "/resources.md";
                                             let resourcesFile = "/requests/resources/resources.md";
-                                            loadMarkdown(resourcesFile, "resourcesMenu", "_parent");
+                                            loadMarkdown(webrootPath(resourcesFile), "resourcesMenu", "_parent");
                                         });
                                     }
                                 });
@@ -8169,11 +8740,19 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
                                 //alert("climbpath value: " + climbpath);
 
                                 waitForElm('#headerLogo').then((elm) => {
+                                    // Logos that already contain their own <a> aren't wrapped, since nested links get split apart.
+                                    const setHeaderLogo = function(logoHtml) {
+                                        if (/<a[\s>]/i.test(logoHtml)) {
+                                            $('#headerLogo').html(logoHtml);
+                                            $('#headerLogo a').first().attr('id', 'headerLogoLink');
+                                        } else {
+                                            $('#headerLogo').html("<a id='headerLogoLink' href='" + climbpath + "' style='text-decoration:none'>" + logoHtml + "</a>");
+                                        }
+                                    };
                                     if (!param.headerLogo && param.headerLogoSmall) {
-                                        $('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogoSmall + "</a>");
+                                        setHeaderLogo(param.headerLogoSmall);
                                     } else if (param.headerLogo) {
-                                        //alert("Display param.headerLogo")
-                                        $('#headerLogo').html("<a href='" + climbpath + "' style='text-decoration:none'>" + param.headerLogo + "</a>");
+                                        setHeaderLogo(param.headerLogo);
                                     } else if (param.favicon) {
                                         let imageUrl = climbpath + ".." + param.favicon;
                                         $('#headerLogo').css('background-image', 'url(' + imageUrl + ')');
@@ -8273,7 +8852,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
         } else if (earthFooter || param.footer || location.href.indexOf("dreamstudio") >= 0 || location.href.indexOf("planet.live") >= 0) {
             var footerClimbpath = "";
             // Had ..
-            let footerFile = modelpath + "/localsite/footer.html"; // modelpath remains relative for site desgnated above as having a local copy of io and community.
+            let footerFile = localsitePath("footer.html"); // Wherever localsite was loaded from
             if (param.footer) {
                 footerFile = param.footer; // Custom
 
@@ -8311,12 +8890,13 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
 
             let targetColumn = "#main-nav";
             // Had ..
-            $(targetColumn).load( modelpath + "/localsite/nav.html", function( response, status, xhr ) {
+            $(targetColumn).load( localsitePath("nav.html"), function( response, status, xhr ) {
                 activateSideColumn();
             });
         }
         // END SIDE NAV WITH HIGHLIGHT ON SCROLL
     });
+    } // end runBranding
 } // end applyNavigation function
 
 
@@ -8324,17 +8904,7 @@ function applyNavigation() { // Waits for localsite.js 'localStart' variable so 
 waitForElm('#bodyloaded').then((elm) => {
   consoleLog("#bodyloaded becomes available");
   waitForElm('#datascape').then((elm) => { // Wait for navigation.js to set
-    let modelsite = Cookies.get('modelsite');
-    if(location.host.indexOf('localhost') >= 0 || param["view"] == "local") {
-      var div = $("<div />", {
-          html: '<style>.local{display:inline-block !important}.local-block{display:block !important}.localonly{display:block !important}.hidelocal{display:none}</style>'
-        }).appendTo("body");
-    } else {
-      // Inject style rule
-        var div = $("<div />", {
-          html: '<style>.local{display:none}.localonly{display:none}</style>'
-        }).appendTo("body");
-    }
+    // .local reveal style moved to localsite.js so it also applies to pages that don't load navigation.js.
 
     // LOAD HTML TEMPLATE - Holds search filters and maps
     // View html source: https://model.earth/localsite/map
@@ -8422,14 +8992,38 @@ $(document).ready(function () {
     });
     $(document).on("click", ".hideAdvanced", function(event) {
         let hash = getHash();
+        if ($(this).closest("#draggableSearch").length && !hash.locpop) {
+            // The popup opened by .popAdvanced, without locpop in the hash
+            $("#draggableSearch").hide();
+            returnGeoviewContainer();
+            return;
+        }
         if (!hash.geoview) {
             $("#filterLocations").hide();
+            // The floating #draggableSearch opens with locpop=true and no geoview (Change Location button)
+            $("#draggableSearch").hide();
+            if (hash.locpop) {
+                goHash({'locpop':''});
+            }
         } else {
             goHash({'locpop':'','geoview':''}); // Triggers closure
         }
     });
     $(document).on("click", ".popAdvanced", function(event) {
-        goHash({'locpop':'true'});
+        popAdvanced(); // Avoids adding locpop to the hash
+    });
+    // On a narrow browser the popup covers the page, so any click in it (such as choosing a state) also closes it.
+    // Not a click on a menu (select), which stays open for the choice. A native listener on document runs after
+    // the jQuery click handlers, including those that stop propagation (the geoview options).
+    document.addEventListener("click", function(event) {
+        if (!window.matchMedia("(max-width: 800px)").matches) return;
+        if (!event.target.closest || !event.target.closest("#draggableSearch") || event.target.closest("select")) return;
+        if (getHash().locpop) {
+            goHash({'locpop':''}); // hideAdvanced() closes it
+        } else {
+            $("#draggableSearch").hide();
+            returnGeoviewContainer();
+        }
     });
     $(document).on("click", ".hideThumbMenu", function(event) {
         $("#bigThumbPanelHolder").hide();
@@ -8488,6 +9082,7 @@ function showTopics() {
     //closeExpandedMenus(event.currentTarget);
     if (!$.trim($("#mapList1").html())) { // If the location list is not empty, load the list of types.
         $("#bigThumbMenuInner").appendTo("#listingsPanelScroll");
+        placeThumbLayoutToggle();
         if (!document.getElementById("#bigThumbMenuInner")) {
             let hash = getHash();
             showThumbMenu(hash.show, "#listingsPanelScroll");
@@ -8529,7 +9124,7 @@ $(document).on("change", "#accesslocal", function(event) {
 });
 function shouldSyncStylelookToHash() {
     const pathname = (window.location && window.location.pathname ? window.location.pathname : '').replace(/\\/g, '/');
-    return pathname.indexOf('/cms/themes/') >= 0;
+    return pathname.indexOf('/css/themes/') >= 0;
 }
 $(document).on("change", "#stylelook", function(event) { // Style theme
     const nextStylelook = normalizeSharedStylelookValue($("#stylelook").val(), "base");
@@ -8583,7 +9178,9 @@ $(document).on("change", "#devmode", function(event) { // Public or Dev
     if (devmode != "dev") {
         let hash = getHash();
         if (hash.sidetab == "settings") {
-            if (typeof goHash === 'function') {
+            if (typeof goHashNoHistory === 'function') {
+                goHashNoHistory({"sidetab":""}, "settings"); // sidetab changes don't add browser history entries
+            } else if (typeof goHash === 'function') {
                 goHash({"sidetab":""}, "settings");
             } else {
                 updateHash({"sidetab":""}, true, "settings");
@@ -8758,6 +9355,114 @@ $(document).on("click", ".showEarth", function(event) {
     event.stopPropagation();
 });
 
+// Back and Forward icons (.historyBack, .historyForward, beside the Settings title) step through the
+// browser history, for kiosk windows without browser buttons. Each shows only when there's a page to go to:
+// the Navigation API's canGoBack/canGoForward where available, else Back when the history has more than
+// one entry, with Forward hidden (its position in the history isn't known).
+$(document).on("click", ".historyBack", function(event) {
+    history.back();
+    event.stopPropagation();
+});
+$(document).on("click", ".historyForward", function(event) {
+    history.forward();
+    event.stopPropagation();
+});
+function updateHistoryNav() {
+    const nav = window.navigation;
+    const canBack = nav && 'canGoBack' in nav ? nav.canGoBack : history.length > 1;
+    const canForward = nav && 'canGoForward' in nav ? nav.canGoForward : false;
+    document.querySelectorAll('.historyBack').forEach(btn => { btn.style.display = canBack ? '' : 'none'; });
+    document.querySelectorAll('.historyForward').forEach(btn => { btn.style.display = canForward ? '' : 'none'; });
+}
+if (window.navigation && typeof window.navigation.addEventListener === 'function') {
+    window.navigation.addEventListener('currententrychange', updateHistoryNav);
+}
+window.addEventListener('popstate', updateHistoryNav);
+document.addEventListener('hashChangeEvent', updateHistoryNav, false);
+waitForElm('.historyBack').then(updateHistoryNav); // once the template's icons are in the page
+
+// Link icon (.showPageUrl, beside the Settings title): a popup with the current URL and a copy icon, since a
+// kiosk window has no address bar. Kept current as the hash changes. Closes on a click elsewhere or Escape.
+function updatePageUrlPopup() {
+    document.querySelectorAll('.pageUrlText').forEach(el => { el.textContent = location.href; });
+    document.querySelectorAll('.copyPageField .material-icons').forEach(icon => { icon.textContent = 'content_copy'; });
+}
+// Fixed under the link icon, right edges aligned, widening leftward (kept 16px inside the window)
+function placePageUrlPopup(popup, btn) {
+    const rect = btn.getBoundingClientRect();
+    popup.style.top = (rect.bottom + 6) + 'px';
+    popup.style.right = Math.max(16, window.innerWidth - rect.right) + 'px';
+}
+function closePageUrlPopup() {
+    document.querySelectorAll('.pageUrlPopup').forEach(popup => { popup.hidden = true; });
+    document.querySelectorAll('.showPageUrl').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+}
+$(document).on("click", ".showPageUrl", function(event) {
+    const popup = this.closest('.menuTitleRow').querySelector('.pageUrlPopup');
+    const opening = popup.hidden;
+    closePageUrlPopup();
+    if (opening) {
+        updatePageUrlPopup();
+        placePageUrlPopup(popup, this);
+        popup.hidden = false;
+        this.setAttribute('aria-expanded', 'true');
+    }
+    event.stopPropagation();
+});
+// Copies the field to the icon's left; the icon turns to a check mark
+$(document).on("click", ".copyPageField", function(event) {
+    const field = this.parentElement.querySelector('.pageUrlField');
+    const icon = this.querySelector('.material-icons');
+    if (field && navigator.clipboard) {
+        navigator.clipboard.writeText(field.textContent).then(() => { icon.textContent = 'check'; }, () => { icon.textContent = 'error'; });
+    }
+    event.stopPropagation();
+});
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.pageUrlPopup, .showPageUrl')) closePageUrlPopup();
+});
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closePageUrlPopup();
+});
+window.addEventListener('resize', function() {
+    document.querySelectorAll('.pageUrlPopup:not([hidden])').forEach(popup => {
+        const btn = popup.closest('.menuTitleRow').querySelector('.showPageUrl');
+        if (btn) placePageUrlPopup(popup, btn);
+    });
+});
+window.addEventListener('popstate', updatePageUrlPopup);
+document.addEventListener('hashChangeEvent', updatePageUrlPopup, false);
+
+// .reloadPage (beside .showEarth): reloads the page. Browsers leave full screen on a reload and only
+// re-enter it from a user gesture, so when reloading from full screen the first click or key press
+// afterward (other than Escape) returns to it. The hash, e.g. detailfull=true, carries the rest of the view.
+$(document).on("click", ".reloadPage", function(event) {
+    try {
+        if (document.fullscreenElement) sessionStorage.setItem('reloadFullscreen', '1');
+    } catch (e) {}
+    location.reload();
+});
+(function restoreFullscreenAfterReload() {
+    let wasFullscreen = false;
+    try {
+        wasFullscreen = sessionStorage.getItem('reloadFullscreen') === '1';
+        sessionStorage.removeItem('reloadFullscreen');
+    } catch (e) {}
+    if (!wasFullscreen) return;
+    const onGesture = (e) => {
+        if (e.type === 'keydown' && e.key === 'Escape') return;
+        if (e.target.closest && e.target.closest('#detailArrows')) return; // the tour arrows (team/js/map.js) keep the window's size
+        document.removeEventListener('pointerdown', onGesture, true);
+        document.removeEventListener('keydown', onGesture, true);
+        const page = document.documentElement;
+        if (!document.fullscreenElement && page.requestFullscreen) {
+            page.requestFullscreen().catch(() => {});
+        }
+    };
+    document.addEventListener('pointerdown', onGesture, true);
+    document.addEventListener('keydown', onGesture, true);
+})();
+
 // Auto-close right navigation when dropdowns change in settings panel on narrow screens
 $(document).on("change", ".settingsPanel select", function(event) {
     autoCloseRightNavOnNarrow();
@@ -8774,7 +9479,7 @@ function showEarth(show) {
         $("#hero_holder").show();
         closeSideTabs();
     } else {
-        includeCSS3('/localsite/css/leaflet.css',''); // For zoom icons
+        includeCSS3(localsitePath('css/leaflet.css'),''); // For zoom icons
         //$("#globalMapHolder").hide(); // Home page nullschool map.
         $("#globalMapHolder").show();
 
@@ -8843,6 +9548,7 @@ function loadLocalObjectLayers(layerName, callback) { // layerName is not curren
                 //    alert(key + val);
                 //});
             });
+            refreshShowTopicTitles(); // "Filming Locations" rather than "Cameraready Locations"
 
             console.log("The localObject 2");
             console.log(localObject);
@@ -9070,21 +9776,29 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
                 }
                 // Hidden to reduce clutter
                 $("#honeycombPanel").prepend("<div class='hideThumbMenu close-X' style='display:none; position:absolute; right:0px; top:0px;'><i class='material-icons' style='font-size:32px'>&#xE5CD;</i></div>");
-                var savedThumbLayout = (typeof localStorage !== 'undefined' && localStorage.getItem('bigThumbLayout')) || 'grid';
+                var savedThumbLayout = (typeof localStorage !== 'undefined' && localStorage.getItem('bigThumbLayout')) || 'circles';
+                if (savedThumbLayout === 'grid') savedThumbLayout = 'circles'; // Renamed from grid
                 var thumbLayoutClass = savedThumbLayout === 'stack' ? ' layoutStack' : '';
+                // List (stack) first, with the rectangles icon. Circles: drag_indicator turned to 6 dots, 3 across (search-filters.css).
                 var thumbToggleHtml = "<div class='bigThumbLayoutToggle'>" +
-                    "<i class='material-icons bigThumbLayoutBtn" + (savedThumbLayout === 'grid' ? ' active' : '') + "' data-layout='grid' title='Grid'>&#xE8F0;</i>" +
-                    "<i class='material-icons bigThumbLayoutBtn" + (savedThumbLayout === 'stack' ? ' active' : '') + "' data-layout='stack' title='List'>&#xE8EF;</i>" +
+                    "<i class='material-icons bigThumbLayoutBtn" + (savedThumbLayout === 'stack' ? ' active' : '') + "' data-layout='stack' title='List'>&#xE8F0;</i>" +
+                    "<i class='material-icons bigThumbLayoutBtn" + (savedThumbLayout === 'circles' ? ' active' : '') + "' data-layout='circles' title='Circles'>&#xE945;</i>" +
                     "</div>";
                 $(insertInto).append("<div id='bigThumbMenuInner' class='bigThumbMenuInner" + thumbLayoutClass + "'>" + thumbToggleHtml + sectionMenu + "</div>");
                 $("#bigThumbMenuInner .bigThumbLayoutToggle").append($(".hideApps.close-X").first());
+                placeThumbLayoutToggle();
                 $(document).off('click.bigThumbLayout').on('click.bigThumbLayout', '.bigThumbLayoutBtn', function() {
                     var layout = $(this).attr('data-layout');
                     $('#bigThumbMenuInner').toggleClass('layoutStack', layout === 'stack');
                     $('.bigThumbLayoutBtn').removeClass('active');
                     $('.bigThumbLayoutBtn[data-layout="' + layout + '"]').addClass('active');
                     if (typeof localStorage !== 'undefined') localStorage.setItem('bigThumbLayout', layout);
+                    balanceStackColumns();
                 });
+                if (typeof ResizeObserver !== 'undefined' && document.getElementById('bigThumbMenuInner')) {
+                    // Also runs when the menu opens, since its size changes from zero
+                    new ResizeObserver(balanceStackColumns).observe(document.getElementById('bigThumbMenuInner'));
+                }
 
                 if (stateAbbr == "GA") {
                 // if (hash.state && hash.state.split(",")[0].toUpperCase() == "GA") {
@@ -9124,18 +9838,66 @@ function displayBigThumbnails(attempts, activeLayer, layerName, insertInto) {
     });
 }
 
+// In the Topics menu (#bigThumbMenu), the layout buttons and close X (.bigThumbLayoutToggle) are the right column of
+// #topicsPanel's flex row, after #topicsLeftColumn with the thumbnails and impact set buttons (search-filters.css).
+// Elsewhere, as in the side panel, they lead #bigThumbMenuInner's grid.
+// Called after #bigThumbMenuInner is built or moved.
+function placeThumbLayoutToggle() {
+    const inner = $("#bigThumbMenuInner");
+    const toggle = $(".bigThumbLayoutToggle").first();
+    if (!inner.length || !toggle.length) return;
+    if (inner.parent().is("#bigThumbMenu")) {
+        toggle.insertAfter($("#topicsLeftColumn").length ? $("#topicsLeftColumn") : inner);
+    } else {
+        toggle.prependTo(inner);
+    }
+}
+// Stack layout (#bigThumbMenuInner.layoutStack): fewer columns when the last row would leave blank space,
+// e.g. 5 topics in 3 columns rather than 4. Columns are at least 220px, as in search-filters.css, and stay
+// under 400px, so the rectangles don't get too big (10 topics stay in 3 columns rather than 2).
+function balanceStackColumns() {
+    const inner = document.getElementById('bigThumbMenuInner');
+    if (!inner) return;
+    if (!inner.classList.contains('layoutStack')) {
+        inner.style.gridTemplateColumns = "";
+        return;
+    }
+    const style = getComputedStyle(inner);
+    const width = inner.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const count = Array.from(inner.querySelectorAll('.bigThumbMenuContent')).filter(function(el) {
+        const item = el.querySelector('.bigThumbWidth');
+        return item && item.offsetHeight > 0;
+    }).length;
+    if (!width || !count) return; // Hidden
+    const gap = parseFloat(style.columnGap) || 0;
+    const maxCols = Math.max(1, Math.min(count, Math.floor((width + gap) / (220 + gap))));
+    let best = maxCols;
+    let bestBlank = (maxCols - count % maxCols) % maxCols;
+    const minCols = Math.max(Math.ceil(maxCols / 2), Math.ceil((width + gap) / (400 + gap))); // At most halving the columns
+    for (let cols = maxCols - 1; cols >= minCols; cols--) {
+        const blank = (cols - count % cols) % cols;
+        if (blank < bestBlank) {
+            best = cols;
+            bestBlank = blank;
+        }
+    }
+    const columns = "repeat(" + best + ", minmax(0, 1fr))";
+    if (inner.style.gridTemplateColumns !== columns) inner.style.gridTemplateColumns = columns;
+}
 function showClassInline(theclass) {
     //alert("showClassInline " + theclass);
     // Load when body head becomes available, faster than waiting for all DOM .js files to load.
     // Append -hide to hide a div for a site.
+    // :not(body) because stylelook themes add their name to body (body.georgia). An inline body ignores
+    // margin-right, so .bodyRightMargin couldn't narrow the page when #rightSideTabs opened.
     var style = document.createElement('style');
-    style.textContent = theclass + ' {display: inline !important} ' + theclass + '-hide {display:none}' + theclass + '-x {display:none}';
+    style.textContent = theclass + ':not(body) {display: inline !important; background-image: none !important} ' + theclass + '-hide {display:none}' + theclass + '-x {display:none}';
     document.head.appendChild(style);
 }
 function imagineLocation() {
     if (location.href.indexOf('/info') == -1) {
         updateHash({"geoview":""}); // Prevents location filter from remaining open after redirect.
-        location.href = local_app.web_root() + "/localsite/info/" + location.hash;
+        location.href = localsitePath("info/") + location.hash;
         return;
     }
     updateHash({"imgview":"state","geoview":"","appview":""}); // Should this reside in hideAdvanced()?
@@ -9149,6 +9911,7 @@ function hideAdvanced() {
     $("#imagineBar").hide();
     $("#filterClickLocation").removeClass("filterClickActive");
     $("#draggableSearch").hide();
+    returnGeoviewContainer();
 
     if (typeof relocatedStateMenu != "undefined") {
         // DEACTIVATED, OCCURRED ON LOAD OF /localsite/info/
@@ -9356,9 +10119,12 @@ function getPageFolder(pagePath) {
     console.log("ALERT: navigation.js is being loaded twice.")
 } // End typeof page_scripts which checks if file is loaded twice.
 
+var stateQuickListClick = false; // A click in #state_quick_list (#geoview_statelist) is changing #state_select
 $(document).on("change", "#state_select", function(event) {
     console.log("state_select change");
-    $("#geoview_container").hide();
+    if (!$("#geoview_container").closest("#locationFilterPop").length) { // Stays open within the .popAdvanced popup
+        $("#geoview_container").hide();
+    }
     closeAppsMenu();
     let hash = getHash();
 
@@ -9370,13 +10136,25 @@ $(document).on("change", "#state_select", function(event) {
 
     if (this.value) {
         $("#region_select").val("");
+        // Keep hash.usregion when the chosen state is in that region (#usregion_select)
+        const stateRegion = String($(this).find(":selected").attr("usregion") || "").replace(/\s/g, "");
+        const usregion = hash.usregion && hash.usregion === stateRegion ? hash.usregion : "";
+        let stateValue = this.value;
+        if (usregion && (stateQuickListClick || $(this).closest('#geoview_statelist').length)) {
+            // In the location panel with a region selected, keep all the region's states, with the chosen state first
+            const regionOption = $("#usregion_select option").filter(function() { return this.value.replace(/\s/g, "") === usregion; }).first();
+            const regionStates = regionOption.length ? usRegionStates(regionOption.val()) : [];
+            if (regionStates.includes(this.value)) {
+                stateValue = [this.value].concat(regionStates.filter(st => st !== this.value)).join(",");
+            }
+        }
         // Later a checkbox could be added to retain geo values across multiple states
         // Omitting for BC apps page  ,'geoview':'state'
         if (hash.geoview) {
-            var nextGeoview = (hash.geoview == "country") ? "country" : "state";
-            goHash({'state':this.value,'geo':'','name':'','regiontitle':'','geoview':nextGeoview}); // triggers renderGeomapShapes("geomap", hash); // County select map
+            var nextGeoview = geoviewAfterStateChoice((hash.geoview == "country") ? "country" : "state");
+            goHash({'state':stateValue,'usregion':usregion,'geo':'','name':'','regiontitle':'','geoview':nextGeoview}); // triggers renderGeomapShapes("geomap", hash); // County select map
         } else {
-            goHash({'state':this.value,'geo':'','name':'','regiontitle':''}); // triggers renderGeomapShapes("geomap", hash); // County select map
+            goHash({'state':stateValue,'usregion':usregion,'geo':'','name':'','regiontitle':''}); // triggers renderGeomapShapes("geomap", hash); // County select map
         }
 
         setTimeout(() => {
@@ -9385,11 +10163,213 @@ $(document).on("change", "#state_select", function(event) {
         }, delay);
     } else { // US selected
         hiddenhash.state = ""; // BugFix - Without this prior state stays in dropdown when choosing no state using top option.
-        goHash({'geoview':'country','state':'','geo':''});
+        goHash({'geoview':'country','state':'','usregion':'','geo':''});
     }
 });
 $(document).on("change", "#selectScope", function(event) {
     goHash({'scope':this.value});
+});
+
+// .region_service titles. The first one, #regionService (#industryHeader in info/template-charts.html), shows the
+// US region title while hash.usregion is present. The others keep the location text, e.g. the primary state's name.
+function usRegionTitle(hash) {
+    return usRegionForHash(hash);
+}
+// The region's title, e.g. "Plains States": its #usregion_select option's data-title ("New England", "Rocky Mountain States"),
+// or the name with " States" appended
+function usRegionServiceTitle(hash) {
+    const title = usRegionTitle(hash);
+    if (!title) return "";
+    const option = Array.from(document.querySelectorAll('#usregion_select option')).find(opt => opt.value === title);
+    return (option && option.dataset.title) || title + " States";
+}
+// topic: the show topic in the text ("Georgia - Bioeconomy"), which also goes alone to #showTopic above #regionService
+function setRegionServiceText(text, topic) {
+    $(".region_service").not("#regionService").text(text);
+    if (topic && text === topic) text = ""; // No location: #regionService stays empty, so #showTopic shows large
+    $("#regionService").data("locationText", text).text(usRegionServiceTitle(getHash()) || text);
+    if (topic !== undefined) {
+        // The location without the topic ("Georgia" from "Georgia - Parts Manufacturing"), for "Parts Manufacturing in Georgia"
+        const place = topic && text.endsWith(" - " + topic) ? text.slice(0, -(topic.length + 3)) : "";
+        $("#showTopic").data("place", place);
+        setShowTopic(topic);
+    }
+}
+// The show topic's title: its title in the Topics menu (localObject.layers), e.g. "Filming Locations" for
+// show=cameraready-locations, or until the layers load, the show value in title case: "Cameraready Locations"
+function showTopicTitle(show) {
+    const layer = show && typeof localObject != 'undefined' && localObject.layers && localObject.layers[show];
+    const title = layer && (layer.thumbtitle || layer.navtitle || layer.title || layer.section);
+    return title || showValueTitle(show);
+}
+function showValueTitle(show) {
+    return String(show || "").replace(/[-_]+/g, " ").toTitleCaseFormat();
+}
+// Once the layers load, the titles written from the show value switch to the Topics menu title
+function refreshShowTopicTitles() {
+    const show = getHash().show;
+    if (!show) return;
+    const fallback = showValueTitle(show);
+    const title = showTopicTitle(show);
+    if (title === fallback) return;
+    $(".region_service").each(function() {
+        $(this).text($(this).text().split(fallback).join(title));
+    });
+    const regionService = $("#regionService");
+    if (regionService.data("locationText")) {
+        regionService.data("locationText", String(regionService.data("locationText")).split(fallback).join(title));
+    }
+    if ($("#showTopic").data("topic") === fallback) setShowTopic(title);
+}
+// #showTopic is small above #regionService, and larger when #regionService is empty (template-charts.html)
+function setShowTopic(topic) {
+    $("#showTopic").data("topic", topic || "");
+    updateModelTopicsLink(); // Writes the topic
+}
+// "Model Topics" link above #showTopic. Its href is the current hash plus appview=topics, for opening in a new tab.
+// A plain click adds appview=topics with goHash, which opens the Topics menu (hashChanged).
+// With a set (#pageTitle shows it), the topic link above #pageTitle replaces #modelTopicsLink.
+function updateModelTopicsLink() {
+    const link = document.getElementById('modelTopicsLink');
+    if (!link) return;
+    const hash = getHashOnly();
+    const hasSet = !!getHash().set;
+    hash.appview = "topics";
+    const href = location.pathname + location.search + "#" + decodeURIComponent($.param(hash));
+    link.setAttribute('href', href);
+    // With a set, the topic is linked like #modelTopicsLink, which it replaces, and includes the location:
+    // "Parts Manufacturing in Georgia" above the set's #pageTitle, in place of #regionService ("Georgia - Parts Manufacturing").
+    // Without a set, the topic is plain text below #modelTopicsLink, also with the location ("Bioeconomy in Alaska")
+    // in place of #regionService ("Alaska - Bioeconomy").
+    const showTopic = $("#showTopic");
+    const topic = showTopic.data("topic") || "";
+    const place = topic ? (usRegionServiceTitle(getHash()) || showTopic.data("place") || "") : "";
+    const topicTitle = place ? topic + " in " + place : topic;
+    showTopic.empty().toggle(!!topic);
+    if (topic && hasSet) {
+        showTopic.append($("<a class='showTopicLink'></a>").attr('href', href).text(topicTitle));
+    } else if (topic) {
+        showTopic.text(topicTitle);
+    }
+    $("#industryHeader").toggleClass("hasSet", hasSet); // Keeps the topic small (naics.css)
+    $("#industryHeader").toggleClass("hasSetTopic", !!(hasSet && topic)); // Hides #regionService (naics.css)
+    $("#industryHeader").toggleClass("hasTopicPlace", !hasSet && !!place); // Hides #regionService and enlarges the topic (naics.css)
+    $(link).toggle(!(hasSet && topic));
+}
+onElmReady('#modelTopicsLink', updateModelTopicsLink);
+document.addEventListener('hashChangeEvent', updateModelTopicsLink);
+$(document).on('click', '#modelTopicsLink, #showTopic .showTopicLink', function(event) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey) return; // New tab or window: use the href
+    event.preventDefault();
+    event.stopPropagation();
+    goHash({'appview':'topics'});
+    $('html,body').animate({scrollTop: 0}); // Up to the Topics menu at the top
+});
+document.addEventListener('hashChangeEvent', function() {
+    const regionService = $("#regionService");
+    if (regionService.length) regionService.text(usRegionServiceTitle(getHash()) || regionService.data("locationText") || "");
+    if (!getHash().show) setShowTopic(""); // The topic was removed
+});
+
+// US regions (#usregion_select): each #state_select option has a usregion attribute (BEA regions).
+// Choosing a region puts its states in the hash. Hidden options (DC and territories) are left out.
+function usRegionStates(region) {
+    return Array.from(document.querySelectorAll('#state_select option[usregion]'))
+        .filter(opt => opt.getAttribute('usregion') === region && opt.style.display !== 'none')
+        .map(opt => opt.value);
+}
+// The menu and Map button (#usregion_holder) sit directly above #state_select,
+// which moves between #state_select_holder and #relocatedStateMenu
+function placeUsRegionSelect() {
+    const regionHolder = document.getElementById('usregion_holder');
+    const stateSelect = document.getElementById('state_select');
+    if (regionHolder && stateSelect && regionHolder.nextElementSibling !== stateSelect) {
+        stateSelect.parentNode.insertBefore(regionHolder, stateSelect);
+    }
+}
+$(document).on("click", "#usregion_map", function() {
+    goHash({'geoview':'us'});
+});
+// Show hash.usregion (the region without spaces, e.g. NewEngland), or the region whose states are exactly hash.state
+function syncUsRegionSelect() {
+    const regionSelect = document.getElementById('usregion_select');
+    if (!regionSelect) return;
+    const hash = getHash();
+    const usregion = String(hash.usregion || "");
+    const states = String(hash.state || "").toUpperCase().split(",").filter(Boolean).sort().join(",");
+    let match = "";
+    Array.from(regionSelect.options).forEach(function(opt) {
+        if (!opt.value) return;
+        if (usregion ? opt.value.replace(/\s/g, "") === usregion : usRegionStates(opt.value).sort().join(",") === states) match = opt.value;
+    });
+    regionSelect.value = match;
+}
+// #state_quick_list (in #geoview_statelist) shows only the states in the selected US region, or all states without one
+function filterStateQuickList(region) {
+    const usregion = String(region !== undefined ? region : (getHash().usregion || "")).replace(/\s/g, "");
+    document.querySelectorAll('#state_quick_list .state-list-item').forEach(function(item) {
+        item.style.display = !usregion || item.dataset.usregion === usregion ? "" : "none";
+    });
+}
+$(document).on("change", "#usregion_select", function(event) {
+    filterStateQuickList(this.value);
+    if (!this.value) { // "US Regions" clears the region and its states
+        hiddenhash.state = ""; // As for "All States" in #state_select, so the prior state doesn't return
+        goHash({'usregion':'','state':'','geo':''});
+        return;
+    }
+    const states = usRegionStates(this.value);
+    if (!states.length) return;
+    if (!$(this).closest('#geoview_statelist').length) { // In the location panel, the panel stays open to show the region's states
+        $("#geoview_container").hide();
+    }
+    goHash({'usregion':this.value.replace(/\s/g, ""),'state':states.join(","),'geo':'','name':'','regiontitle':''});
+});
+// The US region for the hash ("New England"): hash.usregion while every state is in it, otherwise the region
+// whose states are exactly hash.state, so the region name comes from the states when hash.usregion is absent.
+// Until the menus load, hash.usregion as is.
+function usRegionForHash(hash) {
+    const usregion = String(hash.usregion || "");
+    const regionSelect = document.getElementById('usregion_select');
+    if (!regionSelect || !document.querySelector('#state_select option[usregion]')) {
+        return usregion.replace(/([a-z])([A-Z])/g, "$1 $2"); // NewEngland to New England
+    }
+    const states = String(hash.state || "").toUpperCase().split(",").map(st => st.trim()).filter(Boolean);
+    if (!states.length) return "";
+    const regions = Array.from(regionSelect.options).filter(opt => opt.value).map(opt => opt.value);
+    const current = regions.find(region => region.replace(/\s/g, "") === usregion);
+    if (current && states.every(st => usRegionStates(current).includes(st))) return current;
+    const key = states.slice().sort().join(",");
+    return regions.find(region => usRegionStates(region).sort().join(",") === key) || "";
+}
+// hash.usregion follows hash.state: kept while every state is in the region, removed once a state is outside it,
+// and set when the states are exactly one region's states. The titles already follow usRegionForHash(), so the
+// hash changes quietly (updateHash via goHashQuiet), without a refresh or a history entry.
+function reconcileUsRegion() {
+    if (!document.getElementById('usregion_select') || !document.querySelector('#state_select option[usregion]')) return;
+    const usregion = String(getHashOnly().usregion || "");
+    const next = usRegionForHash(getHash()).replace(/\s/g, "");
+    if (next === usregion) return;
+    if (next) {
+        goHashQuiet({'usregion':next});
+    } else {
+        goHashQuiet({}, ['usregion']);
+    }
+    filterStateQuickList();
+    updateModelTopicsLink(); // Its href holds the hash
+}
+document.addEventListener('hashChangeEvent', function() {
+    reconcileUsRegion();
+    syncUsRegionSelect();
+});
+onElmReady('#usregion_select', function() {
+    placeUsRegionSelect();
+    reconcileUsRegion();
+    syncUsRegionSelect();
+    // Titles shown before the menus loaded could not get the region from the states
+    const regionService = $("#regionService");
+    if (regionService.length) regionService.text(usRegionServiceTitle(getHash()) || regionService.data("locationText") || "");
+    updateModelTopicsLink();
 });
 
 // Close inline dropdown when clicking elsewhere
@@ -9405,20 +10385,38 @@ $(document).on("click", function(event) {
 // Click handler for Counties Tab - Opens location filter panel
 $(document).on("click", "#filterClickLocation", function(event) {
 
+    window.scrollTo({top: 0, behavior: "instant"}); // Jump to the top rather than animating the scroll
+
     if ($("#draggableSearch").is(':visible')) {
         $("#draggableSearch").hide();
         $("#filterLocations").hide();
+        returnGeoviewContainer();
+    }
+    // With geoview=countries the tab reads "States" (updateCountiesTabText), so it opens the
+    // geoview menu with its state list rather than closing the map
+    var clickHash = getHash();
+    if (clickHash.geoview == "countries" && $("#geoview_container").length) {
+        if ($("#geoview_container").is(":visible")) {
+            closeGeoviewList();
+        } else {
+            openGeoviewList();
+        }
+        event.stopPropagation();
+        return;
     }
     closeGeoviewList();
-    // When geoview=country and a state is selected, switch to geoview=state
-    var clickHash = getHash();
-    if (clickHash.geoview == "country" && clickHash.state) {
+    // When geoview=country and a state is selected, switch to geoview=state (state=all counts as none)
+    if (clickHash.geoview == "country" && hashHasSpecificState(clickHash)) {
         goHash({"geoview": "state"});
         event.stopPropagation();
         return;
     }
     filterClickLocation();
-    $("#state_select").hide();
+    // Keep the hero's state and region menus (#hero-rect), which stay visible with geoview=countries.
+    // Hiding #state_select there also hid #usregion_holder (search-filters.css), leaving #hero-rect blank.
+    if (!$("#state_select").closest("#relocatedStateMenu").length) {
+        $("#state_select").hide();
+    }
     event.stopPropagation();
     return;
 
@@ -9553,7 +10551,10 @@ function showApps(menuDiv) {
             // Silently remove sidetab from the hash so closeSideTabs() doesn't fire a
             // hashchange (which would also close #bigThumbPanelHolder), then close the
             // entire side settings panel via the same function the .showWideX X uses.
+            // replaceState (as in goHashNoHistory): sidetab changes don't add browser history entries
+            isPopstateNavigation = true;
             updateHash({}, true, "sidetab");
+            isPopstateNavigation = false;
             closeSideTabs();
             console.log("call showThumbMenu from navidation.js");
             if (!hash.geoview) {
@@ -9581,6 +10582,7 @@ function showApps(menuDiv) {
                 $("#appSelectHolder .showApps").addClass("filterClickActive"); // Adds to local topics
             });
             $("#bigThumbMenuInner").appendTo(menuDiv);
+            placeThumbLayoutToggle();
             showThumbMenu(hash.show, menuDiv);
             //$('.showApps').addClass("filterClickActive");
             waitForElm('#bigThumbPanelHolder').then((elm) => {
@@ -9605,10 +10607,11 @@ function filterClickLocation(loadGeoTable) {
     console.log("filterClickLocation() " + loadGeoTable);
     let hash = getHash();
     if (hash.sidetab == "locale" && hash.geoview) {
-        goHash({'sidetab':'','locpop':''});
+        // Closing the Locale tab: sidetab changes don't add browser history entries
+        (typeof goHashNoHistory === 'function' ? goHashNoHistory : goHash)({'sidetab':'','locpop':''});
     } else if (hash.geoview) {
         goHash({'geoview':'','locpop':''});
-    } else if (hash.state) {
+    } else if (hashHasSpecificState(hash)) { // state=all opens the state select, as with no state
         goHash({'geoview':'state','locpop':''});
     } else {
         goHash({'geoview':'country','locpop':''});
@@ -9695,9 +10698,11 @@ function openMapLocationFilter() {
 
     waitForElm('#filterLocations').then((elm) => {
         $("#filterLocations").prependTo($("#locationFilterHolder")); // Move back from rightSideTabs
-        $('html,body').animate({
-            scrollTop: $("#filterLocations").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
-        });
+        if (!$("#draggableSearch").is(":visible")) { // The page stays put while choosing in the .popAdvanced popup
+            $('html,body').animate({
+                scrollTop: $("#filterLocations").offset().top - $("#headerbar").height() - $("#filterFieldsHolder").height()
+            });
+        }
     });
     if (location.host == 'georgia.org' || location.host == 'georgia.org') { 
         $("#header.nav-up").show();
@@ -9724,9 +10729,10 @@ function closeLocationFilter() {
         $("#header.nav-up").hide();
     }
 
-    if (typeof relocatedStateMenu != "undefined") {
-        // DEACTIVATED, OCCURRED ON LOAD OF /localsite/info/
-        //relocatedStateMenu.appendChild(state_select); // For apps hero
+    // Backing up from the location filter: return the state menu to the hero (apps and info pages).
+    // The #filterClickLocation click hides #state_select, so show it again.
+    if ($("#relocatedStateMenu").length && !getHash().geoview && !$("#state_select_holder").is(':visible')) {
+        $("#state_select").appendTo("#relocatedStateMenu").show();
     }
     if (typeof relocatedScopeMenu != "undefined") {
         // DROPDOWN #selectScope was REMOVED  relocatedScopeMenu.appendChild(selectScope); // For apps hero
@@ -9756,6 +10762,13 @@ $('.sidecolumnLeft a').click(function(event) {
 
 if (1==1) {
 $(window).scroll(function() {
+  if ($("#draggableSearch").is(":visible")) {
+    // The header stays as is while the .popAdvanced popup is open. Choosing a state there reloads content,
+    // and the resulting scroll position change otherwise toggled .filterFieldsHolderFixed, moving the page.
+    previousScrollTop = $(window).scrollTop();
+    lockSidemap(mapFixed);
+    return;
+  }
   if (revealHeader == false) {
     $("#headerLarge").addClass("headerLargeHide"); $('.bothSideIcons').removeClass('sideIconsLower');$(".pagecolumn").removeClass("pagecolumnLower"); $('.headerbar').hide(); $('.headerOffset').hide(); $('#logoholderbar').show(); $('#logoholderside').show();
     $("#filterFieldsHolder").addClass("filterFieldsHolderFixed");
@@ -10248,6 +11261,12 @@ waitForElm('#keywordsTB').then(function() {
   var navResultsEl = initAutocomplete(input, function(value, resultsEl, inputEl) {
     fetchLocationItems(value, resultsEl, inputEl, function(item) {
       inputEl.value = item.title;
+      // On pages whose filename contains "state" (such as state.html), update the state hash right away
+      var pageName = location.pathname.split('/').pop().toLowerCase();
+      var stateCode = (item.address.stateCode || '').toUpperCase();
+      if (pageName.indexOf('state') >= 0 && /^[A-Z]{2}$/.test(stateCode)) {
+        goHash({'state':stateCode});
+      }
       lookupSelectedLocationLatLon(item)
         .then(function(coords) {
           if (!coords) return;

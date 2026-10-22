@@ -264,6 +264,16 @@ function hideMenuNav(id) { //onmouseleave
 function formatLinkId(section,title) {
     return (section + "-" + title).replace(/\&/g, "").replace(/ /g, "_").replace(/^.*\/\/[^\/]+/, '').toLowerCase();
 }
+// Closes a section opened by showSubmenu() (e.g. #related_pages-related_pages) when clicking
+// anywhere outside it - showSubmenu only ever opens .openMenu, nothing previously closed it.
+$(document).on("click", function (event) {
+    $(".layerSection.openMenu").each(function () {
+        if (!$(event.target).closest(this).length) {
+            $(this).removeClass("openMenu");
+            $(this).find(".layerCbRow").hide();
+        }
+    });
+});
 function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon on map - Master
     if ($(partnerMenu.menuDiv).text().length > 0) {
         console.log("displaypartnerCheckboxes already loaded: " + partnerMenu.menuDiv)
@@ -373,13 +383,13 @@ function displaypartnerCheckboxes(partnerMenu,menuDataset) { // For Layer Icon o
                         }
                     }
                     partnerCheckboxes += '<div class="layerSectionAccess user-' + menuaccess + '" id="' + formatLinkId(item.section,item.title + "_parent") + '" style="display:none">'; //  onmouseleave="hideMenuNav(this.id)"
-                    partnerCheckboxes += '<div ' + layerSectionDisplay + ' id="' + formatLinkId(item.section,item.title) + '" class="dontsplit layerSection layerSectionOpen layerSection-' + item.section.toLowerCase().replace(/ /g,"-") + '" menulevel="' + menulevel + '" onmouseenter="showMenuNav(this.id)" onmouseleave="hideMenuNav(this.id)"><div style="clearX:both; pointer-events: auto;" data-layer-section="' + item.section + '"' + linktext + '" class="layerSectionClick" onclick="showSubmenu(this.parentElement.id)">';
+                    partnerCheckboxes += '<div ' + layerSectionDisplay + ' id="' + formatLinkId(item.section,item.title) + '" class="dontsplit layerSection layerSectionOpen layerSection-' + item.section.toLowerCase().replace(/ /g,"-") + '" menulevel="' + menulevel + '" onmouseenter="showMenuNav(this.id)" onmouseleave="hideMenuNav(this.id)"><div style="clearX:both; pointer-events: auto;" data-layer-section="' + item.section + '"' + linktext + ' class="layerSectionClick" onclick="showSubmenu(this.parentElement.id)">';
                     if (partnerMenu.showArrows) {
                         partnerCheckboxes += '<div class="sectionArrowHolder"><div class="leftArrow"></div></div>';
                     }
                     if (item.icon) {
                         if (item.icon.includes("<")) {
-                            partnerCheckboxes += '<div style="float:left;padding-right:10px;color:#4F4F4F">' + item.icon + '</div>';
+                            partnerCheckboxes += '<div class="layerSectionIconHtml">' + item.icon + '</div>';
                         } else {
                             partnerCheckboxes += '<img class="layerSectionIcon" src="' + item.icon + '" style="float:left; height:18px; padding-right:12px">';  
                         }

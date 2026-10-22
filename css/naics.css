@@ -1,10 +1,80 @@
 #detail_selection {
 	margin-bottom: 12px;
 }
+/* Right of the Area Industries title. The size of #geomapPer (search-filters.css), keeping the border, colors and arrow from the select rule in base.css */
+#industryTableControls {
+	margin-left: auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	font-weight: normal;
+}
+#industryTableControls #catyear,
+#industryTableControls #catsize {
+	box-sizing: border-box;
+	height: 26px;
+	min-height: 0; /* base.css gives every select a 32px min-height */
+	padding: 2px 28px 2px 10px; /* 2px since the 1px border is inside the 26px */
+	font-size: 13px;
+	line-height: 20px;
+	border-radius: 13px;
+}
 #econ_list {
 	max-width: 100%;
 	overflow-x: scroll;
 	overflow: auto;
+}
+/* Above #sector_list when it has purple estimated values (naics.js) */
+.sectorListLegend {
+	font-size: 13px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+}
+/* #catmethod while #sector_list has estimates, also for a state. navigation.js otherwise shows it only for counties. */
+.industry_filter_settings.hasEstimates .county-view {
+	display: block !important;
+}
+.industry_filter_settings.hasEstimates .state-view {
+	display: none !important;
+}
+.sectorListLegendSwatch {
+	color: #9933aa;
+	font-weight: 600;
+}
+.dark .sectorListLegendSwatch {
+	color: #d9a3f0; /* Matches the dark purple values below */
+}
+#tabulator-sectortable {
+	width: 100%;
+}
+/* GitHub | Log links after the row count choices in the Area Industries table footer (naics.js), in the text color.
+The auto margin keeps the paginator and row count choices together on the left. */
+#industries_details {
+	margin-left: auto;
+	padding-left: 12px;
+	font-size: 13px;
+	font-weight: normal;
+	white-space: nowrap;
+}
+#industries_details a, #industries_details a:visited {
+	color: inherit;
+}
+/* Opened by the Log link in the Area Industries table footer, below the table - the naicsTimingLog lines also sent to the inspector (naics.js) */
+.industryLoadTime {
+	margin-top: 10px;
+	font-size: 13px;
+	line-height: 1.6;
+	margin-bottom: 10px;
+	padding: 8px 12px;
+	background: #f4f4f4;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+}
+.dark .industryLoadTime {
+	background: #2a2a2a;
+	border-color: #555;
+	color: #ddd;
 }
 #sector_list {
 	display: table;
@@ -56,6 +126,16 @@
 	overflow: hidden;
 	max-height: 16px;
 }
+/* County and total columns. #sector_list isn't within .content, so links otherwise use the browser's dark blue. */
+.dark #sector_list .cell-right a:link, .dark #sector_list .cell-right a:visited {
+	color: #acb; /* Matches .dark .content links in base.css */
+}
+.dark #sector_list .cell-right span[style*="9933aa"] { /* Purple approximated values, set inline in naics.js */
+	color: #d9a3f0 !important;
+}
+.dark #sector_list .row:first-of-type .cell, .dark #sector_list .row:first-of-type .cell-right {
+	border-bottom-color: #555;
+}
 @media (max-width: 1400px) {
 	#impactIconsHolder {
 		width: 100%;
@@ -63,4 +143,65 @@
 }
 .region_service {
 	font-weight:1000;
+}
+/* The show topic above #regionService (navigation.js setShowTopic), larger when #regionService is empty */
+#showTopic {
+	font-size: 18px;
+	font-weight: 600;
+	margin-bottom: 2px;
+}
+#industryHeader:not(.hasSet):has(#regionService:empty) #showTopic,
+#industryHeader.hasTopicPlace #showTopic {
+	font-size: 32px;
+	font-weight: 400;
+}
+/* With a set and a topic, #showTopic reads "Parts Manufacturing in Georgia", so #regionService would repeat it */
+/* Without a set, #showTopic reads "Bioeconomy in Alaska" in place of #regionService ("Alaska - Bioeconomy") */
+#industryHeader.hasSetTopic #regionService,
+#industryHeader.hasTopicPlace #regionService {
+	display: none;
+}
+/* Opens the Topics menu (appview=topics) */
+#modelTopicsLink {
+	display: inline-block;
+	font-size: 13px;
+	margin-bottom: 2px;
+}
+/* #chooseLocation: a button per state when the hash has several (naics.js). The primary (first) state is highlighted. */
+#chooseLocation {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 12px 0 22px 0;
+}
+.choose-location-btn {
+	font-size: 14px;
+	padding: 5px 14px;
+	border-radius: 18px;
+	border: 1px solid #bbb;
+	background-color: #fff;
+	color: #333;
+	cursor: pointer;
+}
+.choose-location-btn:hover, .choose-location-btn:focus-visible {
+	background-color: #f0f0f0;
+}
+.choose-location-btn.active {
+	background-color: #235d39; /* --accent */
+	border-color: #235d39;
+	color: #fff;
+	font-weight: 600;
+}
+.dark .choose-location-btn {
+	background-color: transparent;
+	border-color: #555;
+	color: #eee;
+}
+.dark .choose-location-btn:hover, .dark .choose-location-btn:focus-visible {
+	background-color: rgba(255, 255, 255, 0.12);
+}
+.dark .choose-location-btn.active {
+	background-color: #66CF79;
+	border-color: #66CF79;
+	color: #111;
 }

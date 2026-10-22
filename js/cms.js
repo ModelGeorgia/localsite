@@ -1,5 +1,5 @@
-// Fetches the cms: block from the first available webroot.yaml and exposes
-// window.CMS_SITE_CONFIG + window.launchCMS for use by the CMS fork and page buttons.
+// Fetches the cms: block from the site config (support/site/config.yaml) and exposes
+// window.CMS_SITE_CONFIG + window.launchCMS for use by Sveltia CMS and page buttons.
 
 (function() {
   if (typeof window.defineLaunchCMS === 'function') {
@@ -35,6 +35,8 @@
         if (!key) continue;
         if      (key === 'app_title')     cfg.app_title = val;
         else if (key === 'inline_editor') cfg.inline_editor = (val === 'true');
+        else if (key === 'auth_base_url') cfg.auth_base_url = val;
+        else if (key === 'auth_endpoint') cfg.auth_endpoint = val;
         else if (key === 'logo' && !val)  { scope = 'logo'; logoIndent = indent; cfg.logo = {}; }
         else if (key === 'extra_css')     { scope = 'list'; listKey = 'extra_css'; listIndent = indent; }
         else if (key === 'extra_js')      { scope = 'list'; listKey = 'extra_js';  listIndent = indent; }
@@ -65,37 +67,41 @@
     }
   }
 
+  // Sveltia CMS sets <html data-theme> from its Appearance preference. While that's Auto (the default,
+  // which follows the system setting), follow the page's .dark mode instead. A Light or Dark choice in
+  // Sveltia's settings (data-auto-theming="false") is left alone.
+  function syncCmsTheme() {
+    var root = document.documentElement;
+    if (!document.body || root.dataset.autoTheming !== 'true') return;
+    var theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+    if (root.dataset.theme !== theme) root.dataset.theme = theme;
+  }
+  new MutationObserver(syncCmsTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-auto-theming'] });
+  document.addEventListener('sitelookchange', syncCmsTheme);
+  if (document.body) {
+    new MutationObserver(syncCmsTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+
   if (typeof window.loadWebrootYaml === 'function') {
     window.loadWebrootYaml().then(function(result) {
       if (result.text) applyCmsConfig(result.path, result.text);
     });
   } else {
     // standalone fallback when loaded without localsite.js
-    var WEBROOT_PATHS = ['/webroot.yaml', '/docker/webroot.yaml', '/cms/webroot.yaml'];
+    // model.earth serves the webroot repo's files from model.earth/webroot/
+    var SITE_CONFIG_PATH = (location.hostname === 'model.earth' || location.hostname === 'www.model.earth') ? '/webroot/support/site/config.yaml' : '/support/site/config.yaml';
     var SESSION_KEY = 'webrootYamlPath';
 
-    function tryPath(index) {
-      if (index >= WEBROOT_PATHS.length) { sessionStorage.setItem(SESSION_KEY, 'none'); return; }
-      fetch(WEBROOT_PATHS[index])
+    // TEMPORARY: model.earth ignores 'none', since it was saved before the config moved to /webroot/. Remove this exemption after Nov 1, 2026.
+    var ignoreNone = location.hostname === 'model.earth' || location.hostname === 'www.model.earth';
+    if (ignoreNone || sessionStorage.getItem(SESSION_KEY) !== 'none') {
+      fetch(SITE_CONFIG_PATH)
         .then(function(r) { return r.ok ? r.text() : null; })
         .then(function(text) {
-          if (text !== null) { sessionStorage.setItem(SESSION_KEY, WEBROOT_PATHS[index]); applyCmsConfig(WEBROOT_PATHS[index], text); }
-          else { tryPath(index + 1); }
+          if (text !== null) { sessionStorage.setItem(SESSION_KEY, SITE_CONFIG_PATH); applyCmsConfig(SITE_CONFIG_PATH, text); }
+          else { sessionStorage.setItem(SESSION_KEY, 'none'); }
         })
-        .catch(function() { tryPath(index + 1); });
-    }
-
-    var cached = sessionStorage.getItem(SESSION_KEY);
-    if (cached && cached !== 'none') {
-      fetch(cached)
-        .then(function(r) { return r.ok ? r.text() : null; })
-        .then(function(text) {
-          if (text !== null) { applyCmsConfig(cached, text); }
-          else { sessionStorage.removeItem(SESSION_KEY); tryPath(0); }
-        })
-        .catch(function() { sessionStorage.removeItem(SESSION_KEY); tryPath(0); });
-    } else if (cached !== 'none') {
-      tryPath(0);
+        .catch(function() { sessionStorage.setItem(SESSION_KEY, 'none'); });
     }
   }
 })();

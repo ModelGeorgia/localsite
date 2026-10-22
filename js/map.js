@@ -282,11 +282,8 @@ function loadMap1(calledBy, show, dp_incoming) {
     //location.href = "/localsite/info/#show=" + show;
   }
 
-  if (show == "farmfresh") { // In naics.js we also default to GA for this one topic // && theState
-    if (!theState) {
-      theState = "GA"; // Since there is not yet a national dataset for map. Using NY for shorter topics menu.
-      updateHash({"state":theState});
-    }
+  if (show == "farmfresh") {
+    // Farm data is per state, with no national dataset yet. Without a state, no dataset loads (rather than adding state=GA to the hash).
     dp.listTitle = "USDA Farm Produce";
     if (theState) {
       //if (location.host.indexOf('localhost') >= 0) {
@@ -492,7 +489,7 @@ function loadMap1(calledBy, show, dp_incoming) {
       } else if (show == "wastewater") {
         dp.listTitle = "Georgia Wastewater Facilities (2023)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.mapInfo = "View&nbsp;<a href='/recycling/georgia/'>Solid Waste and Recycling&nbsp;Datasets</a>.";
+        dp.mapInfo = "View&nbsp;<a href='" + webrootPath('/recycling/georgia/') + "'>Solid Waste and Recycling&nbsp;Datasets</a>.";
         // Wastewater tab. Path including gid from sheet's Share > Publish [choose tab]
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=2016874057&single=true&output=csv";
         
@@ -527,7 +524,7 @@ function loadMap1(calledBy, show, dp_incoming) {
       } else if (show == "landfills") {
         dp.listTitle = "Georgia Landfills (2017)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.mapInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a> to provide updates.<br>Source: <a href='https://epd.georgia.gov/about-us/land-protection-branch/solid-waste/regulated-solid-waste-facilities'>EPD Regulated Solid Waste</a>. &nbsp;View&nbsp;<a href='/recycling/georgia/'>Wastewater and Recycling&nbsp;Datasets</a>.";
+        dp.mapInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a> to provide updates.<br>Source: <a href='https://epd.georgia.gov/about-us/land-protection-branch/solid-waste/regulated-solid-waste-facilities'>EPD Regulated Solid Waste</a>. &nbsp;View&nbsp;<a href='" + webrootPath('/recycling/georgia/') + "'>Wastewater and Recycling&nbsp;Datasets</a>.";
 
         // From Landfills tab (temporary until Solid Waste ready)
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=2088666243&single=true&output=csv";
@@ -552,7 +549,7 @@ function loadMap1(calledBy, show, dp_incoming) {
       } else if (show == "solidwaste") {
         dp.listTitle = "Georgia Solid Waste (Oct 2023)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.mapInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a> to provide updates. Source: <a href='https://epd.georgia.gov/about-us/land-protection-branch/solid-waste/regulated-solid-waste-facilities'>EPD Regulated Solid Waste</a>. &nbsp;View&nbsp;<a href='/recycling/georgia/'>More&nbsp;Recycling&nbsp;Datasets</a>.";
+        dp.mapInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a> to provide updates. Source: <a href='https://epd.georgia.gov/about-us/land-protection-branch/solid-waste/regulated-solid-waste-facilities'>EPD Regulated Solid Waste</a>. &nbsp;View&nbsp;<a href='" + webrootPath('/recycling/georgia/') + "'>More&nbsp;Recycling&nbsp;Datasets</a>.";
       
         // From Solid Waste 2023-10 tab
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=1567915085&single=true&output=csv";
@@ -573,7 +570,7 @@ function loadMap1(calledBy, show, dp_incoming) {
       } else if (show == "solidwaste-old") { // This tab can be deleted in Google Sheet
         dp.listTitle = "Georgia Solid Waste (Old)";
         dp.editLink = "https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing";
-        dp.mapInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a> to provide updates. Source: <a href='https://epd.georgia.gov/about-us/land-protection-branch/solid-waste/regulated-solid-waste-facilities'>EPD Regulated Solid Waste</a>. &nbsp;View&nbsp;<a href='/recycling/georgia/'>More&nbsp;Recycling&nbsp;Datasets</a>.";
+        dp.mapInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing' target='georgia_recyclers_sheet'>Google&nbsp;Sheet</a> to provide updates. Source: <a href='https://epd.georgia.gov/about-us/land-protection-branch/solid-waste/regulated-solid-waste-facilities'>EPD Regulated Solid Waste</a>. &nbsp;View&nbsp;<a href='" + webrootPath('/recycling/georgia/') + "'>More&nbsp;Recycling&nbsp;Datasets</a>.";
       
         // From "Solid Waste Old" tab
         dp.googleCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBRXb005Plt3mmmJunBMk6IejMu-VAJOPdlHWXUpyecTAF-SK4OpfSjPHNMN_KAePShbNsiOo2hZzt/pub?gid=809637033&single=true&output=csv";
@@ -596,8 +593,8 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.listTitle = "GDEcD Team Map";
         dp.dataTitle = "GDEcD Team Map";
         dp.datatype = "csv";
-        dp.dataset1 = "/display/team/map/cities.csv";
-        dp.dataset =  "/team/projects/map/cities.csv";
+        dp.dataset1 = webrootPath("/display/team/map/cities.csv");
+        dp.dataset =  webrootPath("/team/projects/map/cities.csv");
         dp.markerType = "google";
         dp.nameColumn = "city";
         dp.search = {"In City": "City", "In County Name": "County"};
@@ -696,7 +693,7 @@ function loadMap1(calledBy, show, dp_incoming) {
           //dp.nameColumn = "organizationname";
           //dp.titleColumn = "organizationname";
 
-          dp.mapInfo = "<span>View <a href='/recycling/georgia/'>Recycling Datasets</a>.</span><br>Submit updates by posting comments in our 5 <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing'>Google Sheet Tabs</a>.";
+          dp.mapInfo = "<span>View <a href='" + webrootPath('/recycling/georgia/') + "'>Recycling Datasets</a>.</span><br>Submit updates by posting comments in our 5 <a href='https://docs.google.com/spreadsheets/d/1YmfBPEFpfmaKmxcnxijPU8-esVkhaVBE1wLZqPNOKtY/edit?usp=sharing'>Google Sheet Tabs</a>.";
           
           //dp.latColumn = "latitude";
           //dp.lonColumn = "longitude";
@@ -733,7 +730,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         // Dark green map points indicate electric vehicle parts manufacturing.<br>
         dp.mapInfo = "From 2020 to 2022 Georgia added more than 20 EV-related projects. <a href='https://www.georgiatrend.com/2022/07/29/electric-revolution/'>Learn&nbsp;more</a>";
         // <br>Dark Green: Electric Vehicle (EV) Industry<br>Lite Green: Potential EV Parts Manufacturer<br>Dark Blue: Internal Combustion Engine (ICE)
-        dp.listInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing' target='vehicles_data'>Google Sheet</a> to submit updates. <a href='/localsite/info/input/'>Contact Us</a> to become an editor. Learn about <a href='../../community/projects/mobility/'>data&nbsp;sources</a>.";
+        dp.listInfo = "Post comments in our <a href='https://docs.google.com/spreadsheets/d/1OX8TsLby-Ddn8WHa7yLKNpEERYN_RlScMrC0sbnT1Zs/edit?usp=sharing' target='vehicles_data'>Google Sheet</a> to submit updates. <a href='" + localsitePath('info/input/') + "'>Contact Us</a> to become an editor. Learn about <a href='../../community/projects/mobility/'>data&nbsp;sources</a>.";
         dp.valueColumn = "ev industry";
         dp.valueColumnLabel = "EV Industry";
         dp.markerType = "google";
@@ -789,7 +786,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         // Fulton County 5631 restaurants
         dp.listTitle = "Restaurant Ratings";
         dp.dataTitle = "Restaurant Ratings";
-        dp.dataset = "/community/tools/map.csv";
+        dp.dataset = webrootPath("/community/tools/map.csv");
         dp.latitude = 32.9;
         dp.longitude = -83.4; 
         dp.name = "Fulton County Restaurants";
@@ -802,7 +799,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.latColumn = "latitude";
         dp.lonColumn = "longitude";
 
-        dp.dataset = "/community/farmfresh/usa/georgia/fulton_county_restaurants.csv"; // Just use 50
+        dp.dataset = webrootPath("/community/farmfresh/usa/georgia/fulton_county_restaurants.csv"); // Just use 50
         dp.dataTitle = "Restaurant Scores";
         dp.titleColumn = "restaurant";
         dp.mapInfo = "Fulton County";
@@ -815,7 +812,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         // CURBSIDE PICKUP
         dp.listTitle = "Restaurants with Curbside Pickup";
         dp.mapInfo = "Data provided by coastapp.com. <a href='https://coastapp.com/takeoutcovid/atl/' target='_blank'>Make Updates</a>";
-        dp.dataset = "/community/places/usa/ga/restaurants/atlanta-coastapp.csv";
+        dp.dataset = webrootPath("/community/places/usa/ga/restaurants/atlanta-coastapp.csv");
         dp.dataTitle = "Curbside Pickup";
         // 
         dp.markerType = "google";
@@ -840,7 +837,7 @@ function loadMap1(calledBy, show, dp_incoming) {
 
         dp.listTitle = "Businesses";
         dp.dataTitle = "Businesses";
-        dp.dataset = "/apps/benchmarks/data/beyond_businesses.csv";
+        dp.dataset = webrootPath("/apps/benchmarks/data/beyond_businesses.csv");
         dp.latitude = 32.71;
         dp.longitude = -117.16;
         dp.zoom = 11;
@@ -852,7 +849,7 @@ function loadMap1(calledBy, show, dp_incoming) {
         dp.nameColumn = "Name";
         dp.listTitle = "Buildings";
         dp.dataTitle = "Buildings";
-        dp.dataset = "/apps/benchmarks/data/beyond_carbon.csv";
+        dp.dataset = webrootPath("/apps/benchmarks/data/beyond_carbon.csv");
         dp.latitude = 32.71;
         dp.longitude = -117.16;
         dp.zoom = 11;
@@ -1129,6 +1126,60 @@ let subcatObject = {};
 let subcatArray = [];
 let subcatList = "";
 
+// The first of the candidate column names in the dataset, as the data spells it (matched ignoring case), or "".
+// Only columns with a value in the first 100 rows.
+function findDataColumn(dp, candidates) {
+  const rows = (dp.data || []).slice(0, 100);
+  if (!rows.length) return "";
+  const columns = Object.keys(rows[0]);
+  for (const candidate of candidates) {
+    const column = candidate && columns.find(col => col.toLowerCase() == String(candidate).toLowerCase());
+    if (column && rows.some(row => String(row[column] || "").trim())) return column;
+  }
+  return "";
+}
+
+// The dataset's title and description columns, as showList() displays them, for a keyword search with no columns checked.
+function defaultSearchColumns(dp) {
+  const titleColumn = findDataColumn(dp, [dp.titleColumn, dp.nameColumn, "name", "title"]);
+  const descriptionColumn = findDataColumn(dp, [dp.description, "description", "business description"]);
+  return [titleColumn, descriptionColumn].filter(Boolean);
+}
+
+// Search checkbox choices: {label: column}. The description column first, then the dataset's dp.search columns,
+// followed by the title and other useful columns in the data that dp.search leaves out.
+function searchColumnChoices(dp) {
+  let choices = {};
+  const descriptionColumn = findDataColumn(dp, [dp.description, "description", "business description"]);
+  if (descriptionColumn) {
+    // Keeps dp.search's label when it has the description column
+    const searchLabel = Object.keys(dp.search || {}).find(label => String(dp.search[label]).toLowerCase() == descriptionColumn.toLowerCase());
+    choices[searchLabel || "In Description"] = descriptionColumn;
+  }
+  Object.assign(choices, dp.search);
+  const listed = Object.values(choices).map(col => String(col).toLowerCase());
+  function addChoice(column) {
+    if (!column || listed.includes(column.toLowerCase())) return;
+    listed.push(column.toLowerCase());
+    choices["In " + capitalizeFirstLetter(column)] = column;
+  }
+  defaultSearchColumns(dp).forEach(addChoice);
+  [
+    [dp.catColumn, "category"],
+    [dp.subcatColumn, "subcategory"],
+    [dp.valueColumn],
+    [dp.itemsColumn, "products", "items"],
+    [dp.keywords, "keywords", "tags"],
+    ["type"],
+    [dp.addressColumn, "address", "street"],
+    ["city"],
+    [dp.countyColumn, "county"],
+    ["zip", "zip code", "postal code"],
+    ["website", "website url", "url"]
+  ].forEach(candidates => addChoice(findDataColumn(dp, candidates)));
+  return choices;
+}
+
 function showList(dp,map) {
   console.log("showList");
   console.log("Call showList for " + dp.dataTitle + " list");
@@ -1178,7 +1229,8 @@ function showList(dp,map) {
   console.log("Clear prior list results");
   $("#detaillist").text(""); // Clear prior results
   $("#detaillist").remove(); // Used to trigger waitfor
-  if (dp.search && $("#activeLayer").text() != dp.dataTitle) { // Only set when active layer changes, otherwise selection overwritten on change.
+  const searchChoices = searchColumnChoices(dp); // dp.search plus the data's title, description and other useful columns
+  if (Object.keys(searchChoices).length && $("#activeLayer").text() != dp.dataTitle) { // Only set when active layer changes, otherwise selection overwritten on change.
     let search = [];
     if (param["search"]) {
       search = param["search"].replace(/\+/g," ").toLowerCase().split(",");
@@ -1188,7 +1240,7 @@ function showList(dp,map) {
       //alert("Render checkboxes " + hash.show + " priorHash.show " + priorHash.show);
       let checkCols = "";
       let checked = "";
-      $.each(dp.search, function( key, value ) {
+      $.each(searchChoices, function( key, value ) {
         checked = "";
         if (search.length == 0) {
           checked = "checked"; // No hash value limiting to specific columns.
@@ -1273,13 +1325,25 @@ function showList(dp,map) {
   }
 
   let selected_col = [];
-  selected_col = $('.selected_col:checked').map(function() {return this.id;});
+  selected_col = $('.selected_col:checked').map(function() {return this.id;}).get();
   //let selected_columns_object = {}; // For count of each
 
   if (selected_col.length == 0 && keyword && keyword != allItemsPhrase && products_array.length == 0) {
-    $("#keywordFields").show();
-    if (location.host.indexOf('localhost') >= 0) {
-      alert("LOCAL: Please check at least one column to search.");
+    // Default to searching the dataset's title and description columns, and check their boxes
+    selected_col = defaultSearchColumns(dp);
+    selected_col.forEach(function(col) {
+      let checkbox = $('.selected_col').filter(function() {return this.id == col;});
+      if (!checkbox.length) { // The checkboxes were not rendered
+        $("#selected_col_checkboxes").append('<div><input type="checkbox" class="selected_col" name="in" id="' + col + '"><label for="' + col + '" class="filterCheckboxTitle"> In ' + col + '</label></div>');
+        checkbox = $('.selected_col').filter(function() {return this.id == col;});
+      }
+      checkbox.prop("checked", true);
+    });
+    if (selected_col.length == 0) {
+      $("#keywordFields").show();
+      if (location.host.indexOf('localhost') >= 0) {
+        alert("LOCAL: Please check at least one column to search.");
+      }
     }
   }
   var data_sorted = []; // An array of objects
@@ -1546,12 +1610,13 @@ function showList(dp,map) {
 
         //console.log('Search for "' + keyword.toLowerCase().replace(/\_/g," ") + '" - Fields to search: ' + JSON.stringify(dp.search));
         
-        if (typeof dp.search != "undefined") { // An object containing interface labels and names of columns to search.
+        if (selected_col.length > 0 || Object.keys(searchChoices).length) { // searchChoices is an object containing interface labels and names of columns to search.
 
           //console.log("Search in selected_col ")
           //console.log(selected_col)
 
-          $.each(dp.search, function( key, value ) { // Works for arrays and objects. key is the index value for arrays.
+          // The checked columns, otherwise all the search choices
+          $.each(selected_col.length > 0 ? selected_col : searchChoices, function( key, value ) { // Works for arrays and objects. key is the index value for arrays.
             //console.log(value + " " + elementRaw[value]);
             //selected_columns_object[key] = 0;
             if (elementRaw[value]) {
@@ -2189,7 +2254,7 @@ function showList(dp,map) {
           spreadsheetLink = " <a href='" + dp.editLink + "'>Google Sheet</a>";
         }
       }
-      $("#mainList").append("<b>Volunteer Project</b><br>" + subcatObject["null"].count + " " + hash.cat.toLowerCase() + " listings need a subcategory.<br><a href='/localsite/info/input/'>Contact us</a> to help update the " + spreadsheetLink + ".<br>");
+      $("#mainList").append("<b>Volunteer Project</b><br>" + subcatObject["null"].count + " " + hash.cat.toLowerCase() + " listings need a subcategory.<br><a href='" + localsitePath('info/input/') + "'>Contact us</a> to help update the " + spreadsheetLink + ".<br>");
       //  Volunteer
       $("#mainList").append("<br>");
     }
@@ -3057,6 +3122,12 @@ function loadDataset(whichmap,whichmap2,dp,basemaps1,basemaps2,attempts,callback
   });
 } // end function loadDataset
 
+// The active dataset id(s) for the layers hash: show, which may list several.
+function mapActiveLayerIds() {
+  const show = getHash().show || param.show || '';
+  return String(show).split(',').map(id => id.trim()).filter(Boolean);
+}
+
 // Move after processOutput once done creating
 function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) {
   //alert("renderMap " + whichmap);
@@ -3093,15 +3164,19 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
   if (!basemaps) {
     basemaps = {
       //'Grayscale' : L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
-      'Grayscale' : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-            maxZoom: 18, attribution: '<a href="https://neighborhood.org">Neighborhood.org</a> | <a href="http://openstreetmap.org">OpenStreetMap</a> | <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+      // CARTO light_all (place names built in) when window.cartoApiKey works, otherwise Esri Light Gray Canvas plus its labels. See cartoOrEsri in localsite.js.
+      'Grayscale' : cartoOrEsri('light_all', ['World_Light_Gray_Base', 'World_Light_Gray_Reference'], {attributionPrefix: '<a href="https://neighborhood.org">Neighborhood.org</a> | '}),
+      // Mapbox satellite needs window.mapboxAccessToken, which isn't set, so Esri World Imagery (no key) is used.
+      'Satellite' : L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            zIndex: MAP_BACKGROUND_ZINDEX,
+            maxZoom: 19, attribution: '<a href="https://neighborhood.org">Neighborhood.org</a> | Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
       }),
-      'Satellite' : L.tileLayer(mbUrl, {maxZoom: 25, id: 'mapbox.satellite', attribution: mbAttr}),
       //'Streets' : L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr}),
       'OpenStreetMap' : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          zIndex: MAP_BACKGROUND_ZINDEX,
           maxZoom: 19, attribution: '<a href="https://neighborhood.org">Neighborhood.org</a> | <a href="http://openstreetmap.org">OpenStreetMap</a> | <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
       }),
-      
+      ...darkBasemaps('<a href="https://neighborhood.org">Neighborhood.org</a> | '), // Dark Mode and Darker Mode, see localsite.js
     }
   }
 
@@ -3130,11 +3205,14 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
 
   } else {
     consoleLog("Initiate map " + mapDiv + " ");
-    overlays = { // This is universally available for both map1 and map2.
-      'Rail' : L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
-            minZoom: 2, maxZoom: 19, tileSize: 256, attribution: '<a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>'
-        }),
-    };
+    overlays = {}; // This is universally available for both map1 and map2. Transit checkboxes are added below.
+    if (whichmap == "map1") { // The lat, lon and level hash set the first view. Later loads use the dataset's view.
+      const hashView = mapViewFromHash();
+      if (hashView) {
+        mapCenter = hashView.center;
+        if (hashView.zoom) zoom = hashView.zoom;
+      }
+    }
     //var containerExists = L.DomUtil.get(map); // NOT NEEDED
 
     // https://help.openstreetmap.org/questions/12935/error-map-container-is-already-initialized
@@ -3152,15 +3230,30 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
         dragging: !L.Browser.mobile, 
         tap: !L.Browser.mobile
       });
-      layerControls[whichmap] = L.control.layers(basemaps, overlays, {position: 'bottomleft'}).addTo(map); // Init layer checkboxes (add checkbox later)
+      layerControls[whichmap] = createLayersControl(basemaps, overlays, {position: 'bottomleft'}).addTo(map); // Init layer checkboxes (add checkbox later)
+      syncMapTransitLayers(map, layerControls[whichmap], hash.state || param.state, whichmap == "map1"); // MARTA (state=GA), Public Transit, Freight Rail
+      const tilesHashKey = whichmap == "map1" ? "tiles" : "tiles2";
+      const hashBasemap = tilesFromHash(tilesHashKey, basemaps);
       if (onlineApp) {
         if (whichmap == "map2") {
-          basemaps["OpenStreetMap"].addTo(map);
+          basemaps[hashBasemap || "OpenStreetMap"].addTo(map);
         } else {
-          basemaps["Grayscale"].addTo(map); // Set the initial baselayer.
+          basemaps[hashBasemap || basemapForSitelook(basemaps, 'localsiteBasemap')].addTo(map); // Set the initial baselayer, Grayscale unless the viewer chose another.
+          trackBasemap(map, basemaps, 'localsiteBasemap'); // After the initial add, so it isn't saved as the viewer's choice
         }
       } else {
         $(".mapLoadingIcon").hide();
+      }
+      map.on('baselayerchange', function(e) {
+        if (map.switchingBasemap) return; // Light/dark swaps aren't the viewer's choice
+        goHashQuiet({[tilesHashKey]: mapTileKey(e.name)});
+      });
+      trackLocalsiteMapTitles(map, layerControls[whichmap], whichmap == "map1"); // Map Titles checkbox, last among the layers
+      if (whichmap == "map1") {
+        const control = layerControls[whichmap];
+        applyMapLayersFromHash(map, control, mapActiveLayerIds()); // Transit checkboxes. The dataset is checked when it's added.
+        trackMapLayersHash(map, control, mapActiveLayerIds);
+        trackMapView(map);
       }
       console.log("layerControls[whichmap]");
       console.log(layerControls[whichmap]);
@@ -3221,7 +3314,9 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
       console.log("Removing prior layer:", priorLayer, "from", whichmap);
       // Each map removes only its own prior layer to avoid removing newly added layers from the other map
       if (overlays[priorLayer]) {
+        map.restoringLayers = true; // Not the viewer unchecking it, so the layers hash stays as is
         map.removeLayer(overlays[priorLayer]);
+        map.restoringLayers = false;
       }
     }
     //alert("addOverlay - typeof overlays[dataTitle] " + typeof overlays[dataTitle])
@@ -3240,6 +3335,14 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
       
       //if (typeof overlays[dataTitle] != "object") { // Prevent adding duplicate checkbox
       if (1==1) { // Works for map2, but map1 is still not populated (and prior now gets deleted)
+        layerGroup.mapLayerId = dp.show || mapActiveLayerIds()[0]; // Id in the layers hash
+        // A reloaded dataset (after a state change, for example) replaces its earlier checkbox
+        layerControls[whichmap].getLayerItems().filter(item => item.layer !== layerGroup && item.layer.mapLayerId === layerGroup.mapLayerId).forEach(item => {
+          map.restoringLayers = true;
+          if (map.hasLayer(item.layer)) map.removeLayer(item.layer);
+          map.restoringLayers = false;
+          layerControls[whichmap].removeLayer(item.layer);
+        });
         layerControls[whichmap].addOverlay(layerGroup, dataTitle); // Add layer checkbox - works
         //if (whichmap == "map1") { // Temp
           addIcons(dp,map,whichmap,layerGroup,zoom,markerType); // Adds for both map1 and map2
@@ -3259,7 +3362,13 @@ function renderMap(dp,map,whichmap,parentDiv,basemaps,zoom,markerType,callback) 
       }
       if (overlays) {
         // Checks the box, which displays the layer. (Basically boxes and icons are ready at this point.)
-        map.addLayer(overlays[dataTitle]);
+        // On map1 the layers hash can leave the dataset unchecked, until a different dataset is shown.
+        const hashLayers = whichmap == "map1" ? getMapLayersFromHash() : null;
+        const showChanged = map.layersActiveId !== undefined && map.layersActiveId !== layerGroup.mapLayerId;
+        map.layersActiveId = layerGroup.mapLayerId;
+        if (!hashLayers || hashLayers.includes(layerGroup.mapLayerId) || showChanged) {
+          map.addLayer(overlays[dataTitle]);
+        }
       }
 
   }
@@ -3864,10 +3973,14 @@ function hashChangedMap() {
 
   let whatChanged = "";
   console.log("hashChangedMap: hash.show =", hash.show, ", priorHash.show =", priorHash.show);
-  if (hash.layers !== priorHash.layers) {
-    //applyIO(hiddenhash.naics);
-    whatChanged = "hashChangedMap() in map.js layers";
-  } else if (hash.show !== priorHash.show) {
+  if (hash.state !== priorHash.state) { // MARTA checkboxes come and go with GA
+    if (map1 && map1.hasLayer && layerControls.map1) syncMapTransitLayers(map1, layerControls.map1, hash.state || param.state);
+    if (map2 && map2.hasLayer && layerControls.map2) syncMapTransitLayers(map2, layerControls.map2, hash.state || param.state, false);
+  }
+  if (hash.layers !== priorHash.layers && hash.show === priorHash.show && map1 && map1.hasLayer && layerControls.map1) {
+    applyMapLayersFromHash(map1, layerControls.map1, mapActiveLayerIds()); // Checkboxes follow the layers hash without reloading
+  }
+  if (hash.show !== priorHash.show) {
     //applyIO(hiddenhash.naics);
     console.log("Show value changed from", priorHash.show, "to", hash.show);
     whatChanged = "hash.show hashChangedMap() in map.js";

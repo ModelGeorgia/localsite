@@ -17,17 +17,66 @@
     margin-right: 6px;
     min-height: 34px;
 }
-.hero-bucket #state_select, #hero-rect #state_select {
-  font-size: 24px;
-  max-width: 300px;
-  padding: 10px;
-  border-radius: 20px;
-}
 .dark .hero-bucket #state_select, .dark #hero-rect #state_select {
   color: #fff;
 }
 #hero-rect #state_select  {
   background-color: #000;
+}
+/* US regions menu and Map button above #state_select (navigation.js keeps #usregion_holder there) */
+#usregion_holder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+/* Sizes from .select-med (base.css) */
+#usregion_holder:has(+ #state_select[style*="display: none"]) {
+  display: none; /* Hidden with the state menu, e.g. in the earth and countries views */
+}
+#geoview_container #geoview_statelist #usregion_holder { /* Beats the :has() rule above. Stays above the state list there, where #state_select is always hidden */
+  display: flex;
+}
+.hero-bucket #usregion_holder, #hero-rect #usregion_holder {
+  margin-bottom: 10px;
+}
+.usregion-map {
+  flex-shrink: 0;
+  font-size: 16px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid #444;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+}
+.usregion-map:hover, .usregion-map:focus-visible {
+  background-color: #eee;
+}
+#geoview_statelist .usregion-map { /* The map is already showing there */
+  display: none;
+}
+/* The location panel's state list (#state_quick_list) replaces #state_select there.
+   !important beats the inline display from .show() in navigation.js. */
+#geoview_statelist #state_select {
+  display: none !important;
+}
+#geoview_statelist #usregion_select {
+  width: 220px; /* The max-width of #geoview_statelist select */
+}
+.dark .usregion-map, #hero-rect .usregion-map {
+  background-color: transparent;
+  border-color: #555;
+  color: #fff;
+}
+.dark .usregion-map:hover, .dark .usregion-map:focus-visible, #hero-rect .usregion-map:hover, #hero-rect .usregion-map:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+#hero-rect #usregion_select {
+  background-color: #000;
+}
+.dark .hero-bucket #usregion_select, .dark #hero-rect #usregion_select {
+  color: #fff;
 }
 .select-menu-arrow-holder {
     position:absolute; right:4px; top:4px;
@@ -384,6 +433,20 @@ input.filterClick[type="text"] {
     background: #e6e6e6;
 }
 
+/* Within the #draggableSearch popup (.popAdvanced in navigation.js), no longer a dropdown */
+#locationFilterPop #geoview_container {
+    position: static;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 8px;
+}
+.dark #locationFilterPop #geoview_container {
+    background: transparent;
+    box-shadow: none;
+}
+
 /* Dark mode */
 .dark #geoview_container {
     background: #2a2a2a;
@@ -587,9 +650,6 @@ input.filterClick[type="text"] {
         min-width: 100px;
         max-width: 100px;
     }
-    #geoview_select {
-      displayX: none;
-    }
 }
 @container (max-width: 400px) {
     #catSearchHolder {
@@ -671,26 +731,84 @@ input.filterClick[type="text"] {
 #geomapHolder {
   float:left;
   position: relative;
+  isolation: isolate; /* Keeps the z-index 1000 corner controls (close X, toggles, Leaflet) within the map, below the sticky #main-header */
 }
 #geomapHolder .hideAdvanced.close-X {
   position: absolute;
-  top: 6px;
-  right: 8px;
+  top: 8px;
+  left: 8px;
   padding: 0;
   margin: 0;
-  font-size: 14px;
-  color: #555;
-  width: 22px;
-  height: 22px;
+  font-size: 17px;
+  font-weight: 700;
+  -webkit-text-stroke: 0.7px currentColor; /* The ✕ glyph has one weight, so the stroke thickens it */
+  color: #fff;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
+  background-color: rgb(85, 85, 85);
   z-index: 1000;
 }
-.dark #geomapHolder .hideAdvanced.close-X {
-  background: rgba(34, 34, 34, 0.5);
+#geomapHolder .geomapTopRight {
+  position: absolute;
+  top: 4px;
+  right: 6px; /* The close X moved to the left */
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#geomapHolder .multipleToggles {
+  display: flex; /* No line box below the inline-block toggle, so #geomapPer can match its height */
+}
+#geomapHolder #geomapPer {
+  -webkit-appearance: none;
+  appearance: none; /* The native arrow covered the end of the text */
+  box-sizing: border-box;
+  height: 26px; /* Matches .multipleToggle: 20px line-height plus 3px padding top and bottom */
+  min-height: 0; /* base.css gives every select a 32px min-height */
+  margin: 0;
+  padding: 3px 24px 3px 10px; /* Right padding keeps the text clear of the arrow */
+  font-size: 13px;
+  line-height: 20px;
+  color: #333;
+  border: 0;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.9) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23333'/%3E%3C/svg%3E") no-repeat right 9px center;
+  cursor: pointer;
+}
+#geomapHolder #geomapPer:focus,
+#geomapHolder #geomapPer:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.dark #geomapHolder #geomapPer {
+  background-color: rgba(34, 34, 34, 0.8);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23fff'/%3E%3C/svg%3E");
+  color: #fff;
+}
+#geomapHolder .multipleToggle {
+  display: inline-block;
+  margin: 0;
+  padding: 3px 10px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #333;
+  white-space: nowrap;
+  border-radius: 13px;
+  background-color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+#geomapHolder .multipleToggle input {
+  margin: 0 4px 0 0;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.dark #geomapHolder .multipleToggle {
+  background-color: rgba(34, 34, 34, 0.3);
   color: #fff;
 }
 @media (max-width: 1350px) {
@@ -759,6 +877,104 @@ input.filterClick[type="text"] {
 #honeycombPanel {
     text-align: center;
     margin:0 auto;
+}
+/* No bottom space below the app menu, so the impact set buttons (#navImpactIcons) follow it closely */
+#bigThumbPanelHolder,
+#bigThumbPanelHolder #honeycombPanelHolder,
+#bigThumbPanelHolder #honeycombPanel,
+#bigThumbPanelHolder #bigThumbMenu,
+#bigThumbPanelHolder #honeyMenuHolder {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+#bigThumbPanelHolder #bigThumbMenu {
+    margin-bottom: 10px; /* Before the impact set buttons */
+}
+/* The thumbnails and the impact set buttons share #topicsPanel's background (.lite) and padding,
+   which replaces the padding and bottom margin of .bigThumbMenuInner and .contentpadding .bigThumbMenu there */
+#topicsPanel {
+    padding: 15px 20px 0 20px; /* The buttons' 15px bottom margin is the bottom space */
+    display: flex; /* #topicsLeftColumn, then the layout buttons and close X (.bigThumbLayoutToggle) as the right column */
+    align-items: stretch;
+}
+#topicsLeftColumn {
+    flex: 1;
+    min-width: 0;
+}
+#bigThumbPanelHolder .bigThumbMenuInner.layoutStack {
+    margin-bottom: 10px; /* Below the rectangles */
+}
+#bigThumbPanelHolder .bigThumbMenuInner {
+    padding: 0;
+    margin-bottom: 0;
+    /* A container query container is the containing block for absolute children, which would keep the right column
+       on the grid. Its @container rules are for the narrow right-side panel, so they aren't needed in the Topics menu. */
+    container-type: normal;
+}
+/* In the Topics menu, the close X and the list and circles buttons (X first) are the right column of #topicsPanel's
+   flex row, after #topicsLeftColumn (navigation.js placeThumbLayoutToggle). The line between the columns runs from
+   the panel's top to its bottom, beside the thumbnails and the impact set buttons. */
+#bigThumbPanelHolder .bigThumbMenu > .bigThumbMenuInner {
+    flex: 1;
+    min-width: 0;
+}
+#bigThumbPanelHolder .bigThumbLayoutToggle {
+    flex: none;
+    align-self: stretch; /* Full height of #topicsPanel's row */
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    margin: -15px -11px 0 6px; /* Up through #topicsPanel's 15px top padding, and into its 20px right padding */
+    padding: 15px 0 0 6px;
+    border-left: 1px solid #ccc;
+}
+.dark #bigThumbPanelHolder .bigThumbLayoutToggle {
+    border-left-color: #888; /* #555 barely showed against the dark panel */
+}
+#bigThumbPanelHolder .bigThumbLayoutToggle .hideApps.close-X {
+    order: -1; /* navigation.js appends the X after the layout buttons */
+    margin: 0 0 6px 0;
+    padding: 4px;
+}
+#bigThumbPanelHolder .bigThumbMenu {
+    padding-top: 0;
+}
+@media (max-width: 600px) {
+    #topicsPanel {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    #bigThumbPanelHolder .bigThumbMenuInner {
+        padding-top: 0; /* .bigThumbMenuInner's 40px held the buttons, now in the right column */
+    }
+}
+/* Grid layout in the Topics menu: the columns stretch to fill the width beside the right column of buttons,
+   rather than fixed 180px cells (floated, or a set number of columns) leaving space on the right.
+   Each circle stays centered in its cell. */
+#bigThumbPanelHolder .bigThumbMenuInner:not(.layoutStack) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    width: 100%;
+    margin-bottom: 15px; /* Extra space after the circle thumbnails */
+}
+#bigThumbPanelHolder .bigThumbMenuInner:not(.layoutStack) .bigThumbMenuContent {
+    display: block;
+    float: none;
+}
+#bigThumbPanelHolder .bigThumbMenuInner:not(.layoutStack) .bigThumbWidth {
+    width: 100%;
+}
+/* Less space under the thumbnail titles (.bigThumbWidth is 170px tall).
+   .bigThumbHolder (absolute, 180px) matches, so the last row doesn't overflow its cell. */
+#bigThumbPanelHolder .bigThumbMenuInner:not(.layoutStack) .bigThumbWidth,
+#bigThumbPanelHolder .bigThumbMenuInner:not(.layoutStack) .bigThumbHolder {
+    height: 150px;
+}
+/* No scrolling in the Topics menu: the menu grows to fit the thumbnails.
+   #honeycombPanelHolder (display:flow-root in template-main.html) contains the floats. */
+#bigThumbPanelHolder .bigThumbMenu,
+#bigThumbPanelHolder .bigThumbMenuInner {
+    overflow: visible;
 }
 .bigThumbWidth { /* allows margin to reside within percent */
     floatX:left;
@@ -874,12 +1090,14 @@ input.filterClick[type="text"] {
   width: 18px;
 
   background-color: #fff;
-  border-radius: 50%;
-  border: 1px solid #888;
-  display: inline-block;
+  border-radius: 50%; /* No border in light mode, which would narrow the white ring around .bigThumbSelected */
+  display: flex; /* Centers .bigThumbSelected, which was off center where the text is left aligned (stack layout) */
+  align-items: center;
+  justify-content: center;
 }
 .bigThumbSelected {
-  margin-top: 2px;
+  margin: 0;
+  flex-shrink: 0;
   height: 12px;
   width: 12px;
   background-color: #ddd;
@@ -887,7 +1105,7 @@ input.filterClick[type="text"] {
   display: inline-block;
 }
 .bigThumbActive .bigThumbSelected {
-  background-color: blue;
+  background-color: var(--accent-orange, #F59E0B);
 }
 .bigThumbSecondary {
     color: #fff;
@@ -899,6 +1117,22 @@ input.filterClick[type="text"] {
     display: flex;
     justify-content: center;
     border-bottomX: 1px solid #eee;
+}
+.dark #bigThumbMenu .bigThumbHolder,
+.dark #bigThumbMenu .bigThumbHolder a:link,
+.dark #bigThumbMenu .bigThumbHolder a:visited {
+  color: #bbb;
+}
+.dark #bigThumbMenu .bigThumbHolder:hover,
+.dark #bigThumbMenu .bigThumbHolder a:link:hover,
+.dark #bigThumbMenu .bigThumbHolder a:visited:hover {
+  color: #fff;
+}
+.dark #bigThumbMenu .bigThumbSelected {
+  background-color: #777;
+}
+.dark #bigThumbMenu .bigThumbActive .bigThumbSelected {
+  background-color: orange;
 }
 .bigThumbMenuInner {
   display: grid;
@@ -934,6 +1168,13 @@ input.filterClick[type="text"] {
 .bigThumbLayoutToggle .bigThumbLayoutBtn.active {
   opacity: 1;
 }
+.bigThumbLayoutToggle .bigThumbLayoutBtn[data-layout="circles"] {
+  transform: rotate(90deg) scale(1.15); /* drag_indicator's 6 dots, 3 across. scale sizes the dots without changing the button's space. */
+  color: #888; /* Lighter grey */
+}
+.dark .bigThumbLayoutToggle .bigThumbLayoutBtn[data-layout="circles"] {
+  color: inherit;
+}
 .bigThumbLayoutToggle .hideApps.close-X {
   position: static;
   padding: 0 4px;
@@ -942,6 +1183,19 @@ input.filterClick[type="text"] {
   display: flex;
   align-items: center;
   margin-left: 4px;
+}
+/* Larger touch targets on a narrow screen */
+@media (max-width: 600px) {
+  .bigThumbLayoutToggle .bigThumbLayoutBtn {
+    font-size: 32px;
+    padding: 6px;
+  }
+  .bigThumbLayoutToggle .hideApps.close-X {
+    font-size: 28px;
+  }
+  #bigThumbPanelHolder .bigThumbLayoutToggle {
+    margin-right: 0px; /* Rather than -11px into the panel's right padding */
+  }
 }
 /* When #bigThumbMenuInner itself is narrow (e.g., in the right-side panel),
    force .bigThumbMenuContent to two columns regardless of viewport width. */
@@ -975,12 +1229,14 @@ input.filterClick[type="text"] {
     width: 100%;
   }
 }
-/* Stack layout: each row is a large title with a small circle icon on the left.
+/* Stack layout (data-layout="stack"): each row is a rectangle with the image behind the title,
+   a dark band behind the title, and the radio button in the upper left corner as in the grid layout.
    Wraps into multiple columns when the container is wide. */
 .bigThumbMenuInner.layoutStack {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* navigation.js balanceStackColumns() reduces columns to avoid blank space */
   column-gap: 8px;
+  row-gap: 8px; /* Space after each row of rectangles */
 }
 .bigThumbMenuInner.layoutStack .bigThumbMenuContent {
   float: none;
@@ -988,9 +1244,6 @@ input.filterClick[type="text"] {
   display: block;
   padding: 4px 8px;
   box-sizing: border-box;
-}
-.bigThumbMenuInner.layoutStack .bigThumbStatus {
-  display: none;
 }
 /* Hide the close-X when bigThumbMenuInner has been moved into the Settings panel */
 #listingsPanel .bigThumbLayoutToggle .hideApps {
@@ -1009,40 +1262,91 @@ input.filterClick[type="text"] {
 .bigThumbMenuInner.layoutStack .bigThumbHolder > a {
   position: relative;
   display: flex;
-  align-items: center;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 12px;
+  align-items: flex-end; /* The title band sits along the bottom, clear of the radio button */
   width: 100%;
+  aspect-ratio: 5 / 2; /* Height follows the column width */
+  min-height: 90px;
+  max-height: 180px;
   top: auto; right: auto; left: auto; bottom: auto;
-  padding: 4px 0;
+  padding: 0;
+  border-radius: 6px;
+  overflow: hidden;
 }
+/* The image fills the rectangle behind the title */
 .bigThumbMenuInner.layoutStack .bigThumb {
-  width: 36px;
-  height: 36px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
-  flex-shrink: 0;
-  opacity: 1;
-  position: relative;
+  border-radius: 0;
+  opacity: 1; /* The former hover look is the default */
 }
+/* Hover darkens the image and the title band */
+.bigThumbMenuInner.layoutStack .bigThumbHolder > a:hover .bigThumb {
+  opacity: 1;
+  filter: brightness(0.75);
+}
+.bigThumbMenuInner.layoutStack .bigThumbHolder > a:hover .bigThumbText {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+/* Dark band spanning the rectangle behind the title */
 .bigThumbMenuInner.layoutStack .bigThumbText {
-  font-size: 18px;
-  padding-top: 0;
-  text-align: left;
+  position: relative;
+  z-index: 1;
   flex: 1;
+  font-size: 18px;
+  font-weight: 400;
+  padding: 6px 12px;
+  text-align: left;
+  color: #fff !important; /* Over the link colors of .bigThumbHolder a */
+  background-color: rgba(0, 0, 0, 0.55);
 }
 .bigThumbMenuInner.layoutStack .bigThumbSecondary {
   display: none;
 }
+/* Radio button in the upper left corner over the image */
 .bigThumbMenuInner.layoutStack .bigThumbStatus {
-  top: 50%;
-  left: 50%;
+  top: 6px;
+  left: 6px;
   right: auto;
-  transform: translate(-50%, -50%);
+  z-index: 2;
 }
 @media (max-width: 600px) {
   .bigThumbMenuInner {
     padding: 40px 0 0 0;
+  }
+  /* One column of rectangles. !important beats the inline columns from balanceStackColumns() (navigation.js). The circles keep 2 columns. */
+  .bigThumbMenuInner.layoutStack {
+    grid-template-columns: 1fr !important;
+  }
+  /* Rectangles at 1/3 the height: 15 / 2 rather than 5 / 2 */
+  .bigThumbMenuInner.layoutStack .bigThumbHolder > a {
+    aspect-ratio: 15 / 2;
+    min-height: 30px;
+    max-height: 60px;
+  }
+  .bigThumbMenuInner.layoutStack .bigThumbHolder > a {
+    align-items: stretch; /* The title band covers the rectangle's full height */
+  }
+  .bigThumbMenuInner.layoutStack .bigThumbText {
+    display: flex;
+    align-items: center; /* Title centered vertically in the band */
+    padding-left: 36px; /* Clear of the radio button at the left */
+  }
+  .bigThumbMenuInner.layoutStack .bigThumbStatus {
+    top: 50%;
+    transform: translateY(-50%); /* Centered vertically */
+  }
+  /* The radio buttons keep their light look in dark mode here, over the dark band */
+  .dark #bigThumbMenu .bigThumbMenuInner.layoutStack .bigThumbStatus {
+    background-color: #fff;
+  }
+  .dark #bigThumbMenu .bigThumbMenuInner.layoutStack .bigThumbSelected {
+    background-color: #ddd;
+  }
+  .dark #bigThumbMenu .bigThumbMenuInner.layoutStack .bigThumbActive .bigThumbSelected {
+    background-color: var(--accent-orange, #F59E0B);
   }
 }
 .contentpadding .bigThumbMenuInner {
@@ -1276,8 +1580,4 @@ input.filterClick[type="text"] {
     }
 }
 
-@media (max-width: 600px) {
-    #geoview_select {
-        display: none !important;
-    }
-}
+/* #geoview_select stays visible on a narrow screen */

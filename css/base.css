@@ -42,7 +42,7 @@ Used in localsite, modelearth, io, neighborhood, trees
 }
 .dark {
     --bg-primary: #222;
-    --bg-secondary: #555;
+    --bg-secondary: #2b2926;
     --bg-tertiary: #374151;
     --text-secondary: #6B7280; /* too light for icons on team/projects */
     --text-secondary: #bbb;
@@ -57,7 +57,7 @@ Used in localsite, modelearth, io, neighborhood, trees
 }
 
 
-/* Shared theme layer for cms/themes/*.css overrides */
+/* Shared theme layer for css/themes/*.css overrides */
 :root {
   --bg-page: #fafafa;
   --bg-card: #ffffff;
@@ -178,6 +178,13 @@ Used in localsite, modelearth, io, neighborhood, trees
   --heatmap-warm-3: #5aabda;
   --heatmap-warm-4: #2e8cc7;
   --heatmap-warm-5: #084975;
+  /* Dark mode scale: near the dark card color at 0, brightest at 5 */
+  --heatmap-dark-0: #224a48;
+  --heatmap-dark-1: #1a6b6b;
+  --heatmap-dark-2: #2a9a9a;
+  --heatmap-dark-3: #42c0c0;
+  --heatmap-dark-4: #7dd3d3;
+  --heatmap-dark-5: #b8e6e6;
 }
 .dark {
   --bg-page: #111827;
@@ -330,11 +337,23 @@ header, footer {
 }
 .localonly {padding:20px; }
 svg{max-width:none;} /* Fix for embedding material icon map points in Drupal */
+/* Hides the icon names (auto_awesome, bolt...) until localsite.js adds .material-icons-loaded once the font loads */
+html:not(.material-icons-loaded) .material-icons {
+  display: inline-block;
+  visibility: hidden;
+  overflow: hidden;
+  width: 1em; /* The icon's loaded width, so the layout doesn't shift */
+  height: 1em;
+  line-height: 1;
+}
 
 @media (max-width: 800px) {
   .hideMobile {display:none;}
   .hideNarrow {display:none;} /* Not activated when rightSideTabs displayed */
   .showMobile {display:inline-block !important;}
+}
+@media (max-width: 880px) {
+  #upIconTrayText {display:none;}
 }
 @media (max-width: 1800px) {
   .bodyLeftMarginFull .hideMobileFull, .bodyLeftMarginList .hideMobileFull, .bodyMargin .hideMobileFull, .bodyRightMargin .hideMobileFull {display:none;}
@@ -458,6 +477,71 @@ body.dark {
     margin-left: 0px;
     float: none;
   }
+}
+/* Impact set buttons: #navImpactIcons in the top nav (template-main.html) and #impactIconsHolder (template-charts.html).
+   naics.js adds .active to the current set. */
+.impactIcons div {
+  float: left;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  width: 100px;
+  padding: 10px 20px;
+  margin: 0 15px 15px 0;
+  text-align: center;
+  border-radius: 25px;
+}
+.impactIcons div.active {
+  border: 4px solid #aaa;
+  padding: 7px 17px;
+}
+.impactIcons div:hover {
+  cursor: pointer;
+  background-color: rgba(33,33,33,.8);
+  color: #fff;
+}
+.dark .impactIcons div {
+  border-color: #666;
+}
+.dark .impactIcons div.active {
+  border-color: #999;
+}
+.dark #navImpactIcons .impactIcons div:not(.active) {
+  border-width: 2px; /* Thicker in dark mode. 1px less padding keeps the button size. */
+  padding: 9px 19px;
+}
+/* A wave across the Topics menu's impact buttons after a thumbnail's radio button is clicked (navigation.js) */
+#navImpactIcons.impactAttention .impactIcons div {
+  animation: impactAttention 0.7s ease-in-out;
+}
+#navImpactIcons.impactAttention .impactIcons div:nth-child(2) { animation-delay: 0.08s; }
+#navImpactIcons.impactAttention .impactIcons div:nth-child(3) { animation-delay: 0.16s; }
+#navImpactIcons.impactAttention .impactIcons div:nth-child(4) { animation-delay: 0.24s; }
+#navImpactIcons.impactAttention .impactIcons div:nth-child(5) { animation-delay: 0.32s; }
+#navImpactIcons.impactAttention .impactIcons div:nth-child(6) { animation-delay: 0.40s; }
+#navImpactIcons.impactAttention .impactIcons div:nth-child(7) { animation-delay: 0.48s; } /* All */
+#navImpactIcons.impactAttention .impactIcons div:nth-child(8) { animation-delay: 0.56s; } /* RealityStream (localhost) */
+@keyframes impactAttention {
+  0%, 100% { transform: none; box-shadow: none; }
+  50% { transform: translateY(-4px) scale(1.06); box-shadow: 0 0 0 3px rgba(102, 207, 121, 0.7); border-color: #66CF79; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes impactAttention {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 0 3px rgba(102, 207, 121, 0.7); border-color: #66CF79; }
+  }
+}
+/* Select sizes. Large: #state_select. Medium: #usregion_select. The right padding leaves room for the arrow. */
+.select-lg {
+  font-size: 24px;
+  max-width: 300px;
+  padding: 10px;
+  border-radius: 20px;
+}
+.select-med {
+  font-size: 16px;
+  max-width: 300px;
+  padding: 6px 32px 6px 14px;
+  border-radius: 20px;
 }
 /* Shared select dropdown — shielded arrow prevents long text overlapping the chevron */
 .ls-select {
@@ -783,6 +867,32 @@ h6 {
 .dark .MuiIconButton-root {
   color: #fff;
 }
+/* Rows per page and page count, below the inflow-outflow grid */
+.dark .MuiTablePagination-root,
+.dark .MuiTablePagination-root .MuiTypography-root,
+.dark .MuiTablePagination-root .MuiSelect-icon {
+  color: #ccc;
+}
+.dark .MuiTablePagination-root .MuiIconButton-root.Mui-disabled {
+  color: rgba(255, 255, 255, 0.3);
+}
+/* Search field in the inflow-outflow grid */
+.dark #outlined-basic {
+  color: #fff;
+}
+.dark #outlined-basic::placeholder {
+  color: #aaa;
+}
+.dark .MuiFormLabel-root[for="outlined-basic"],
+.dark .MuiFormLabel-root[for="outlined-basic"].Mui-focused {
+  color: #bbb;
+}
+.dark .MuiOutlinedInput-root:has(#outlined-basic) .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.dark .MuiOutlinedInput-root:has(#outlined-basic):hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.6);
+}
 .dark .sector-list a, .dark .sector-list a:visited {
   color: #fff;
 }
@@ -793,6 +903,11 @@ h6 {
   background-color: #333;
   border-bottom: 1px solid transparent;
 }
+/* tabulator.min.css sets #555 on the paginator, which only shows on hover against the dark footer */
+.dark .tabulator .tabulator-footer .tabulator-paginator,
+.dark .tabulator .tabulator-footer .tabulator-page {
+  color: #ddd;
+}
 .dark .tabulator .tabulator-tableholder .tabulator-table {
   background-color: #333;
   color: #fff;
@@ -801,8 +916,16 @@ h6 {
   background-color: #000;
   color: #fff;
 }
-.dark .tabulator .tabulator-header .tabulator-col:hover {
+.dark .tabulator .tabulator-header .tabulator-col:hover,
+.dark .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover { /* Beats the #cdcdcd hover in tabulator.min.css */
   background-color: #555;
+}
+.dark .tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=none] .tabulator-col-content .tabulator-col-sorter.tabulator-col-sorter-element .tabulator-arrow:hover,
+.dark .tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter.tabulator-col-sorter-element .tabulator-arrow:hover {
+  border-bottom-color: #ccc; /* The #555 sort arrow otherwise vanishes on the #555 hover */
+}
+.dark .tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter.tabulator-col-sorter-element .tabulator-arrow:hover {
+  border-top-color: #ccc;
 }
 sup {
   line-height: 0.8em;
@@ -885,7 +1008,7 @@ hr {
   padding-left: 18px;
   padding-right: 18px;
   font-size: 15px;
-  line-height: 1.55em;
+  line-height: 1.5em;
   /* position: relative; */  /* overlapped top filters */
 }
 .content pre {
@@ -911,7 +1034,7 @@ hr {
   text-decoration: none;
 }
 .content a:not(.btn):link, .content a:not(.btn):visited, .contentfull a:not(.btn):link, .contentfull a:not(.btn):visited, .content-color a:not(.btn):link, .content-color a:not(.btn):visited {
-  /* color: #0366d6; */
+  color: #0366d6;
 }
 .dark .content a:not(.btn):link, .dark .content a:not(.btn):visited, .dark .content-color a:not(.btn):link, .dark .content-color a:not(.btn):visited {
   color: #acb;
@@ -971,7 +1094,7 @@ hr {
   color:#fff;
 }
 .dark .darktext {
-  color:#aaa;
+  color: #888;
 }
 .bodyLeftMargin .contentpadding {
   padding-left: 30px;
@@ -1153,7 +1276,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 }
 .dark code, .dark .codetext {
   color: #ddd;
-  background-color: #111;
+  background-color: rgba(17, 17, 17, 0.4);
 }
 .link {
   color:#4091dd;
@@ -1206,8 +1329,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
 }
 #hero-rect {
   float: left;
-  background-color: rgba(255, 255, 255, 0.90);
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: rgba(33, 33, 33, 0.85); /* Matches #hero-mini */
   border-radius: 40px;
   max-width: 600px;
   padding: 30px 50px 25px 50px;
@@ -1259,7 +1381,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
     cursor: pointer;
 }
 .btn {
-  padding: 10px 20px;
+  padding: 6px 15px;
   background: var(--chip-bg);
   border: 1px solid var(--border-subtle);
   border-radius: var(--button-radius);
@@ -1366,7 +1488,7 @@ content .js, pre code, .codetext { /* Prevents .js from impacting js class withi
   background-color: #137AD1;
   border-color: #137AD1;
 }
-.btn-primary:visited {
+.btn-primary:visited, .btn-secondary:visited {
     color: #fff !important;
 }
 .btn-primary:hover {
@@ -2062,7 +2184,6 @@ a.btn-nice:visited {
   background: #666;
 }
 .dark .sideMenuColumn {
-  background: #444;
   color: #fff;
 }
 .dark .sideMenuColumn .layerSection {
@@ -2230,12 +2351,14 @@ body.dark .config-field select {
   border-color: rgba(148, 163, 184, 0.35);
 }
 .dark select {
-  background-color: #000;
   color: #fff;
   /* white arrow */
   background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="white" d="M7 10l5 5 5-5z"/></svg>') no-repeat right 5px center; /* Custom white arrow */
-  background-color: #888;
+  background-color: #444;
   margin-leftX: 1px; /* prevents border from being cropped when dropdown selected */
+}
+.dark select:hover {
+  background-color: #222;
 }
 
 .notdark {
@@ -2284,6 +2407,10 @@ body.dark .config-field select {
 #headerLogo {
   margin-right: 4.5px;
   float: left;
+}
+#headerLogo img { /* Keep the logo on one line when a CSS reset (e.g. Tailwind preflight) sets img to block */
+  display: inline;
+  max-width: none;
 }
 @media (max-width: 600px) {
   #headerLogo img {
@@ -3029,13 +3156,16 @@ h2 .num {
   background-colorX: var(--bg-primary);
 }
 #side-nav-content {
-  z-index: 4000;
+  z-index: 10150;
 }
 #side-nav-footer{
     flex-shrink: 0;
     margin-top: auto; /* Push to bottom */
     border-top: 1px solid var(--border-light);
     padding: 8px;
+}
+.side-nav-footer-bottom {
+    margin-bottom: 88px; /* Clears a fixed bottom bar (e.g. #mobileRailBar) that would otherwise cover this footer */
 }
 
 .sidebarX.collapsed {
@@ -3074,7 +3204,12 @@ body.sidebar-hovered {
 }
 
 .sidebar-toggle:hover {
-    background: var(--color-tertiary);
+    background: #e0e0e0;
+    color: var(--text-primary);
+}
+
+.dark .sidebar-toggle:hover {
+    background: #333;
     color: var(--text-primary);
 }
 
@@ -3199,10 +3334,16 @@ body.sidebar-hovered {
     overflow-y: auto;
     background-colorX: #efefef;
     background-colorX: rgb(250, 250, 250);
-    z-index: 10050;
+    /* position:fixed always makes this a stacking context, so the z-index values on
+       #side-nav-content and #main-nav only order them inside it. With z-index:auto, a later
+       fixed element with z-index:auto (explore's full-page .moduleBackground) paints over the nav.
+       It also caps the fixed #listcolumn child (z-index:1000), so this must exceed Leaflet's
+       panes (400-700) and .leaflet-top/.leaflet-bottom controls (1000), and the filter bar,
+       for the list to paint over #map1. Still below #mobileRailBar (10100). */
+    z-index: 1001;
 }
 .dark #side-nav-fixed {
-    background-color: #666667;
+    background-color: #363636; /* opaque: #44444533 looked light over pages without a dark body background */
 }
 #side-nav-content {
     flex: 1;
@@ -3417,6 +3558,7 @@ body.sidebar-hovered {
 .subnav-link:hover {
     background: var(--bg-tertiary);
     color: var(--text-primary);
+    text-decoration: none;
 }
 
 /* Dark mode hover styles - make nav and subnav hovers darker */
@@ -3761,21 +3903,11 @@ body.sidebar-hovered {
   }
 }
 .basePanel {
-    background: white;
     border-radius: var(--border-radius);
 }
 .basePanelTop {
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
-}
-.dark .basePanel {
-    background: #333;
-}
-.basePanelBackground { /* For control that overlap scrolling list */
-    background: white;
-}
-.dark .basePanelBackground {
-    background: #333;
 }
 /* Not needed for team/js/map.js widget
 
@@ -4047,13 +4179,11 @@ body.sidebar-hidden #openNav {
   border-color: #007bff;
   background: #f8f9fa;
 }
-.dark .menuToggleHolderInline {
-  background: #333;
-  border-color: #555;
-}
+/* No box in dark mode: the toggle's icon already sits in a circle */
+.dark .menuToggleHolderInline,
 .dark .menuToggleHolderInline:hover {
-  border-color: #007bff;
-  background: #444;
+  background: transparent;
+  border-color: transparent;
 }
 .menuToggleHolderMap {
   position: relative;
@@ -4082,11 +4212,12 @@ body.sidebar-hidden #openNav {
 .menuToggleHolderMap:hover::before {
   background: #333;
 }
+/* Dark mode: dark circle with a light arrow, visible over light and dark map tiles */
 .dark .menuToggleHolderMap::before {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.35);
 }
 .dark .menuToggleHolderMap:hover::before {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.6);
 }
 .menuToggleHolderMap .material-icons {
   transition: color 0.2s ease;
@@ -4096,8 +4227,11 @@ body.sidebar-hidden #openNav {
 .menuToggleHolderMap:hover .menu-toggle-arrow {
   color: white;
 }
+.dark .menuToggleHolderMap .menu-toggle-arrow {
+  color: #eee;
+}
 .dark .menuToggleHolderMap:hover .menu-toggle-arrow {
-  color: #aaa;
+  color: #fff;
 }
 /* Common circle background styling for menu toggle icons */
 .menuToggleHolderMap .material-icons.circle-bg {
@@ -4105,7 +4239,7 @@ body.sidebar-hidden #openNav {
   font-size: 34px;
 }
 .dark .menuToggleHolderMap .material-icons.circle-bg {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(32, 32, 32, 0.75);
 }
 /* Circle background for non-map panels */
 .menuIconHolder:not(.menuToggleHolderMap) .material-icons.circle-bg {

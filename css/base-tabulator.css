@@ -20,6 +20,11 @@
     border-right: 1px solid #fff;
     border-bottom: 1px solid #ccc;
 }
+/* 4px more than Tabulator's 4px padding to the left of the first column */
+.tabulator-row .tabulator-cell:first-child,
+.tabulator .tabulator-header .tabulator-col:first-child .tabulator-col-content {
+    padding-left: 8px;
+}
 /* Enables scrolling when top row set with frozenRows */
 .tabulator-tableHolder {
     overflow-x: scroll;
@@ -99,4 +104,78 @@
 }
 .tabulator .tabulator-header .tabulator-col {
     background-color: #eee;
+}
+/* Area Industries rows add or remove their naics in the URL hash when clicked (naics.js). Rows whose naics is in the hash get .industryRowChosen. */
+#tabulator-industrytable .tabulator-row {
+    cursor: pointer;
+}
+#tabulator-industrytable .tabulator-row.industryRowChosen {
+    background-color: #fff1bf;
+}
+#tabulator-industrytable .tabulator-row.industryRowChosen:hover {
+    background-color: #f7e39a !important;
+}
+.dark #tabulator-industrytable .tabulator-row.industryRowChosen .tabulator-cell {
+    background-color: #4d4422;
+}
+.dark #tabulator-industrytable .tabulator-row.industryRowChosen:hover .tabulator-cell {
+    background-color: #5c5129;
+}
+/* Tabulator paging from addTabulatorPaging() in localsite.js (Top US Industries, Electricity by State):
+paginator on the left, row count choices (.tabulatorPageSizes) on the right */
+.tabulatorPaging .tabulator-footer .tabulator-paginator {
+    text-align: left;
+}
+.tabulatorPaging .tabulatorPageSizes {
+    padding-left: 12px;
+    font-weight: normal;
+}
+.tabulatorPaging .tabulatorPageSizes .active {
+    font-weight: bold;
+}
+.dark .tabulatorPaging .tabulatorPageSizes a {
+    color: #9cf;
+}
+/* paginationButtonCount:0 leaves .tabulator-pages empty, but its 7px margins still add space beside the page popup */
+.tabulatorPaging .tabulator-footer .tabulator-pages {
+    display: none;
+}
+/* "Page 1" box. Its tabulator-page class gives it the look of the adjacent buttons. */
+.tabulatorPaging .tabulatorPageBox {
+    cursor: pointer;
+    white-space: nowrap;
+}
+/* Page list opened by the "Page 1" box. Added to the body, so not scoped to the table. */
+.tabulatorPageMenu {
+    position: absolute;
+    z-index: 1000;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px 0;
+    background: #fff;
+    color: #333;
+    border: 1px solid #aaa;
+    border-radius: 3px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    font-size: 14px;
+}
+.tabulatorPageMenu div {
+    padding: 4px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.tabulatorPageMenu div:hover {
+    background: #eee;
+}
+.tabulatorPageMenu div.active {
+    font-weight: bold;
+}
+.dark .tabulatorPageMenu {
+    background: #333;
+    color: #ddd;
+    border-color: #666;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+.dark .tabulatorPageMenu div:hover {
+    background: #444;
 }

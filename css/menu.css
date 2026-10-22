@@ -22,6 +22,9 @@
     text-transform: none;
     white-space: nowrap;
 }
+.dark .layerSectionClick .material-icons {
+	color: #ccc;
+}
 @media (max-width: 1100px) {
 	.sectionArrowHolder {
 		display: none;
@@ -72,6 +75,9 @@
 .layerCbRow:hover {
 	background: #ccc;
 	cursor: pointer;
+}
+.dark .layerCbRow:hover {
+	background: #444;
 }
 .sectionArrowHolder {
     float: right;
@@ -130,17 +136,31 @@
 	overflow: visible;
 	float: left; /* For ideMenuNav(id) */
 }
+.layerSectionIconHtml {
+	float: left;
+	padding-right: 10px;
+	color: #4F4F4F;
+}
+.dark .layerSectionClick .layerSectionIconHtml {
+	color: #ccc;
+}
 .sideMenuColumnWide .layerSectionTitle:hover {
 	background-color: #eee;
 	border-radius: 10px;
+}
+.dark .sideMenuColumnWide .layerSectionTitle:hover {
+	background-color: #444;
 }
 .sideMenuColumnNarrow .layerSectionTitle {
 	display: none;
 }
 
 .sideMenuColumnNarrow .layerSectionTitle {
+	display: none !important; /* !important beats menu.js's inline show()/hide(); only the hovered or open section pops out (below). */
+	white-space: nowrap;
 	font-size: 1.2em;
-	width: 160px; /* required for background color to be visible */
+	width: max-content; /* Fit the background to the text so long titles don't overflow past it and become invisible (white text on white page). */
+	min-width: 214px;
 	color: #fff;
 	background-color: #333;
 	margin-top: -8px;
@@ -151,6 +171,9 @@
 	border-top-right-radius: 2px;
  	border-top-right-radius: 22px;
 	border-bottom-right-radius: 22px;
+}
+.sideMenuColumnNarrow .layerSection:hover .layerSectionTitle, .sideMenuColumnNarrow .openMenu .layerSectionTitle {
+	display: inline-block !important;
 }
 .openMenu {
 	margin-bottom: 12px;
@@ -374,9 +397,12 @@
   margin-top: 0px;
 }
 
-/* Open nav icons when rolling over. Originally Bootstrap. */
-ul.nav li.dropdown:hover ul.dropdown-menu {
-    display: block;    
+/* Open nav icons when rolling over. Originally Bootstrap.
+   Matches .dropdown-menu regardless of tag, since some menus (e.g. the
+   topbar search box) use a div.dropdown-menu instead of ul.dropdown-menu. */
+ul.nav li.dropdown:hover .dropdown-menu,
+ul.nav li.dropdown:focus-within .dropdown-menu {
+    display: block;
 }
 .nav-pills .dropdown-menu {
     margin-top: 0px;
@@ -458,6 +484,10 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     -moz-border-radius: 5px;
     border-radius: 5px;
 }
+.nav-pills>li>a:hover {
+    background-color: #fff;
+    color: #333;
+}
 .nav-tabs>li>a, .nav-pills>li>a {
 	text-decoration: none;
     padding-right: 12px;
@@ -486,8 +516,10 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     min-width: 190px;
     padding-right: 0px;
 	border-right: 1px solid #ddd;
-	heightX: 100%;
 	top: var(--header-height);
+}
+.dark .main-nav {
+	border-right: 0;
 }
 @media (max-width: 600px) {
 	.main-nav {
@@ -610,6 +642,9 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     bottom:0;
     z-index:200; /* 1 allows border highlight to overlap adjacent content area. At least 101 is needed for OpenWebUI */
 }
+#main-nav {
+    z-index: 10001; /* Above ordinary page content but behind #mobileRailBar (z-index: 10100) */
+}
 @media (max-width: 600px) {
 	.sidecolumnLeft {
 	    font-size: 18px;
@@ -724,7 +759,10 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
-	overflow-y: auto; /* Allows #side-nav to avoid scrolling up, resulting in a space below #side-nav-footer */
+	/* Was overflow-y: auto (to keep #side-nav from scrolling up, leaving a space below #side-nav-footer).
+	   That made #main-layout a scroll container, which kept #main-header's position: sticky from working.
+	   clip trims sideways overflow the same way without being a scroll container. */
+	overflow-x: clip;
 }
 #main-container {
 	display: flex;
@@ -737,14 +775,14 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 	flex: 1 1 auto;
 	min-width: 0; /* Allow map/filter bar to shrink when sidebar opens */
 }
-.dark #main-container a:not(.btn):link, .dark #main-container a:not(.btn):visited {
-  color: #acb;
-}
 .dark #main-container  b a:link, .dark #main-container  b a:visited {
   color: #ccc;
 }
 .dark #main-container h1, .dark #main-container h2, .dark #main-container h3, .dark #main-container h4, .dark #main-container h5, .dark #main-container h6 {
   color: #ccc;
+}
+.dark #side-nav a:not(.btn):link, .dark #side-nav a:not(.btn):visited {
+	color: #aaa;
 }
 .navLinks a {
   height: 42px;
@@ -802,11 +840,10 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 #rightTopMenu select {
     width: 100%;
     max-width: 300px;
-    padding: 8px;
-    font-size: 16px;
+    padding: 10px;
+	font-size: 12.5pt;
     line-height: 1;
     border-radius: 6px;
-    font-size: 16pt;
     color: #ddd;
     background-color: #777;
     margin-right: 30px;
@@ -832,6 +869,9 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     position: relative;
     font-family: Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif; /* avoiding 'Nunito Sans' for menu */
 }
+.dark .menuExpanded {
+    background-color: #535353; /* opaque: #77777777 looked light over pages without a dark body background */
+}
 .menuExpanded h2, .menuExpanded h3, .menuExpanded h4 {
 	color: #ccc;
 }
@@ -853,6 +893,113 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 }
 .menuTitle {
   font-size:18pt;
+}
+/* Settings title with Back, Forward and Close icons on its right */
+.menuTitleRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.menuTitleIcons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.menuTitleIcons button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+  cursor: pointer;
+}
+.menuTitleIcons button:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.menuTitleIcons .material-icons {
+  font-size: 20px;
+}
+.dark .menuTitleIcons button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+}
+.dark .menuTitleIcons button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+/* Current URL, from the link icon. Fixed (placed under the icon by navigation.js) so it
+   can widen past the side panel to show the URL without wrapping. */
+.pageUrlPopup {
+  position: fixed;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 12px;
+  background: #3a3a3a;
+  color: #eee;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.pageUrlPopup[hidden] {
+  display: none;
+}
+.pageUrlRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+/* One line; scrolls sideways only when longer than the window */
+.pageUrlField {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+  user-select: text;
+  scrollbar-width: thin;
+}
+.pageUrlLabel {
+  font-size: 12px;
+  color: #bbb;
+}
+.copyPageField {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #eee;
+  cursor: pointer;
+}
+.copyPageField:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.copyPageField .material-icons {
+  font-size: 16px;
+}
+.dark .pageUrlPopup {
+  background: #2b2b2b;
 }
 .accountPanel {
     position:absolute;
@@ -893,10 +1040,11 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     max-width: none;
     min-width: 0;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
+	margin-top: 14px;
+	font-size: 15.8px;
 }
 .menuExpandedScroll .setOverflow {
-    float: none;
     display: block;
     width: 100%;
     min-width: 0;
@@ -908,12 +1056,17 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
 .menuExpandedScroll input[type="text"] {
     max-width: 300px;
 }
-/* navigation.js injects `.local{display:inline-block !important}` globally, which
+/* explore/css/site.css floats .layerSelector right, and a floated select honors the 30px margin-right
+   that the unfloated selects ignore, shifting #basemapSelector 30px left of the selects above it. */
+.menuExpandedScroll .layerSelector {
+    float: none;
+}
+/* On localhost, localsite.js injects `.local{display:inline-block !important}` globally, which
    shrink-fits the wrappers around #devmode / #onlinemode / #basemapSelector and
-   prevents their selects from reaching 100%. Force block layout inside this menu. */
+   prevents their selects from reaching 100%. Force block layout inside this menu.
+   .earth is left out: it's shown only by showClassInline(".earth") in navigation.js (Model Earth sites). */
 .menuExpandedScroll .dev,
 .menuExpandedScroll .local,
-.menuExpandedScroll .earth,
 .menuExpandedScroll .localonly {
     display: block !important;
     width: 100%;
@@ -1011,6 +1164,9 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     border-top-left-radius: 28px;
     border-bottom-left-radius: 28px;
 }
+.dark .rightTopItem.active {
+	background-color: #535353;
+}
 .rightTopItem i {
     width:37.5px;
     min-height: 36px;
@@ -1023,7 +1179,6 @@ ul.nav li.dropdown:hover ul.dropdown-menu {
     padding: 5px 3px 8px 2px;
     float:left;
     color: #fff;
-    font-size: 19px;
 }
 .rightTopItem .contactIcon {
     font-size: 30px !important;
